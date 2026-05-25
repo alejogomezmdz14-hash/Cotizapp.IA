@@ -8,33 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { requireUser } from "@/lib/profile";
+import {
+  formatCurrencyAmount,
+  formatDateOnly,
+  formatDateTime,
+} from "@/lib/formatting";
+import { getProfile, requireUser } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
-
-function formatAmount(value: number | null) {
-  return `$ ${new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0)}`;
-}
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Sin fecha";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Sin fecha";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
 
 function formatStatus(value: string | null) {
   if (!value) {
@@ -46,7 +26,10 @@ function formatStatus(value: string | null) {
 
 export default async function QuotationsPage() {
   const user = await requireUser();
-  const quotations = await getQuotations(user.id);
+  const [quotations, profile] = await Promise.all([
+    getQuotations(user.id),
+    getProfile(user.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -118,19 +101,22 @@ export default async function QuotationsPage() {
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Total estimado</p>
                   <p className="text-lg font-semibold">
-                    {formatAmount(quotation.total)}
+                    {formatCurrencyAmount(
+                      quotation.total,
+                      profile?.currency ?? null,
+                    )}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Valida hasta</p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatDate(quotation.valid_until)}
+                    {formatDateOnly(quotation.valid_until)}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Creada</p>
                   <p className="text-sm font-medium text-foreground">
-                    {formatDate(quotation.created_at)}
+                    {formatDateTime(quotation.created_at)}
                   </p>
                 </div>
                 <div className="md:col-span-3">

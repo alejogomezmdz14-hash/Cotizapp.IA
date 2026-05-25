@@ -6,18 +6,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCatalogItems } from "@/lib/catalog";
-import { requireUser } from "@/lib/profile";
-
-function formatAmount(value: number) {
-  return `$ ${new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
-}
+import { formatCurrencyAmount } from "@/lib/formatting";
+import { getProfile, requireUser } from "@/lib/profile";
 
 export default async function CatalogPage() {
   const user = await requireUser();
-  const items = await getCatalogItems(user.id);
+  const [items, profile] = await Promise.all([
+    getCatalogItems(user.id),
+    getProfile(user.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -79,7 +76,7 @@ export default async function CatalogPage() {
                     Precio base
                   </span>
                   <span className="text-lg font-semibold">
-                    {formatAmount(item.price)}
+                    {formatCurrencyAmount(item.price, profile?.currency ?? null)}
                   </span>
                 </div>
               </CardContent>
