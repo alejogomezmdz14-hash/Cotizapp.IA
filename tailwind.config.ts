@@ -12,38 +12,38 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: "var(--border)",
-        input: "var(--border)",
-        ring: "var(--accent)",
-        background: "var(--background)",
-        foreground: "var(--text-primary)",
+        border: "rgb(var(--border-rgb) / <alpha-value>)",
+        input: "rgb(var(--border-rgb) / <alpha-value>)",
+        ring: "rgb(var(--accent-rgb) / <alpha-value>)",
+        background: "rgb(var(--background-rgb) / <alpha-value>)",
+        foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         primary: {
-          DEFAULT: "var(--accent)",
-          foreground: "#0F1117",
+          DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
+          foreground: "rgb(15 17 23 / <alpha-value>)",
         },
         secondary: {
-          DEFAULT: "var(--surface-2)",
-          foreground: "var(--text-primary)",
+          DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
         destructive: {
-          DEFAULT: "#ef4444",
-          foreground: "#ffffff",
+          DEFAULT: "rgb(239 68 68 / <alpha-value>)",
+          foreground: "rgb(255 255 255 / <alpha-value>)",
         },
         muted: {
-          DEFAULT: "var(--surface-2)",
-          foreground: "var(--text-secondary)",
+          DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--text-secondary-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "var(--surface-2)",
-          foreground: "var(--text-primary)",
+          DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
         popover: {
-          DEFAULT: "var(--surface)",
-          foreground: "var(--text-primary)",
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
         card: {
-          DEFAULT: "var(--surface)",
-          foreground: "var(--text-primary)",
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
       },
       borderRadius: {

@@ -5,25 +5,39 @@
 @layer base {
   :root {
     --background: #F4F6FA;
+    --background-rgb: 244 246 250;
     --surface: #FFFFFF;
+    --surface-rgb: 255 255 255;
     --surface-2: #F0F2F8;
+    --surface-2-rgb: 240 242 248;
     --accent: #00C984;
+    --accent-rgb: 0 201 132;
     --accent-hover: #00B574;
     --text-primary: #0F1117;
+    --text-primary-rgb: 15 17 23;
     --text-secondary: #6B7280;
+    --text-secondary-rgb: 107 114 128;
     --border: #E5E7EB;
+    --border-rgb: 229 231 235;
     --radius: 1rem;
   }
 
   .dark {
     --background: #0F1117;
+    --background-rgb: 15 17 23;
     --surface: #1A1D27;
+    --surface-rgb: 26 29 39;
     --surface-2: #222536;
+    --surface-2-rgb: 34 37 54;
     --accent: #00E5A0;
+    --accent-rgb: 0 229 160;
     --accent-hover: #00C984;
     --text-primary: #FFFFFF;
+    --text-primary-rgb: 255 255 255;
     --text-secondary: #8B8FA8;
+    --text-secondary-rgb: 139 143 168;
     --border: #2A2D3E;
+    --border-rgb: 42 45 62;
   }
 
   * {
