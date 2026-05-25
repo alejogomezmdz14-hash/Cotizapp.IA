@@ -42,19 +42,23 @@ export async function saveOnboarding(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .update({
+    .upsert({
+      id: user.id,
       business_name: businessName,
       industry,
       phone: getOptionalValue(formData, "phone"),
       email: getOptionalValue(formData, "email") ?? user.email ?? null,
       address: getOptionalValue(formData, "address"),
       currency,
+    }, {
+      onConflict: "id",
     })
-    .eq("id", user.id);
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !data) {
     throw new Error("No se pudo guardar el onboarding.");
   }
 
