@@ -10,26 +10,44 @@ import { createClient } from "@/lib/supabase/client";
 export function SignOutButton() {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSignOut = async () => {
+    setErrorMessage(null);
     setIsPending(true);
 
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
 
-    router.replace("/login");
-    router.refresh();
+      if (error) {
+        setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
+        setIsPending(false);
+        return;
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
+      setIsPending(false);
+    }
   };
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      className="border-token bg-surface text-foreground hover:bg-surface-2 hover:text-foreground"
-      onClick={handleSignOut}
-      disabled={isPending}
-    >
-      {isPending ? "Saliendo..." : "Salir"}
-    </Button>
+    <div className="space-y-1">
+      <Button
+        type="button"
+        variant="outline"
+        className="border-token bg-surface text-foreground hover:bg-surface-2 hover:text-foreground"
+        onClick={handleSignOut}
+        disabled={isPending}
+      >
+        {isPending ? "Saliendo..." : "Salir"}
+      </Button>
+      {errorMessage ? (
+        <p className="text-right text-xs text-destructive">{errorMessage}</p>
+      ) : null}
+    </div>
   );
 }

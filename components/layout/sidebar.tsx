@@ -3,19 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { sidebarNavItems } from "@/components/layout/nav-items";
+import {
+  getActiveNavHref,
+  sidebarNavItems,
+} from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
-
-function isActivePath(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return pathname === href;
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const activeHref = getActiveNavHref(pathname, sidebarNavItems);
 
   return (
     <aside className="hidden w-72 shrink-0 border-r border-token bg-surface lg:block">
@@ -29,7 +25,7 @@ export function Sidebar() {
 
         <nav className="space-y-2">
           {sidebarNavItems.map((item) => {
-            const active = isActivePath(pathname, item.href);
+            const active = item.href === activeHref;
             const Icon = item.icon;
 
             return (

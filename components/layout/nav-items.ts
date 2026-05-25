@@ -26,3 +26,24 @@ export const sidebarNavItems = [
   ...primaryNavItems,
   { href: "/clientes", label: "Clientes", icon: Users },
 ] as const satisfies readonly NavItem[];
+
+function isNestedPath(pathname: string, href: string) {
+  return href !== "/dashboard" && pathname.startsWith(`${href}/`);
+}
+
+export function getActiveNavHref(
+  pathname: string,
+  items: readonly NavItem[],
+): string | null {
+  const exactMatch = items.find((item) => item.href === pathname);
+
+  if (exactMatch) {
+    return exactMatch.href;
+  }
+
+  const nestedMatch = items
+    .filter((item) => isNestedPath(pathname, item.href))
+    .sort((left, right) => right.href.length - left.href.length)[0];
+
+  return nestedMatch?.href ?? null;
+}
