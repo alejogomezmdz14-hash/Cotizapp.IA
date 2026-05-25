@@ -9,14 +9,18 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          cookieStore.set({ name, value, ...(options as object) });
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          cookieStore.set({ name, value: "", ...(options as object) });
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Server Components can read cookies without being allowed to write
+            // them. Middleware handles the refresh path when writes are needed.
+          }
         },
       },
     },
