@@ -52,3 +52,22 @@ export type DashboardStats = {
   clients: number;
   catalogItems: number;
 };
+
+export type QuotationAttachment = {
+  id: string;
+  quotation_id: string;
+  user_id: string;
+  file_path: string;
+  file_name: string | null;
+  file_type: string | null;
+  created_at: string | null;
+};
+
+export type InvoiceScan = {
+  id: string;
+  user_id: string;
+  file_path: string;
+  status: string | null;
+  raw_result: Record<string, unknown> | null;
+  created_at: string | null;
+};
