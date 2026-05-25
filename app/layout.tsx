@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Cotizapp",
-  description: "Baseline Next.js scaffold for the Cotizapp quoting experience.",
+  description: "Cotizapp helps construction teams request and manage project quotes in one place.",
 };
 
 export default function RootLayout({
