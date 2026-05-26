@@ -1,6 +1,7 @@
 import { QuotationForm } from "@/components/cotizacion/quotation-form";
 import { getCatalogItems } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
+import { getPersistedInvoiceScanReview } from "@/lib/invoice-scan/load";
 import {
   getQuotationAttachments,
   getQuotationDraft,
@@ -11,6 +12,7 @@ import { getProfile, requireUser } from "@/lib/profile";
 type NewQuotationPageProps = {
   searchParams?: {
     quotationId?: string;
+    scanId?: string;
   };
 };
 
@@ -22,20 +24,26 @@ export default async function NewQuotationPage({
     typeof searchParams?.quotationId === "string"
       ? searchParams.quotationId
       : null;
-  const [clients, catalogItems, profile, draftHydration] = await Promise.all([
-    getClients(user.id),
-    getCatalogItems(user.id, { orderBy: "name", ascending: true }),
-    getProfile(user.id),
-    quotationId
-      ? loadDraftQuotationHydrationContext({
-          getDraftQuotation: () => getQuotationDraft(user.id, quotationId),
-          getAttachments: () => getQuotationAttachments(user.id, quotationId),
-        })
-      : Promise.resolve({
-          draftQuotation: null,
-          attachments: [],
-        }),
-  ]);
+  const scanId =
+    typeof searchParams?.scanId === "string" ? searchParams.scanId : null;
+  const [clients, catalogItems, profile, draftHydration, invoiceScanReview] =
+    await Promise.all([
+      getClients(user.id),
+      getCatalogItems(user.id, { orderBy: "name", ascending: true }),
+      getProfile(user.id),
+      quotationId
+        ? loadDraftQuotationHydrationContext({
+            getDraftQuotation: () => getQuotationDraft(user.id, quotationId),
+            getAttachments: () => getQuotationAttachments(user.id, quotationId),
+          })
+        : Promise.resolve({
+            draftQuotation: null,
+            attachments: [],
+          }),
+      quotationId
+        ? Promise.resolve(null)
+        : getPersistedInvoiceScanReview(user.id, scanId),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -68,6 +76,7 @@ export default async function NewQuotationPage({
             : null
         }
         initialAttachments={draftHydration.attachments}
+        initialInvoiceScan={invoiceScanReview}
       />
     </div>
   );

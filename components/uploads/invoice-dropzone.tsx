@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileImage, ScanSearch, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import type { InvoiceScanResult } from "@/types";
+import type { HydratedInvoiceScanReview, InvoiceScanResult } from "@/types";
 
 type UploadedInvoiceScan = {
   id: string;
@@ -41,6 +41,13 @@ type ScanInvoiceResponse = {
 
 type InvoiceDropzoneProps = {
   disabled?: boolean;
+  persistedScan?: HydratedInvoiceScanReview | null;
+  onScanPersisted: (payload: {
+    scanId: string;
+    fileName: string;
+    status: "uploaded" | "processing" | "failed" | "completed";
+    failureMessage: string | null;
+  }) => void;
   onScanComplete: (payload: {
     scanId: string;
     fileName: string;
@@ -58,6 +65,8 @@ async function getJsonResponse<T>(response: Response): Promise<T> {
 
 export function InvoiceDropzone({
   disabled = false,
+  persistedScan = null,
+  onScanPersisted,
   onScanComplete,
 }: InvoiceDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -69,43 +78,34 @@ export function InvoiceDropzone({
   const [status, setStatus] = useState<string | null>(null);
   const [lastFileName, setLastFileName] = useState<string | null>(null);
 
-  async function handleUploadAndScan() {
-    if (!selectedFile) {
-      setError("Selecciona una factura antes de iniciar el escaneo.");
-      return;
+  useEffect(() => {
+    if (persistedScan?.fileName) {
+      setLastFileName(persistedScan.fileName);
     }
+  }, [persistedScan?.fileName]);
 
+  async function handleScanExistingPersistedInvoice(scan: {
+    id: string;
+    fileName: string;
+  }) {
     setError(null);
-    setStatus(null);
-    setIsUploading(true);
+    setStatus("Factura cargada. Analizando items...");
+    setIsScanning(true);
+    onScanPersisted({
+      scanId: scan.id,
+      fileName: scan.fileName,
+      status: "processing",
+      failureMessage: null,
+    });
 
     try {
-      const formData = new FormData();
-      formData.set("file", selectedFile);
-
-      const uploadResponse = await fetch("/api/uploads/invoice", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadPayload =
-        await getJsonResponse<UploadInvoiceResponse>(uploadResponse);
-
-      if (!uploadResponse.ok || !uploadPayload.scan) {
-        throw new Error(uploadPayload.error || "No se pudo subir la factura.");
-      }
-
-      setLastFileName(uploadPayload.scan.fileName);
-      setStatus("Factura cargada. Analizando items...");
-      setIsUploading(false);
-      setIsScanning(true);
-
       const scanResponse = await fetch("/api/ai/invoice-scan", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          scanId: uploadPayload.scan.id,
+          scanId: scan.id,
         }),
       });
       const scanPayload = await getJsonResponse<ScanInvoiceResponse>(scanResponse);
@@ -131,17 +131,76 @@ export function InvoiceDropzone({
       if (inputRef.current) {
         inputRef.current.value = "";
       }
-    } catch (scanError) {
-      setError(
-        scanError instanceof Error && scanError.message.trim()
-          ? scanError.message
-          : "No se pudo procesar la factura.",
-      );
     } finally {
-      setIsUploading(false);
       setIsScanning(false);
     }
   }
+
+  async function handleUploadAndScan() {
+    if (!selectedFile) {
+      setError("Selecciona una factura antes de iniciar el escaneo.");
+      return;
+    }
+
+    setError(null);
+    setStatus(null);
+    setIsUploading(true);
+    let uploadedScan: UploadedInvoiceScan | null = null;
+
+    try {
+      const formData = new FormData();
+      formData.set("file", selectedFile);
+
+      const uploadResponse = await fetch("/api/uploads/invoice", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadPayload =
+        await getJsonResponse<UploadInvoiceResponse>(uploadResponse);
+
+      if (!uploadResponse.ok || !uploadPayload.scan) {
+        throw new Error(uploadPayload.error || "No se pudo subir la factura.");
+      }
+
+      uploadedScan = uploadPayload.scan;
+      setLastFileName(uploadedScan.fileName);
+      onScanPersisted({
+        scanId: uploadedScan.id,
+        fileName: uploadedScan.fileName,
+        status: "uploaded",
+        failureMessage: null,
+      });
+      setIsUploading(false);
+
+      await handleScanExistingPersistedInvoice({
+        id: uploadedScan.id,
+        fileName: uploadedScan.fileName,
+      });
+    } catch (scanError) {
+      const message =
+        scanError instanceof Error && scanError.message.trim()
+          ? scanError.message
+          : "No se pudo procesar la factura.";
+
+      setError(message);
+
+      if (uploadedScan) {
+        onScanPersisted({
+          scanId: uploadedScan.id,
+          fileName: uploadedScan.fileName,
+          status: /ya se esta analizando/i.test(message) ? "processing" : "failed",
+          failureMessage: /ya se esta analizando/i.test(message) ? null : message,
+        });
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  const canRetryPersistedScan =
+    Boolean(persistedScan?.scanId) &&
+    persistedScan?.status !== "completed" &&
+    persistedScan?.status !== "processing";
 
   return (
     <Card className="border-token bg-surface shadow-sm">
@@ -201,6 +260,43 @@ export function InvoiceDropzone({
             </div>
 
             <div className="flex flex-wrap gap-3">
+              {canRetryPersistedScan ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-token bg-background"
+                  onClick={() =>
+                    persistedScan
+                      ? handleScanExistingPersistedInvoice({
+                          id: persistedScan.scanId,
+                          fileName: persistedScan.fileName,
+                        }).catch((scanError) => {
+                          const message =
+                            scanError instanceof Error && scanError.message.trim()
+                              ? scanError.message
+                              : "No se pudo procesar la factura.";
+
+                          setError(message);
+                          onScanPersisted({
+                            scanId: persistedScan.scanId,
+                            fileName: persistedScan.fileName,
+                            status: /ya se esta analizando/i.test(message)
+                              ? "processing"
+                              : "failed",
+                            failureMessage: /ya se esta analizando/i.test(message)
+                              ? null
+                              : message,
+                          });
+                        })
+                      : undefined
+                  }
+                  disabled={disabled || isUploading || isScanning}
+                >
+                  {persistedScan?.status === "failed"
+                    ? "Reintentar ultimo escaneo"
+                    : "Analizar factura cargada"}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -253,6 +349,19 @@ export function InvoiceDropzone({
         {lastFileName ? (
           <p className="text-xs text-muted-foreground">
             Ultima factura subida: <span className="font-medium">{lastFileName}</span>
+          </p>
+        ) : null}
+
+        {persistedScan?.status === "processing" ? (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+            Esta factura ya tiene un escaneo en curso. Espera a que termine o
+            vuelve a intentar cuando el proceso falle.
+          </p>
+        ) : null}
+
+        {persistedScan?.status === "failed" && persistedScan.failureMessage ? (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            Ultimo intento fallido: {persistedScan.failureMessage}
           </p>
         ) : null}
 

@@ -1,48 +1,79 @@
 import { NextResponse } from "next/server";
 
 import { scanInvoiceWithAi } from "@/lib/ai/invoice";
-import { getInvoiceScanDisplayFileName } from "@/lib/invoice-scan/file-name";
+import {
+  PersistedInvoiceScanError,
+  processPersistedInvoiceScan,
+} from "@/lib/invoice-scan/persistence";
 import { getCurrentUser } from "@/lib/profile";
 import { createSignedFileUrl, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
-import type { InvoiceScan, InvoiceScanResult } from "@/types";
+import type { InvoiceScan } from "@/types";
 
-type InvoiceScanRequestBody = {
-  scanId?: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+type InvoiceScanRequestBody = { scanId?: string };
 
 function getErrorResponse(error: unknown) {
   const message =
     error instanceof Error && error.message.trim()
       ? error.message
       : "No se pudo escanear la factura.";
+  const status =
+    error instanceof PersistedInvoiceScanError ? error.statusCode : 500;
 
   return NextResponse.json(
     {
       error: message,
     },
     {
-      status: 500,
+      status,
     },
   );
 }
 
-function getCachedNormalizedResult(scan: InvoiceScan): InvoiceScanResult | null {
-  if (!isRecord(scan.raw_result)) {
-    return null;
+async function getInvoiceScanForUser(userId: string, scanId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoice_scans")
+    .select("*")
+    .eq("id", scanId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("No se pudo cargar la factura para escanear.");
   }
 
-  const normalized = scan.raw_result.normalized;
-  return isRecord(normalized) ? (normalized as InvoiceScanResult) : null;
+  return (data as InvoiceScan | null) ?? null;
+}
+
+async function updateInvoiceScanForUser(input: {
+  userId: string;
+  scanId: string;
+  values: {
+    status: string;
+    raw_result?: Record<string, unknown> | null;
+  };
+  allowedStatuses: string[];
+  errorMessage: string;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoice_scans")
+    .update(input.values)
+    .eq("id", input.scanId)
+    .eq("user_id", input.userId)
+    .in("status", input.allowedStatuses)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(input.errorMessage);
+  }
+
+  return Boolean(data);
 }
 
 export async function POST(request: Request) {
-  let scanIdForFailure: string | null = null;
-
   try {
     const user = await getCurrentUser();
 
@@ -71,122 +102,59 @@ export async function POST(request: Request) {
       );
     }
 
-    scanIdForFailure = scanId;
-
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("invoice_scans")
-      .select("*")
-      .eq("id", scanId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error("No se pudo cargar la factura para escanear.");
-    }
-
-    const scan = (data as InvoiceScan | null) ?? null;
-
-    if (!scan) {
-      return NextResponse.json(
-        {
-          error: "La factura no existe o no te pertenece.",
-        },
-        {
-          status: 404,
-        },
-      );
-    }
-
-    const cachedResult = getCachedNormalizedResult(scan);
-
-    if (scan.status === "completed" && cachedResult) {
-      return NextResponse.json({
-        scan: {
-          id: scan.id,
-          filePath: scan.file_path,
-          fileName: getInvoiceScanDisplayFileName(scan),
-          createdAt: scan.created_at,
-          status: scan.status,
-        },
-        result: cachedResult,
-      });
-    }
-
-    await supabase
-      .from("invoice_scans")
-      .update({
-        status: "processing",
-      })
-      .eq("id", scan.id)
-      .eq("user_id", user.id);
-
-    const signedUrl = await createSignedFileUrl(
-      STORAGE_BUCKETS.invoiceUploads,
-      scan.file_path,
-    );
-
-    const aiScan = await scanInvoiceWithAi({
-      signedUrl,
-      fileName: getInvoiceScanDisplayFileName(scan),
-    });
-
-    const storedRawResult = {
-      ...aiScan.rawResult,
-      normalized: aiScan.result,
-    };
-
-    const { error: updateError } = await supabase
-      .from("invoice_scans")
-      .update({
-        status: "completed",
-        raw_result: storedRawResult,
-      })
-      .eq("id", scan.id)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      throw new Error("No se pudo guardar el resultado del escaneo.");
-    }
-
-    return NextResponse.json({
-      scan: {
-        id: scan.id,
-        filePath: scan.file_path,
-        fileName: getInvoiceScanDisplayFileName(scan),
-        createdAt: scan.created_at,
-        status: "completed",
-      },
-      result: aiScan.result,
-    });
-  } catch (error) {
-    if (scanIdForFailure) {
-      try {
-        const user = await getCurrentUser();
-
-        if (user) {
-          const supabase = await createClient();
-          const message =
-            error instanceof Error && error.message.trim()
-              ? error.message
-              : "No se pudo escanear la factura.";
-
-          await supabase
-            .from("invoice_scans")
-            .update({
+    const response = await processPersistedInvoiceScan(
+      {
+        getScan: (targetScanId) => getInvoiceScanForUser(user.id, targetScanId),
+        markProcessing: (targetScanId) =>
+          updateInvoiceScanForUser({
+            userId: user.id,
+            scanId: targetScanId,
+            values: {
+              status: "processing",
+              raw_result: null,
+            },
+            allowedStatuses: ["uploaded", "failed"],
+            errorMessage: "No se pudo bloquear la factura para procesarla.",
+          }),
+        getSignedUrl: (filePath) =>
+          createSignedFileUrl(STORAGE_BUCKETS.invoiceUploads, filePath),
+        scanWithAi: ({ signedUrl, fileName }) =>
+          scanInvoiceWithAi({
+            signedUrl,
+            fileName,
+          }),
+        markCompleted: (targetScanId, rawResult) =>
+          updateInvoiceScanForUser({
+            userId: user.id,
+            scanId: targetScanId,
+            values: {
+              status: "completed",
+              raw_result: rawResult,
+            },
+            allowedStatuses: ["processing"],
+            errorMessage: "No se pudo guardar el resultado del escaneo.",
+          }),
+        markFailed: (targetScanId, message) =>
+          updateInvoiceScanForUser({
+            userId: user.id,
+            scanId: targetScanId,
+            values: {
               status: "failed",
               raw_result: {
                 error: message,
               },
-            })
-            .eq("id", scanIdForFailure)
-            .eq("user_id", user.id);
-        }
-      } catch {
-        // Ignore secondary persistence errors when the main scan fails.
-      }
-    }
+            },
+            allowedStatuses: ["processing"],
+            errorMessage: "No se pudo registrar el estado fallido del escaneo.",
+          }),
+      },
+      {
+        scanId,
+      },
+    );
 
+    return NextResponse.json(response);
+  } catch (error) {
     return getErrorResponse(error);
   }
 }

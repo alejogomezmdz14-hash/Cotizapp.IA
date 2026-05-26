@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { createDraftQuotationAction } from "@/app/actions/quotations";
@@ -10,6 +10,8 @@ import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cot
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
+import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
+import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +27,8 @@ import type {
   CatalogItem,
   Client,
   HydratedQuotationAttachment,
+  HydratedInvoiceScanReview,
   InvoiceScanItemDraft,
-  InvoiceScanResult,
 } from "@/types";
 
 type QuotationFormProps = {
@@ -35,6 +37,7 @@ type QuotationFormProps = {
   currency: string | null;
   initialDraft?: SavedDraftState | null;
   initialAttachments?: HydratedQuotationAttachment[];
+  initialInvoiceScan?: HydratedInvoiceScanReview | null;
 };
 
 type InlineClientState = {
@@ -108,6 +111,7 @@ export function QuotationForm({
   currency,
   initialDraft = null,
   initialAttachments = [],
+  initialInvoiceScan = null,
 }: QuotationFormProps) {
   const router = useRouter();
   const [clientMode, setClientMode] = useState<"existing" | "inline">(
@@ -130,11 +134,26 @@ export function QuotationForm({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
-  const [invoiceScanFileName, setInvoiceScanFileName] = useState<string | null>(
-    null,
-  );
-  const [invoiceScanResult, setInvoiceScanResult] =
-    useState<InvoiceScanResult | null>(null);
+  const [invoiceScanReview, setInvoiceScanReview] =
+    useState<HydratedInvoiceScanReview | null>(initialInvoiceScan);
+
+  useEffect(() => {
+    setInvoiceScanReview((currentValue) =>
+      mergeHydratedInvoiceScanReview(currentValue, initialInvoiceScan),
+    );
+  }, [initialInvoiceScan]);
+
+  function replaceCurrentEditorUrl(scanId: string | null) {
+    router.replace(
+      buildNewQuotationPageHref({
+        quotationId: savedDraft?.quotationId ?? initialDraft?.quotationId ?? null,
+        scanId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
 
   const isFormLocked = isSubmitting || Boolean(savedDraft);
 
@@ -195,20 +214,59 @@ export function QuotationForm({
   }
 
   function handleInvoiceScanComplete({
+    scanId,
     fileName,
     result,
   }: {
+    scanId: string;
     fileName: string;
-    result: InvoiceScanResult;
+    result: HydratedInvoiceScanReview["result"];
   }) {
-    setInvoiceScanFileName(fileName);
-    setInvoiceScanResult(result);
+    setInvoiceScanReview({
+      scanId,
+      fileName,
+      status: "completed",
+      failureMessage: null,
+      result,
+    });
     setError(null);
+    replaceCurrentEditorUrl(scanId);
+  }
+
+  function handleInvoiceScanPersisted({
+    scanId,
+    fileName,
+    status,
+    failureMessage,
+  }: {
+    scanId: string;
+    fileName: string;
+    status: "uploaded" | "processing" | "failed" | "completed";
+    failureMessage: string | null;
+  }) {
+    setInvoiceScanReview((currentValue) =>
+      currentValue?.scanId === scanId && currentValue.result
+        ? {
+            ...currentValue,
+            fileName,
+            status,
+            failureMessage,
+          }
+        : {
+            scanId,
+            fileName,
+            status,
+            failureMessage,
+            result: null,
+          },
+    );
+    replaceCurrentEditorUrl(scanId);
   }
 
   function handleClearInvoiceScan() {
-    setInvoiceScanFileName(null);
-    setInvoiceScanResult(null);
+    setInvoiceScanReview(null);
+    setError(null);
+    replaceCurrentEditorUrl(null);
   }
 
   function handleAddInvoiceItems(scannedItems: InvoiceScanItemDraft[]) {
@@ -261,7 +319,11 @@ export function QuotationForm({
       const formData = new FormData(event.currentTarget);
       const result = await createDraftQuotationAction(formData);
       setSavedDraft(result);
-      router.replace(`/cotizaciones/nueva?quotationId=${result.quotationId}`);
+      router.replace(
+        buildNewQuotationPageHref({
+          quotationId: result.quotationId,
+        }),
+      );
     } catch (submissionError) {
       setError(getErrorMessage(submissionError));
     } finally {
@@ -506,12 +568,14 @@ export function QuotationForm({
 
           <InvoiceDropzone
             disabled={isFormLocked}
+            persistedScan={invoiceScanReview}
+            onScanPersisted={handleInvoiceScanPersisted}
             onScanComplete={handleInvoiceScanComplete}
           />
 
           <InvoiceItemsReview
-            fileName={invoiceScanFileName}
-            result={invoiceScanResult}
+            fileName={invoiceScanReview?.fileName ?? null}
+            result={invoiceScanReview?.result ?? null}
             disabled={isFormLocked}
             onAddToQuotation={handleAddInvoiceItems}
             onClear={handleClearInvoiceScan}

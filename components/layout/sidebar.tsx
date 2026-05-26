@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { BusinessIdentity } from "@/components/layout/business-identity";
 import {
   getActiveNavHref,
   sidebarNavItems,
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
-export function Sidebar() {
+type SidebarProps = {
+  businessName: string | null;
+  logoUrl: string | null;
+};
+
+export function Sidebar({ businessName, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const activeHref = getActiveNavHref(pathname, sidebarNavItems);
 
@@ -17,10 +23,13 @@ export function Sidebar() {
     <aside className="hidden w-72 shrink-0 border-r border-token bg-surface lg:block">
       <div className="sticky top-0 flex h-screen flex-col px-4 py-6">
         <div className="mb-8 px-3">
-          <h2 className="text-xl font-semibold">Cotizapp</h2>
-          <p className="text-sm text-muted-foreground">
-            Tu centro de cotizaciones
-          </p>
+          <BusinessIdentity
+            businessName={businessName}
+            logoUrl={logoUrl}
+            subtitle="Tu centro de cotizaciones"
+            avatarClassName="h-12 w-12"
+            nameElement="h2"
+          />
         </div>
 
         <nav className="space-y-2">

@@ -108,6 +108,14 @@ export type InvoiceScanResult = {
   warnings: string[];
 };
 
+export type HydratedInvoiceScanReview = {
+  scanId: string;
+  fileName: string;
+  status: "uploaded" | "processing" | "failed" | "completed";
+  failureMessage: string | null;
+  result: InvoiceScanResult | null;
+};
+
 export type ChatRole = "user" | "assistant";
 
 export type ChatConversationMessage = {
