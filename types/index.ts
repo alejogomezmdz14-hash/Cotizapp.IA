@@ -32,19 +32,89 @@ export type Client = {
   created_at: string | null;
 };
 
+export type QuotationStatus =
+  | "draft"
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired";
+
 export type Quotation = {
   id: string;
   user_id: string | null;
   client_id: string | null;
   client_name: string | null;
   number: string;
-  status: string | null;
+  status: QuotationStatus | null;
   notes: string | null;
   subtotal: number | null;
   tax_rate: number | null;
   total: number | null;
   valid_until: string | null;
+  pdf_path: string | null;
+  pdf_generated_at: string | null;
+  share_token: string | null;
+  sent_at: string | null;
   created_at: string | null;
+};
+
+export type QuotationItem = {
+  id: string;
+  quotation_id: string;
+  position: number;
+  catalog_item_id: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total: number;
+};
+
+export type HydratedQuotationBranding = {
+  businessName: string | null;
+  logoPath: string | null;
+  logoUrl: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  currency: string | null;
+};
+
+export type HydratedQuotationCustomer = {
+  id: string | null;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+};
+
+export type HydratedQuotationItem = {
+  id: string;
+  quotationId: string;
+  position: number;
+  catalogItemId: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+};
+
+export type QuotationOutputMetadata = {
+  pdfPath: string | null;
+  pdfGeneratedAt: string | null;
+  shareToken: string | null;
+  sentAt: string | null;
+};
+
+export type HydratedQuotation = {
+  quotation: Quotation;
+  branding: HydratedQuotationBranding;
+  customer: HydratedQuotationCustomer;
+  items: HydratedQuotationItem[];
+  output: QuotationOutputMetadata;
 };
 
 export type DashboardStats = {

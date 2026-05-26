@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,10 +27,10 @@ function formatStatusLabel(value: string | null) {
   switch (normalizedValue) {
     case "draft":
       return "Borrador";
-    case "sent":
-      return "Enviada";
-    case "approved":
-      return "Aprobada";
+    case "pending":
+      return "Pendiente";
+    case "accepted":
+      return "Aceptada";
     case "rejected":
       return "Rechazada";
     case "expired":
@@ -43,11 +44,11 @@ function formatStatusLabel(value: string | null) {
 
 function getStatusBadgeClassName(value: string | null) {
   switch (value?.trim().toLowerCase()) {
-    case "approved":
+    case "accepted":
       return "border-primary/40 bg-primary/10 text-primary";
     case "rejected":
       return "border-destructive/40 bg-destructive/10 text-destructive";
-    case "sent":
+    case "pending":
       return "border-token bg-surface-2 text-foreground";
     case "expired":
       return "border-token bg-background text-muted-foreground";
@@ -161,6 +162,8 @@ export default async function QuotationsPage() {
         <section className="grid gap-4">
           {quotations.map((quotation) => {
             const reopenDraftHref = getDraftQuotationEditorHref(quotation);
+            const canShareQuotation =
+              isDraftQuotationStatus(quotation.status) || quotation.status === "pending";
 
             return (
               <Card key={quotation.id} className="border-token bg-surface shadow-sm">
@@ -222,6 +225,18 @@ export default async function QuotationsPage() {
                         "Sin notas adicionales para esta cotizacion."}
                     </p>
                   </div>
+                  {canShareQuotation ? (
+                    <div className="md:col-span-4">
+                      <QuotationShareActions
+                        quotationId={quotation.id}
+                        quotationNumber={quotation.number}
+                        initialPdfGeneratedAt={quotation.pdf_generated_at}
+                        initialShareToken={quotation.share_token}
+                        initialSentAt={quotation.sent_at}
+                        initialStatus={quotation.status}
+                      />
+                    </div>
+                  ) : null}
                   {reopenDraftHref ? (
                     <div className="md:col-span-4">
                       <Button

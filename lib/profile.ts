@@ -2,7 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/types";
+import type { HydratedQuotationBranding, Profile } from "@/types";
 
 type OnboardingProfileUpsertInput = {
   userId: string;
@@ -19,6 +19,15 @@ export function isProfileComplete(profile: Profile | null) {
   return Boolean(
     profile?.business_name?.trim() && profile?.industry?.trim(),
   );
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalizedValue = value.trim();
+  return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -53,6 +62,42 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   }
 
   return (data as Profile | null) ?? null;
+}
+
+export function resolveProfileBranding(
+  profile: Pick<
+    Profile,
+    "business_name" | "logo_url" | "phone" | "email" | "address" | "currency"
+  > | null,
+): HydratedQuotationBranding {
+  return {
+    businessName: normalizeOptionalText(profile?.business_name),
+    logoPath: normalizeOptionalText(profile?.logo_url),
+    logoUrl: null,
+    phone: normalizeOptionalText(profile?.phone),
+    email: normalizeOptionalText(profile?.email),
+    address: normalizeOptionalText(profile?.address),
+    currency: normalizeOptionalText(profile?.currency),
+  };
+}
+
+function isPdfEmbeddableLogoContentType(contentType: string | null) {
+  const normalizedType = contentType?.trim().toLowerCase();
+
+  return normalizedType === "image/png" || normalizedType === "image/jpeg";
+}
+
+export function buildProfileLogoDataUrl(file: {
+  bytes: Uint8Array;
+  contentType: string | null;
+} | null) {
+  if (!file || !isPdfEmbeddableLogoContentType(file.contentType)) {
+    return null;
+  }
+
+  return `data:${file.contentType};base64,${Buffer.from(file.bytes).toString(
+    "base64",
+  )}`;
 }
 
 export function buildOnboardingProfileUpsertInput({

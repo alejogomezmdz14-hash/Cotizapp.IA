@@ -35,7 +35,7 @@ function createCatalogItem(id: number): CatalogItem {
   };
 }
 
-function createQuotation(id: number, status: string): Quotation {
+function createQuotation(id: number, status: Quotation["status"]): Quotation {
   return {
     id: `quotation-${id}`,
     user_id: "user-1",
@@ -51,6 +51,10 @@ function createQuotation(id: number, status: string): Quotation {
     tax_rate: 21,
     total: id * 12100,
     valid_until: "2026-06-30",
+    pdf_path: null,
+    pdf_generated_at: null,
+    share_token: null,
+    sent_at: null,
     created_at: `2026-05-${String(id).padStart(2, "0")}T12:00:00.000Z`,
   };
 }
@@ -77,11 +81,11 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
     ),
     quotations: [
       createQuotation(1, "draft"),
-      createQuotation(2, "sent"),
+      createQuotation(2, "pending"),
       createQuotation(3, "draft"),
       createQuotation(4, "accepted"),
       createQuotation(5, "draft"),
-      createQuotation(6, "sent"),
+      createQuotation(6, "pending"),
       createQuotation(7, "draft"),
     ],
   });
@@ -99,7 +103,7 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
     quotationStatusBreakdown: {
       accepted: 1,
       draft: 4,
-      sent: 2,
+      pending: 2,
     },
   });
   assert.equal(context.recentClients.length, 6);

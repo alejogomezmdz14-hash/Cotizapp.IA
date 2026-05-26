@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client } from "@/types";
+export { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 
 export type ClientFormValues = {
   name: string;

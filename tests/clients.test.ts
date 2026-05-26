@@ -5,6 +5,7 @@ import {
   assertSingleClientMutation,
   buildClientSearchFilter,
   getClientDeleteFailureMessage,
+  normalizePhoneForWhatsApp,
   parseClientFormData,
 } from "../lib/clients";
 
@@ -77,4 +78,26 @@ test("getClientDeleteFailureMessage returns a clearer message for protected dele
     getClientDeleteFailureMessage({ code: "23503" }),
     "No se puede eliminar el cliente porque tiene cotizaciones u otros datos asociados.",
   );
+});
+
+test("normalizePhoneForWhatsApp strips formatting while keeping a valid international destination", () => {
+  assert.equal(normalizePhoneForWhatsApp(" +54 9 261 555-1234 "), "5492615551234");
+});
+
+test("normalizePhoneForWhatsApp upgrades Argentina international numbers without WhatsApp mobile prefix", () => {
+  assert.equal(normalizePhoneForWhatsApp("+54 261 555 1234"), "5492615551234");
+  assert.equal(normalizePhoneForWhatsApp("0054 261 555 1234"), "5492615551234");
+});
+
+test("normalizePhoneForWhatsApp upgrades Mendoza local numbers to a WhatsApp-safe international destination", () => {
+  assert.equal(normalizePhoneForWhatsApp("261 555 1234"), "5492615551234");
+});
+
+test("normalizePhoneForWhatsApp returns null when it cannot build a safe destination", () => {
+  assert.equal(normalizePhoneForWhatsApp("555-1234"), null);
+});
+
+test("normalizePhoneForWhatsApp returns null when the input has no digits", () => {
+  assert.equal(normalizePhoneForWhatsApp("  () -  "), null);
+  assert.equal(normalizePhoneForWhatsApp(null), null);
 });

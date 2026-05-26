@@ -7,12 +7,14 @@ import { createDraftQuotationAction } from "@/app/actions/quotations";
 import { ClientPicker } from "@/components/clientes/client-picker";
 import { QuotationAttachments } from "@/components/cotizacion/quotation-attachments";
 import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
+import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
 import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
 import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
+import { isDraftQuotationStatus } from "@/lib/quotation-status";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,6 +52,10 @@ type InlineClientState = {
 type SavedDraftState = {
   quotationId: string;
   number: string;
+  status?: string | null;
+  pdfGeneratedAt?: string | null;
+  shareToken?: string | null;
+  sentAt?: string | null;
 };
 
 const textareaClassName =
@@ -136,6 +142,10 @@ export function QuotationForm({
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
   const [invoiceScanReview, setInvoiceScanReview] =
     useState<HydratedInvoiceScanReview | null>(initialInvoiceScan);
+  const currentDraft = savedDraft ?? initialDraft;
+  const attachmentsReadOnly = currentDraft?.status
+    ? !isDraftQuotationStatus(currentDraft.status)
+    : false;
 
   useEffect(() => {
     setInvoiceScanReview((currentValue) =>
@@ -269,6 +279,29 @@ export function QuotationForm({
     replaceCurrentEditorUrl(null);
   }
 
+  function handleShareStateChange(nextState: {
+    pdfGeneratedAt: string | null;
+    shareToken: string | null;
+    sentAt: string | null;
+    status: string | null;
+  }) {
+    setSavedDraft((currentValue) => {
+      const draftState = currentValue ?? initialDraft;
+
+      if (!draftState) {
+        return currentValue;
+      }
+
+      return {
+        ...draftState,
+        pdfGeneratedAt: nextState.pdfGeneratedAt,
+        shareToken: nextState.shareToken,
+        sentAt: nextState.sentAt,
+        status: nextState.status,
+      };
+    });
+  }
+
   function handleAddInvoiceItems(scannedItems: InvoiceScanItemDraft[]) {
     if (scannedItems.length === 0) {
       return;
@@ -338,14 +371,14 @@ export function QuotationForm({
           <CardHeader className="space-y-2">
             <CardTitle className="text-xl">Borrador ya creado</CardTitle>
             <CardDescription>
-              Este borrador ya existe y desde esta pantalla solo puedes revisar o
-              eliminar sus adjuntos. Para editar el contenido deberas volver al
-              flujo correspondiente cuando exista una vista de edicion.
+              {attachmentsReadOnly
+                ? "Esta cotizacion ya fue compartida. Desde aqui puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
+                : "Este borrador ya existe y desde esta pantalla solo puedes revisar o eliminar sus adjuntos. Para editar el contenido deberas volver al flujo correspondiente cuando exista una vista de edicion."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-muted-foreground">
-              Numero del borrador: <span className="font-medium text-foreground">{savedDraft?.number}</span>
+              Numero del borrador: <span className="font-medium text-foreground">{currentDraft?.number}</span>
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
@@ -368,9 +401,24 @@ export function QuotationForm({
           </CardContent>
         </Card>
 
+        <QuotationShareActions
+          quotationId={currentDraft?.quotationId ?? initialDraft.quotationId}
+          quotationNumber={currentDraft?.number ?? initialDraft.number}
+          initialPdfGeneratedAt={
+            currentDraft?.pdfGeneratedAt ?? initialDraft.pdfGeneratedAt ?? null
+          }
+          initialShareToken={
+            currentDraft?.shareToken ?? initialDraft.shareToken ?? null
+          }
+          initialSentAt={currentDraft?.sentAt ?? initialDraft.sentAt ?? null}
+          initialStatus={currentDraft?.status ?? initialDraft.status ?? null}
+          onStateChange={handleShareStateChange}
+        />
+
         <QuotationAttachments
-          quotationId={savedDraft?.quotationId ?? null}
+          quotationId={currentDraft?.quotationId ?? null}
           initialAttachments={initialAttachments}
+          readOnly={attachmentsReadOnly}
         />
       </div>
     );
@@ -651,8 +699,9 @@ export function QuotationForm({
           </Card>
 
           <QuotationAttachments
-            quotationId={savedDraft?.quotationId ?? null}
+            quotationId={currentDraft?.quotationId ?? null}
             initialAttachments={initialAttachments}
+            readOnly={attachmentsReadOnly}
           />
         </div>
 
@@ -663,8 +712,14 @@ export function QuotationForm({
             taxRate={taxRate}
             validUntil={validUntil}
             isSubmitting={isSubmitting}
-            isSaved={Boolean(savedDraft)}
-            draftNumber={savedDraft?.number ?? null}
+            isSaved={Boolean(currentDraft)}
+            quotationId={currentDraft?.quotationId ?? null}
+            draftNumber={currentDraft?.number ?? null}
+            pdfGeneratedAt={currentDraft?.pdfGeneratedAt ?? null}
+            shareToken={currentDraft?.shareToken ?? null}
+            sentAt={currentDraft?.sentAt ?? null}
+            shareStatus={currentDraft?.status ?? null}
+            onStateChange={handleShareStateChange}
           />
         </div>
       </div>

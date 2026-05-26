@@ -34,6 +34,19 @@ export function formatCurrencyAmount(
   }
 }
 
+export function formatPercentage(value: number | null | undefined) {
+  const amount = value ?? 0;
+
+  if (!Number.isFinite(amount)) {
+    return "0%";
+  }
+
+  return `${new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount)}%`;
+}
+
 export function formatDateOnly(value: string | null) {
   if (!value) {
     return "Sin fecha";

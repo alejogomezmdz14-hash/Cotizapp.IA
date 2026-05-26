@@ -2,6 +2,17 @@ export function buildBusinessLogoPath(userId: string, fileName: string) {
   return `${userId}/logo/${fileName}`;
 }
 
+function sanitizeStorageSegment(value: string, fallback: string) {
+  const normalizedValue = value.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
+
+  return (
+    normalizedValue
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || fallback
+  );
+}
+
 function buildUniqueStorageFileName(
   fileName: string,
   objectId = globalThis.crypto.randomUUID(),
@@ -18,11 +29,7 @@ function buildUniqueStorageFileName(
       ? normalizedName.slice(extensionIndex + 1).toLowerCase()
       : "";
 
-  const safeBaseName =
-    baseName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "file";
+  const safeBaseName = sanitizeStorageSegment(baseName, "file");
   const safeExtension = extension.replace(/[^a-z0-9]+/g, "");
   const safeObjectId = objectId.toLowerCase();
 
@@ -51,4 +58,25 @@ export function buildInvoiceUploadPath(
   objectId?: string,
 ) {
   return `${userId}/invoices/${buildUniqueStorageFileName(fileName, objectId)}`;
+}
+
+export function buildQuotationPdfFileName(quotationNumber: string) {
+  return `${sanitizeStorageSegment(quotationNumber, "cotizacion")}.pdf`;
+}
+
+export function buildQuotationPdfPath(
+  userId: string,
+  quotationId: string,
+  quotationNumber: string,
+) {
+  return `${userId}/quotation-pdfs/${quotationId}/${buildQuotationPdfFileName(
+    quotationNumber,
+  )}`;
+}
+
+export function buildSharedQuotationPdfPath(userId: string, shareToken: string) {
+  return `${userId}/quotation-share-pdfs/${sanitizeStorageSegment(
+    shareToken,
+    "cotizacion-compartida",
+  )}.pdf`;
 }

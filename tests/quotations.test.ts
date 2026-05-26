@@ -4,15 +4,24 @@ import test from "node:test";
 import {
   assertDraftQuotationMutationAllowed,
   assertSingleQuotationRollbackMutation,
+  buildQuotationSharePath,
+  buildWhatsAppShareHref,
+  buildQuotationItemInsertRows,
   buildQuotationNumber,
+  canHydrateQuotationEditorStatus,
+  confirmQuotationWhatsappShare,
   deleteQuotationAttachmentWithCleanup,
   formatCleanupFailureMessage,
   getDraftQuotationEditorHref,
+  hydrateCompleteQuotation,
   hydrateQuotationAttachments,
   loadDraftQuotationHydrationContext,
+  normalizeQuotationStatus,
   parseQuotationFormData,
   persistDraftQuotation,
+  publishQuotationSharePdf,
   rollbackUploadedQuotationAttachments,
+  sanitizeDraftQuotationItems,
 } from "../lib/quotations";
 
 test("parseQuotationFormData accepts an existing client selection and normalizes items", () => {
@@ -154,6 +163,132 @@ test("buildQuotationNumber uses a stable timestamp-based format", () => {
   assert.equal(
     buildQuotationNumber(new Date("2026-05-25T14:56:07.000Z"), "a1b2c3"),
     "COT-20260525-145607-A1B2C3",
+  );
+});
+
+test("normalizeQuotationStatus keeps supported lifecycle values and maps legacy aliases", () => {
+  assert.equal(normalizeQuotationStatus(" Draft "), "draft");
+  assert.equal(normalizeQuotationStatus("pending"), "pending");
+  assert.equal(normalizeQuotationStatus("accepted"), "accepted");
+  assert.equal(normalizeQuotationStatus("rejected"), "rejected");
+  assert.equal(normalizeQuotationStatus("expired"), "expired");
+  assert.equal(normalizeQuotationStatus("sent"), "pending");
+  assert.equal(normalizeQuotationStatus("approved"), "accepted");
+  assert.equal(normalizeQuotationStatus("unknown"), null);
+});
+
+test("canHydrateQuotationEditorStatus keeps shared pending quotations visible in the locked editor", () => {
+  assert.equal(canHydrateQuotationEditorStatus("draft"), true);
+  assert.equal(canHydrateQuotationEditorStatus("pending"), true);
+  assert.equal(canHydrateQuotationEditorStatus("accepted"), false);
+  assert.equal(canHydrateQuotationEditorStatus("rejected"), false);
+  assert.equal(canHydrateQuotationEditorStatus(null), false);
+});
+
+test("buildQuotationItemInsertRows preserves catalog linkage and calculated totals", () => {
+  assert.deepEqual(
+    buildQuotationItemInsertRows("quotation-1", [
+      {
+        catalogItemId: "catalog-1",
+        name: "Cemento",
+        description: "Bolsa de 50 kg",
+        quantity: 2,
+        unit: "bolsa",
+        unitPrice: 1200,
+      },
+      {
+        catalogItemId: null,
+        name: "Flete",
+        description: null,
+        quantity: 1,
+        unit: "servicio",
+        unitPrice: 3500,
+      },
+    ]),
+    [
+      {
+        quotation_id: "quotation-1",
+        catalog_item_id: "catalog-1",
+        position: 0,
+        name: "Cemento",
+        description: "Bolsa de 50 kg",
+        quantity: 2,
+        unit: "bolsa",
+        unit_price: 1200,
+        total: 2400,
+      },
+      {
+        quotation_id: "quotation-1",
+        catalog_item_id: null,
+        position: 1,
+        name: "Flete",
+        description: null,
+        quantity: 1,
+        unit: "servicio",
+        unit_price: 3500,
+        total: 3500,
+      },
+    ],
+  );
+});
+
+test("sanitizeDraftQuotationItems keeps only tenant-owned catalog ids without changing order", () => {
+  assert.deepEqual(
+    sanitizeDraftQuotationItems(
+      [
+        {
+          catalogItemId: "catalog-1",
+          name: "Cemento",
+          description: null,
+          quantity: 1,
+          unit: "bolsa",
+          unitPrice: 1200,
+        },
+        {
+          catalogItemId: "foreign-catalog",
+          name: "Arena",
+          description: null,
+          quantity: 2,
+          unit: "m3",
+          unitPrice: 800,
+        },
+        {
+          catalogItemId: null,
+          name: "Flete",
+          description: null,
+          quantity: 1,
+          unit: "servicio",
+          unitPrice: 3000,
+        },
+      ],
+      new Set(["catalog-1"]),
+    ),
+    [
+      {
+        catalogItemId: "catalog-1",
+        name: "Cemento",
+        description: null,
+        quantity: 1,
+        unit: "bolsa",
+        unitPrice: 1200,
+      },
+      {
+        catalogItemId: null,
+        name: "Arena",
+        description: null,
+        quantity: 2,
+        unit: "m3",
+        unitPrice: 800,
+      },
+      {
+        catalogItemId: null,
+        name: "Flete",
+        description: null,
+        quantity: 1,
+        unit: "servicio",
+        unitPrice: 3000,
+      },
+    ],
   );
 });
 
@@ -546,6 +681,183 @@ test("hydrateQuotationAttachments rebuilds signed urls from persisted attachment
   ]);
 });
 
+test("hydrateCompleteQuotation returns a full business object with branding, customer, items and share metadata", async () => {
+  const signedLogoPaths: string[] = [];
+
+  const result = await hydrateCompleteQuotation({
+    getQuotation: async () => ({
+      id: "quotation-1",
+      user_id: "user-1",
+      client_id: "client-1",
+      client_name: "Cliente Demo",
+      number: "COT-20260525-145607-A1B2C3",
+      status: "sent",
+      notes: "Entregar en obra",
+      subtotal: "2400.50",
+      tax_rate: "21",
+      total: "2904.61",
+      valid_until: "2026-06-30",
+      pdf_path: "user-1/quotations/quotation-1/cotizacion.pdf",
+      pdf_generated_at: "2026-05-25T15:10:00.000Z",
+      share_token: "share-token-1",
+      sent_at: "2026-05-25T15:15:00.000Z",
+      created_at: "2026-05-25T14:56:07.000Z",
+    }),
+    getProfile: async () => ({
+      id: "user-1",
+      business_name: "Pro Mat Mendoza",
+      industry: "Materiales",
+      logo_url: "logos/user-1/logo.png",
+      phone: "2615551234",
+      email: "ventas@promat.com",
+      address: "Rodriguez Pena 3341",
+      currency: "ARS",
+      theme: "dark",
+      created_at: "2026-01-01T00:00:00.000Z",
+    }),
+    getClient: async (clientId) => ({
+      id: clientId,
+      user_id: "user-1",
+      name: "Cliente Demo",
+      email: "cliente@demo.com",
+      phone: "2614440000",
+      address: "Obra central",
+      created_at: "2026-05-01T00:00:00.000Z",
+    }),
+    getItems: async () => [
+      {
+        id: "item-2",
+        quotation_id: "quotation-1",
+        position: "1",
+        catalog_item_id: null,
+        name: "Flete",
+        description: null,
+        quantity: "1",
+        unit: "servicio",
+        unit_price: "400.00",
+        total: "400.00",
+      },
+      {
+        id: "item-1",
+        quotation_id: "quotation-1",
+        position: "0",
+        catalog_item_id: "catalog-1",
+        name: "Cemento",
+        description: "Bolsa de 50 kg",
+        quantity: "2",
+        unit: "bolsa",
+        unit_price: "1200.25",
+        total: "2400.50",
+      },
+    ],
+    createSignedLogoUrl: async (logoPath) => {
+      signedLogoPaths.push(logoPath);
+      return `https://signed.example/${encodeURIComponent(logoPath)}`;
+    },
+  });
+
+  assert.deepEqual(result, {
+    quotation: {
+      id: "quotation-1",
+      user_id: "user-1",
+      client_id: "client-1",
+      client_name: "Cliente Demo",
+      number: "COT-20260525-145607-A1B2C3",
+      status: "pending",
+      notes: "Entregar en obra",
+      subtotal: 2400.5,
+      tax_rate: 21,
+      total: 2904.61,
+      valid_until: "2026-06-30",
+      pdf_path: "user-1/quotations/quotation-1/cotizacion.pdf",
+      pdf_generated_at: "2026-05-25T15:10:00.000Z",
+      share_token: "share-token-1",
+      sent_at: "2026-05-25T15:15:00.000Z",
+      created_at: "2026-05-25T14:56:07.000Z",
+    },
+    branding: {
+      businessName: "Pro Mat Mendoza",
+      logoPath: "logos/user-1/logo.png",
+      logoUrl:
+        "https://signed.example/logos%2Fuser-1%2Flogo.png",
+      phone: "2615551234",
+      email: "ventas@promat.com",
+      address: "Rodriguez Pena 3341",
+      currency: "ARS",
+    },
+    customer: {
+      id: "client-1",
+      name: "Cliente Demo",
+      email: "cliente@demo.com",
+      phone: "2614440000",
+      address: "Obra central",
+    },
+    items: [
+      {
+        id: "item-1",
+        quotationId: "quotation-1",
+        position: 0,
+        catalogItemId: "catalog-1",
+        name: "Cemento",
+        description: "Bolsa de 50 kg",
+        quantity: 2,
+        unit: "bolsa",
+        unitPrice: 1200.25,
+        total: 2400.5,
+      },
+      {
+        id: "item-2",
+        quotationId: "quotation-1",
+        position: 1,
+        catalogItemId: null,
+        name: "Flete",
+        description: null,
+        quantity: 1,
+        unit: "servicio",
+        unitPrice: 400,
+        total: 400,
+      },
+    ],
+    output: {
+      pdfPath: "user-1/quotations/quotation-1/cotizacion.pdf",
+      pdfGeneratedAt: "2026-05-25T15:10:00.000Z",
+      shareToken: "share-token-1",
+      sentAt: "2026-05-25T15:15:00.000Z",
+    },
+  });
+  assert.deepEqual(signedLogoPaths, ["logos/user-1/logo.png"]);
+});
+
+test("hydrateCompleteQuotation short-circuits when the quotation does not exist", async () => {
+  const calls: string[] = [];
+
+  const result = await hydrateCompleteQuotation({
+    getQuotation: async () => {
+      calls.push("get-quotation");
+      return null;
+    },
+    getProfile: async () => {
+      calls.push("get-profile");
+      return null;
+    },
+    getClient: async () => {
+      calls.push("get-client");
+      return null;
+    },
+    getItems: async () => {
+      calls.push("get-items");
+      return [];
+    },
+    createSignedLogoUrl: async () => {
+      calls.push("sign-logo");
+      return null;
+    },
+  });
+
+  assert.equal(result, null);
+  assert.deepEqual(calls, ["get-quotation"]);
+});
+
 test("loadDraftQuotationHydrationContext skips attachment loading for non-draft quotations", async () => {
   const calls: string[] = [];
 
@@ -577,21 +889,263 @@ test("loadDraftQuotationHydrationContext skips attachment loading for non-draft 
   assert.deepEqual(calls, ["get-draft"]);
 });
 
+test("loadDraftQuotationHydrationContext preserves PDF and share metadata for reopened drafts", async () => {
+  const result = await loadDraftQuotationHydrationContext({
+    getDraftQuotation: async () => ({
+      id: "quotation-1",
+      number: "COT-20260525-145607-A1B2C3",
+      status: "pending",
+      pdf_path: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+      pdf_generated_at: "2026-05-26T01:10:00.000Z",
+      share_token: "share-token-1",
+      sent_at: "2026-05-26T01:15:00.000Z",
+    }),
+    getAttachments: async () => [],
+  });
+
+  assert.deepEqual(result, {
+    draftQuotation: {
+      id: "quotation-1",
+      number: "COT-20260525-145607-A1B2C3",
+      status: "pending",
+      pdf_path: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+      pdf_generated_at: "2026-05-26T01:10:00.000Z",
+      share_token: "share-token-1",
+      sent_at: "2026-05-26T01:15:00.000Z",
+    },
+    attachments: [],
+  });
+});
+
 test("getDraftQuotationEditorHref returns the normal reopen path only for drafts", () => {
   assert.equal(
     getDraftQuotationEditorHref({
       id: "quotation-1",
-      status: " Draft ",
+      status: "draft",
     }),
     "/cotizaciones/nueva?quotationId=quotation-1",
   );
   assert.equal(
     getDraftQuotationEditorHref({
       id: "quotation-2",
-      status: "sent",
+      status: "pending",
     }),
     null,
   );
+});
+
+test("buildQuotationSharePath generates a stable public PDF route for the share token", () => {
+  assert.equal(
+    buildQuotationSharePath("share-token-1"),
+    "/api/quotations/share/share-token-1",
+  );
+});
+
+test("buildWhatsAppShareHref targets a specific destination when the client phone exists", () => {
+  assert.equal(
+    buildWhatsAppShareHref({
+      phone: "261 555 1234",
+      text: "Te comparto la cotizacion",
+    }),
+    "https://wa.me/5492615551234?text=Te%20comparto%20la%20cotizacion",
+  );
+});
+
+test("buildWhatsAppShareHref still returns a generic share flow without a destination", () => {
+  assert.equal(
+    buildWhatsAppShareHref({
+      phone: null,
+      text: "Te comparto la cotizacion",
+    }),
+    "https://wa.me/?text=Te%20comparto%20la%20cotizacion",
+  );
+});
+
+test("buildWhatsAppShareHref falls back to the generic share flow when the stored phone is unsafe", () => {
+  assert.equal(
+    buildWhatsAppShareHref({
+      phone: "555-1234",
+      text: "Te comparto la cotizacion",
+    }),
+    "https://wa.me/?text=Te%20comparto%20la%20cotizacion",
+  );
+});
+
+test("confirmQuotationWhatsappShare creates the token and marks draft quotations as pending once sharing is confirmed", async () => {
+  const persistedUpdates: Array<{
+    shareToken: string;
+    status: string | null;
+    sentAt: string | null;
+  }> = [];
+
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-20260525-145607-A1B2C3",
+        status: "draft",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: null,
+        sentAt: null,
+        clientPhone: "5492615551234",
+      }),
+      persistShareState: async (values) => {
+        persistedUpdates.push(values);
+      },
+      createShareToken: () => "share-token-1",
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:25:00.000Z"),
+    },
+  );
+
+  assert.deepEqual(persistedUpdates, [
+    {
+      shareToken: "share-token-1",
+      status: "pending",
+      sentAt: "2026-05-26T01:25:00.000Z",
+    },
+  ]);
+  assert.deepEqual(result, {
+    quotationId: "quotation-1",
+    quotationNumber: "COT-20260525-145607-A1B2C3",
+    shareToken: "share-token-1",
+    sharePath: "/api/quotations/share/share-token-1",
+    shareStatus: "pending",
+    sentAt: "2026-05-26T01:25:00.000Z",
+    clientPhone: "5492615551234",
+  });
+});
+
+test("confirmQuotationWhatsappShare reuses existing share metadata without persisting again", async () => {
+  const persistedUpdates: string[] = [];
+
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-20260525-145607-A1B2C3",
+        status: "pending",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: "share-token-1",
+        sentAt: "2026-05-26T01:25:00.000Z",
+        clientPhone: null,
+      }),
+      persistShareState: async () => {
+        persistedUpdates.push("persist");
+      },
+      createShareToken: () => {
+        throw new Error("No deberia generar un token nuevo.");
+      },
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:30:00.000Z"),
+    },
+  );
+
+  assert.deepEqual(persistedUpdates, []);
+  assert.deepEqual(result, {
+    quotationId: "quotation-1",
+    quotationNumber: "COT-20260525-145607-A1B2C3",
+    shareToken: "share-token-1",
+    sharePath: "/api/quotations/share/share-token-1",
+    shareStatus: "pending",
+    sentAt: "2026-05-26T01:25:00.000Z",
+    clientPhone: null,
+  });
+});
+
+test("confirmQuotationWhatsappShare returns a generic share flow when the stored phone cannot be normalized safely", async () => {
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-20260525-145607-A1B2C3",
+        status: "pending",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: "share-token-1",
+        sentAt: "2026-05-26T01:25:00.000Z",
+        clientPhone: "555-1234",
+      }),
+      persistShareState: async () => {
+        throw new Error("No deberia intentar persistir de nuevo.");
+      },
+      createShareToken: () => {
+        throw new Error("No deberia generar un token nuevo.");
+      },
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:30:00.000Z"),
+    },
+  );
+
+  assert.equal(result.clientPhone, null);
+});
+
+test("confirmQuotationWhatsappShare rejects attempts to share quotations without a generated PDF", async () => {
+  await assert.rejects(
+    () =>
+      confirmQuotationWhatsappShare(
+        {
+          getQuotation: async () => ({
+            id: "quotation-1",
+            number: "COT-20260525-145607-A1B2C3",
+            status: "draft",
+            pdfPath: null,
+            shareToken: null,
+            sentAt: null,
+            clientPhone: "5492615551234",
+          }),
+          persistShareState: async () => {},
+          createShareToken: () => "share-token-1",
+        },
+        {
+          quotationId: "quotation-1",
+        },
+      ),
+    /Genera el PDF antes de compartir la cotizacion\./,
+  );
+});
+
+test("publishQuotationSharePdf uploads a public PDF copy keyed by the share token", async () => {
+  const uploads: Array<{
+    path: string;
+    body: Uint8Array;
+    contentType: string;
+    upsert: boolean;
+  }> = [];
+
+  const result = await publishQuotationSharePdf(
+    {
+      getStoredPdf: async () => ({
+        fileName: "cotizacion-demo.pdf",
+        bytes: Uint8Array.from([4, 5, 6]),
+      }),
+      uploadSharedPdf: async (input) => {
+        uploads.push(input);
+      },
+    },
+    {
+      userId: "user-1",
+      shareToken: "share-token-1",
+    },
+  );
+
+  assert.deepEqual(result, {
+    fileName: "cotizacion-demo.pdf",
+    path: "user-1/quotation-share-pdfs/share-token-1.pdf",
+  });
+  assert.deepEqual(uploads, [
+    {
+      path: "user-1/quotation-share-pdfs/share-token-1.pdf",
+      body: Uint8Array.from([4, 5, 6]),
+      contentType: "application/pdf",
+      upsert: true,
+    },
+  ]);
 });
 
 test("rollbackUploadedQuotationAttachments reports cleanup failures instead of swallowing them", async () => {

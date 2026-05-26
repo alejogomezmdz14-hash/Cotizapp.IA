@@ -1,0 +1,231 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import {
+  confirmQuotationWhatsappShareAction,
+  generateQuotationPdfAction,
+} from "@/app/actions/quotations";
+import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/lib/formatting";
+import { buildWhatsAppShareHref } from "@/lib/whatsapp";
+
+type QuotationShareActionsProps = {
+  quotationId: string;
+  quotationNumber: string;
+  initialPdfGeneratedAt?: string | null;
+  initialShareToken?: string | null;
+  initialSentAt?: string | null;
+  initialStatus?: string | null;
+  onStateChange?: (state: {
+    pdfGeneratedAt: string | null;
+    shareToken: string | null;
+    sentAt: string | null;
+    status: string | null;
+  }) => void;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "No se pudo completar la accion.";
+}
+
+function getShareStatusLabel(status: string | null, sentAt: string | null) {
+  if (sentAt) {
+    return `Compartida${status === "pending" ? " y marcada como pendiente" : ""} el ${formatDateTime(sentAt)}.`;
+  }
+
+  if (status === "pending") {
+    return "Lista para seguimiento y reenvio.";
+  }
+
+  return null;
+}
+
+export function QuotationShareActions({
+  quotationId,
+  quotationNumber,
+  initialPdfGeneratedAt = null,
+  initialShareToken = null,
+  initialSentAt = null,
+  initialStatus = null,
+  onStateChange,
+}: QuotationShareActionsProps) {
+  const [pdfGeneratedAt, setPdfGeneratedAt] = useState(initialPdfGeneratedAt);
+  const [shareToken, setShareToken] = useState(initialShareToken);
+  const [sentAt, setSentAt] = useState(initialSentAt);
+  const [shareStatus, setShareStatus] = useState(initialStatus);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const sharePath = useMemo(
+    () =>
+      shareToken
+        ? `/api/quotations/share/${encodeURIComponent(shareToken)}`
+        : null,
+    [shareToken],
+  );
+  const shareStatusLabel = getShareStatusLabel(shareStatus, sentAt);
+
+  async function handleGeneratePdf() {
+    setError(null);
+    setStatusMessage(null);
+    setIsGeneratingPdf(true);
+
+    try {
+      const result = await generateQuotationPdfAction(quotationId);
+      setPdfGeneratedAt(result.generatedAt);
+      onStateChange?.({
+        pdfGeneratedAt: result.generatedAt,
+        shareToken,
+        sentAt,
+        status: shareStatus,
+      });
+      setStatusMessage("PDF generado. Ya puedes compartir la cotizacion por WhatsApp.");
+    } catch (actionError) {
+      setError(getErrorMessage(actionError));
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }
+
+  async function handleShareWhatsapp() {
+    if (!pdfGeneratedAt) {
+      setError("Genera el PDF antes de compartir la cotizacion.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Se abrira WhatsApp con un link publico para ${quotationNumber} y la cotizacion quedara marcada como pendiente. Queres continuar?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setStatusMessage(null);
+    setIsSharing(true);
+
+    try {
+      const result = await confirmQuotationWhatsappShareAction(quotationId);
+      const shareUrl = new URL(result.sharePath, window.location.origin).toString();
+      const whatsappHref = buildWhatsAppShareHref({
+        phone: result.clientPhone,
+        text: `Hola, te comparto la cotizacion ${result.quotationNumber}. Puedes verla aqui: ${shareUrl}`,
+      });
+
+      setShareToken(result.shareToken);
+      setSentAt(result.sentAt);
+      setShareStatus(result.shareStatus);
+      onStateChange?.({
+        pdfGeneratedAt,
+        shareToken: result.shareToken,
+        sentAt: result.sentAt,
+        status: result.shareStatus,
+      });
+      setStatusMessage(
+        result.clientPhone
+          ? "WhatsApp abierto con el destinatario precargado."
+          : "WhatsApp abierto sin destinatario precargado porque el cliente no tiene telefono.",
+      );
+
+      const openedWindow = window.open(
+        whatsappHref,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      if (!openedWindow) {
+        window.location.href = whatsappHref;
+      }
+    } catch (actionError) {
+      setError(getErrorMessage(actionError));
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-token/80 bg-background/60 px-4 py-3">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {pdfGeneratedAt
+            ? "El PDF ya esta listo. Comparte un link estable por WhatsApp sin adjuntar archivos manualmente."
+            : "Genera el PDF para habilitar el link estable y compartir esta cotizacion por WhatsApp."}
+        </p>
+      </div>
+
+      {error ? (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      {statusMessage ? (
+        <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          {statusMessage}
+        </p>
+      ) : null}
+
+      {shareStatusLabel ? (
+        <p className="text-sm text-muted-foreground">{shareStatusLabel}</p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant={pdfGeneratedAt ? "outline" : "default"}
+          className={
+            pdfGeneratedAt
+              ? "border-token bg-background text-foreground"
+              : "bg-accent-token text-black hover:bg-accent-hover"
+          }
+          disabled={isGeneratingPdf || isSharing}
+          onClick={() => {
+            void handleGeneratePdf();
+          }}
+        >
+          {isGeneratingPdf
+            ? "Generando PDF..."
+            : pdfGeneratedAt
+              ? "Regenerar PDF"
+              : "Generar PDF"}
+        </Button>
+
+        <Button
+          type="button"
+          className="bg-accent-token text-black hover:bg-accent-hover"
+          disabled={!pdfGeneratedAt || isGeneratingPdf || isSharing}
+          onClick={() => {
+            void handleShareWhatsapp();
+          }}
+        >
+          {isSharing
+            ? "Abriendo WhatsApp..."
+            : sentAt
+              ? "Reenviar por WhatsApp"
+              : "Compartir por WhatsApp"}
+        </Button>
+
+        {sharePath ? (
+          <Button
+            variant="outline"
+            className="border-token bg-background text-foreground"
+            asChild
+          >
+            <a href={sharePath} target="_blank" rel="noreferrer">
+              Ver link publico
+            </a>
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}

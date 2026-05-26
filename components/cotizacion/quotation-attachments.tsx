@@ -22,6 +22,7 @@ type UploadResponse = {
 type QuotationAttachmentsProps = {
   quotationId: string | null;
   initialAttachments?: HydratedQuotationAttachment[];
+  readOnly?: boolean;
 };
 
 function isPreviewableAttachment(fileType: string | null) {
@@ -49,6 +50,7 @@ async function getUploadResponse(response: Response): Promise<UploadResponse> {
 export function QuotationAttachments({
   quotationId,
   initialAttachments = [],
+  readOnly = false,
 }: QuotationAttachmentsProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -65,6 +67,11 @@ export function QuotationAttachments({
   }, [initialAttachments, quotationId]);
 
   async function handleUpload() {
+    if (readOnly) {
+      setError("Los adjuntos quedan en solo lectura despues de compartir la cotizacion.");
+      return;
+    }
+
     if (!quotationId) {
       setError("Guarda el borrador antes de subir adjuntos.");
       return;
@@ -123,6 +130,11 @@ export function QuotationAttachments({
   }
 
   async function handleRemoveAttachment(id: string) {
+    if (readOnly) {
+      setError("Los adjuntos quedan en solo lectura despues de compartir la cotizacion.");
+      return;
+    }
+
     setRemovingId(id);
     setError(null);
     setStatus(null);
@@ -158,6 +170,11 @@ export function QuotationAttachments({
           <div className="rounded-lg border border-dashed border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
             Guarda primero la cotizacion como borrador para habilitar la carga de
             adjuntos.
+          </div>
+        ) : readOnly ? (
+          <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
+            La cotizacion ya fue compartida. Los adjuntos siguen disponibles para
+            consulta, pero las cargas y eliminaciones quedan bloqueadas.
           </div>
         ) : (
           <>
@@ -277,17 +294,19 @@ export function QuotationAttachments({
                       </div>
                     </div>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleRemoveAttachment(attachment.id)}
-                      disabled={removingId === attachment.id}
-                      className="border-token bg-background"
-                    >
-                      {removingId === attachment.id
-                        ? "Eliminando..."
-                        : "Eliminar"}
-                    </Button>
+                    {readOnly ? null : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleRemoveAttachment(attachment.id)}
+                        disabled={removingId === attachment.id}
+                        className="border-token bg-background"
+                      >
+                        {removingId === attachment.id
+                          ? "Eliminando..."
+                          : "Eliminar"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Separator } from "@/components/ui/separator";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import { formatCurrencyAmount, formatDateOnly } from "@/lib/formatting";
@@ -20,7 +21,18 @@ type QuotationSummaryProps = {
   validUntil: string;
   isSubmitting?: boolean;
   isSaved?: boolean;
+  quotationId?: string | null;
   draftNumber?: string | null;
+  pdfGeneratedAt?: string | null;
+  shareToken?: string | null;
+  sentAt?: string | null;
+  shareStatus?: string | null;
+  onStateChange?: (state: {
+    pdfGeneratedAt: string | null;
+    shareToken: string | null;
+    sentAt: string | null;
+    status: string | null;
+  }) => void;
 };
 
 export function QuotationSummary({
@@ -30,7 +42,13 @@ export function QuotationSummary({
   validUntil,
   isSubmitting = false,
   isSaved = false,
+  quotationId = null,
   draftNumber = null,
+  pdfGeneratedAt = null,
+  shareToken = null,
+  sentAt = null,
+  shareStatus = null,
+  onStateChange,
 }: QuotationSummaryProps) {
   const totals = calculateQuotationTotals(items, taxRate);
 
@@ -102,6 +120,18 @@ export function QuotationSummary({
             adjuntos y siguientes pasos.
           </p>
         )}
+
+        {quotationId && draftNumber ? (
+          <QuotationShareActions
+            quotationId={quotationId}
+            quotationNumber={draftNumber}
+            initialPdfGeneratedAt={pdfGeneratedAt}
+            initialShareToken={shareToken}
+            initialSentAt={sentAt}
+            initialStatus={shareStatus}
+            onStateChange={onStateChange}
+          />
+        ) : null}
 
         <Button
           type="submit"

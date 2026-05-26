@@ -1,14 +1,56 @@
+import { renderToBuffer } from "@react-pdf/renderer";
+
+import {
+  buildQuotationPdfTemplateData,
+  createQuotationPdfDocument,
+  type QuotationPdfTemplateData,
+} from "@/components/cotizacion/quotation-pdf-template";
 import { normalizeCatalogUnit } from "@/lib/catalog";
+import { buildProfileLogoDataUrl, resolveProfileBranding } from "@/lib/profile";
+import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
+import {
+  buildSharedQuotationPdfPath,
+  buildQuotationPdfFileName,
+  buildQuotationPdfPath,
+} from "@/lib/storage/paths";
+import {
+  canHydrateQuotationEditorStatus,
+  DRAFT_QUOTATION_STATUS,
+  isDraftQuotationStatus,
+  normalizeQuotationStatus,
+} from "@/lib/quotation-status";
+import {
+  downloadFile,
+  removeFile,
+  STORAGE_BUCKETS,
+  uploadFile,
+} from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  normalizePhoneForWhatsApp,
+} from "@/lib/whatsapp";
 import type {
+  Client,
+  HydratedQuotation,
   HydratedQuotationAttachment,
+  Profile,
   Quotation,
   QuotationAttachment,
+  QuotationItem,
+  QuotationStatus,
 } from "@/types";
 
-type QuotationRow = Omit<Quotation, "subtotal" | "tax_rate" | "total"> & {
+type QuotationRow = Omit<Quotation, "status" | "subtotal" | "tax_rate" | "total"> & {
+  status: string | null;
   subtotal: number | string | null;
   tax_rate: number | string | null;
+  total: number | string | null;
+};
+
+type QuotationItemRow = Omit<QuotationItem, "position" | "quantity" | "unit_price" | "total"> & {
+  position: number | string | null;
+  quantity: number | string | null;
+  unit_price: number | string | null;
   total: number | string | null;
 };
 
@@ -17,6 +59,18 @@ type QuotationMutationRow = {
 };
 
 type QuotationRollbackEntity = "quotation" | "client";
+
+type QuotationItemInsertRow = {
+  quotation_id: string;
+  position: number;
+  catalog_item_id: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total: number;
+};
 
 export type DraftQuotationClientInput = {
   name: string;
@@ -98,8 +152,82 @@ type HydrateQuotationAttachmentsDependencies = {
 };
 
 type LoadDraftQuotationHydrationContextDependencies = {
-  getDraftQuotation: () => Promise<Pick<Quotation, "id" | "number"> | null>;
+  getDraftQuotation: () => Promise<
+    Pick<
+      Quotation,
+      "id" | "number" | "status" | "pdf_generated_at" | "share_token" | "sent_at"
+    > | null
+  >;
   getAttachments: () => Promise<HydratedQuotationAttachment[]>;
+};
+
+type HydrateCompleteQuotationDependencies = {
+  getQuotation: () => Promise<QuotationRow | null>;
+  getProfile: () => Promise<Profile | null>;
+  getClient: (clientId: string) => Promise<Client | null>;
+  getItems: () => Promise<QuotationItemRow[]>;
+  createSignedLogoUrl: (path: string) => Promise<string | null>;
+};
+
+type GenerateAndStoreQuotationPdfDependencies = {
+  getHydratedQuotation: () => Promise<HydratedQuotation | null>;
+  resolveLogoDataUrl: (quotation: HydratedQuotation) => Promise<string | null>;
+  renderPdf: (templateData: QuotationPdfTemplateData) => Promise<Uint8Array>;
+  uploadPdf: (input: {
+    path: string;
+    bytes: Uint8Array;
+    contentType: string;
+  }) => Promise<void>;
+  updateOutput: (values: {
+    pdfPath: string;
+    pdfGeneratedAt: string;
+  }) => Promise<void>;
+  removeUploadedPdf: (path: string) => Promise<void>;
+};
+
+type GetStoredQuotationPdfDependencies = {
+  getHydratedQuotation: () => Promise<HydratedQuotation | null>;
+  downloadPdf: (path: string) => Promise<Uint8Array>;
+};
+
+type ConfirmQuotationWhatsappShareDependencies = {
+  getQuotation: (quotationId: string) => Promise<{
+    id: string;
+    number: string;
+    status: QuotationStatus | null;
+    pdfPath: string | null;
+    shareToken: string | null;
+    sentAt: string | null;
+    clientPhone: string | null;
+  } | null>;
+  persistShareState: (values: {
+    shareToken: string;
+    status: QuotationStatus;
+    sentAt: string;
+  }) => Promise<void>;
+  createShareToken?: () => string;
+};
+
+type GetSharedQuotationPdfDependencies = {
+  getSharedQuotation: (shareToken: string) => Promise<{
+    number: string;
+    pdfPath: string | null;
+    pdfGeneratedAt: string | null;
+  } | null>;
+  downloadPdf: (path: string) => Promise<Uint8Array>;
+};
+
+type PublishQuotationSharePdfDependencies = {
+  getStoredPdf: () => Promise<{
+    fileName: string;
+    bytes: Uint8Array;
+  }>;
+  uploadSharedPdf: (input: {
+    path: string;
+    body: Uint8Array;
+    contentType: string;
+    upsert: boolean;
+  }) => Promise<void>;
 };
 
 type DraftQuotationMutationDependencies = {
@@ -112,6 +240,14 @@ type RollbackUploadedQuotationAttachmentsDependencies = {
   deleteAttachmentRecord: (attachmentId: string) => Promise<void>;
   removeAttachmentFile: (filePath: string) => Promise<void>;
 };
+
+export {
+  canHydrateQuotationEditorStatus,
+  DRAFT_QUOTATION_STATUS,
+  isDraftQuotationStatus,
+  normalizeQuotationStatus,
+} from "@/lib/quotation-status";
+export { buildWhatsAppShareHref } from "@/lib/whatsapp";
 
 function normalizeAmount(value: number | string | null) {
   if (typeof value === "number") {
@@ -339,6 +475,67 @@ export function buildQuotationNumber(
     suffix.replace(/[^a-z0-9]+/gi, "").toUpperCase().slice(0, 6) || "000000";
 
   return `COT-${year}${month}${day}-${hours}${minutes}${seconds}-${normalizedSuffix}`;
+}
+
+export function buildQuotationSharePath(shareToken: string) {
+  return `/api/quotations/share/${encodeURIComponent(shareToken.trim())}`;
+}
+
+function normalizeQuotationRow(quotation: QuotationRow): Quotation {
+  return {
+    ...quotation,
+    status: normalizeQuotationStatus(quotation.status),
+    subtotal: normalizeAmount(quotation.subtotal),
+    tax_rate: normalizeAmount(quotation.tax_rate),
+    total: normalizeAmount(quotation.total),
+  };
+}
+
+function normalizeQuotationItemRow(
+  item: QuotationItemRow,
+): HydratedQuotation["items"][number] {
+  return {
+    id: item.id,
+    quotationId: item.quotation_id,
+    position: normalizeAmount(item.position),
+    catalogItemId: item.catalog_item_id,
+    name: item.name,
+    description: item.description,
+    quantity: normalizeAmount(item.quantity),
+    unit: normalizeCatalogUnit(item.unit),
+    unitPrice: normalizeAmount(item.unit_price),
+    total: normalizeAmount(item.total),
+  };
+}
+
+export function buildQuotationItemInsertRows(
+  quotationId: string,
+  items: DraftQuotationItemInput[],
+): QuotationItemInsertRow[] {
+  return items.map((item, index) => ({
+    quotation_id: quotationId,
+    position: index,
+    catalog_item_id: item.catalogItemId,
+    name: item.name,
+    description: item.description,
+    quantity: item.quantity,
+    unit: item.unit,
+    unit_price: item.unitPrice,
+    total: calculateQuotationLineTotal(item.quantity, item.unitPrice),
+  }));
+}
+
+export function sanitizeDraftQuotationItems(
+  items: DraftQuotationItemInput[],
+  ownedCatalogItemIds: ReadonlySet<string>,
+): DraftQuotationItemInput[] {
+  return items.map((item) => ({
+    ...item,
+    catalogItemId:
+      item.catalogItemId && ownedCatalogItemIds.has(item.catalogItemId)
+        ? item.catalogItemId
+        : null,
+  }));
 }
 
 export function parseQuotationFormData(
@@ -595,10 +792,6 @@ export async function hydrateQuotationAttachments(
   );
 }
 
-export function isDraftQuotationStatus(value: string | null) {
-  return value?.trim().toLowerCase() === "draft";
-}
-
 export function getDraftQuotationEditorHref(
   quotation: Pick<Quotation, "id" | "status">,
 ) {
@@ -607,30 +800,94 @@ export function getDraftQuotationEditorHref(
     : null;
 }
 
+export async function confirmQuotationWhatsappShare(
+  dependencies: ConfirmQuotationWhatsappShareDependencies,
+  input: {
+    quotationId: string;
+    now?: Date;
+  },
+) {
+  const quotation = await dependencies.getQuotation(input.quotationId);
+
+  if (!quotation) {
+    throw new Error("La cotizacion no existe o no te pertenece.");
+  }
+
+  if (!quotation.pdfPath) {
+    throw new Error("Genera el PDF antes de compartir la cotizacion.");
+  }
+
+  const shareToken =
+    quotation.shareToken ??
+    dependencies.createShareToken?.() ??
+    globalThis.crypto.randomUUID();
+  const shareStatus =
+    quotation.status && quotation.status !== DRAFT_QUOTATION_STATUS
+      ? quotation.status
+      : "pending";
+  const sentAt = quotation.sentAt ?? (input.now ?? new Date()).toISOString();
+  const needsPersistence =
+    shareToken !== quotation.shareToken ||
+    shareStatus !== quotation.status ||
+    sentAt !== quotation.sentAt;
+
+  if (needsPersistence) {
+    await dependencies.persistShareState({
+      shareToken,
+      status: shareStatus,
+      sentAt,
+    });
+  }
+
+  return {
+    quotationId: quotation.id,
+    quotationNumber: quotation.number,
+    shareToken,
+    sharePath: buildQuotationSharePath(shareToken),
+    shareStatus,
+    sentAt,
+    clientPhone: normalizePhoneForWhatsApp(quotation.clientPhone),
+  };
+}
+
 export async function getQuotationDraft(
   userId: string,
   quotationId: string,
-): Promise<Pick<Quotation, "id" | "number"> | null> {
+): Promise<
+  Pick<
+    Quotation,
+    "id" | "number" | "status" | "pdf_generated_at" | "share_token" | "sent_at"
+  > | null
+> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotations")
-    .select("id, number")
+    .select("id, number, status, pdf_generated_at, share_token, sent_at")
     .eq("id", quotationId)
     .eq("user_id", userId)
-    .eq("status", "draft")
     .maybeSingle();
 
   if (error) {
-    throw new Error("No se pudo cargar la cotizacion borrador.");
+    throw new Error("No se pudo cargar la cotizacion.");
   }
 
-  return data ?? null;
+  if (!data || !canHydrateQuotationEditorStatus(data.status)) {
+    return null;
+  }
+
+  return {
+    ...data,
+    status: normalizeQuotationStatus(data.status),
+  };
 }
 
 export async function loadDraftQuotationHydrationContext(
   dependencies: LoadDraftQuotationHydrationContextDependencies,
 ): Promise<{
-  draftQuotation: Pick<Quotation, "id" | "number"> | null;
+  draftQuotation: Pick<
+    Quotation,
+    "id" | "number" | "status" | "pdf_generated_at" | "share_token" | "sent_at"
+  > | null;
   attachments: HydratedQuotationAttachment[];
 }> {
   const draftQuotation = await dependencies.getDraftQuotation();
@@ -646,6 +903,368 @@ export async function loadDraftQuotationHydrationContext(
     draftQuotation,
     attachments: await dependencies.getAttachments(),
   };
+}
+
+export async function hydrateCompleteQuotation(
+  dependencies: HydrateCompleteQuotationDependencies,
+): Promise<HydratedQuotation | null> {
+  const quotationRecord = await dependencies.getQuotation();
+
+  if (!quotationRecord) {
+    return null;
+  }
+
+  const [profile, client, items] = await Promise.all([
+    dependencies.getProfile(),
+    quotationRecord.client_id
+      ? dependencies.getClient(quotationRecord.client_id)
+      : Promise.resolve(null),
+    dependencies.getItems(),
+  ]);
+
+  const branding = resolveProfileBranding(profile);
+  let logoUrl: string | null = null;
+
+  if (branding.logoPath) {
+    try {
+      logoUrl = await dependencies.createSignedLogoUrl(branding.logoPath);
+    } catch {
+      logoUrl = null;
+    }
+  }
+
+  const quotation = normalizeQuotationRow(quotationRecord);
+  const sortedItems = [...items].sort((left, right) => {
+    const positionDelta = normalizeAmount(left.position) - normalizeAmount(right.position);
+
+    if (positionDelta !== 0) {
+      return positionDelta;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+
+  return {
+    quotation,
+    branding: {
+      ...branding,
+      logoUrl,
+    },
+    customer: {
+      id: client?.id ?? quotation.client_id,
+      name: getOptionalStringValue(client?.name) ?? quotation.client_name,
+      email: getOptionalStringValue(client?.email),
+      phone: getOptionalStringValue(client?.phone),
+      address: getOptionalStringValue(client?.address),
+    },
+    items: sortedItems.map((item) => normalizeQuotationItemRow(item)),
+    output: {
+      pdfPath: quotation.pdf_path,
+      pdfGeneratedAt: quotation.pdf_generated_at,
+      shareToken: quotation.share_token,
+      sentAt: quotation.sent_at,
+    },
+  };
+}
+
+export async function generateAndStoreQuotationPdf(
+  dependencies: GenerateAndStoreQuotationPdfDependencies,
+  input: {
+    userId: string;
+    quotationId: string;
+    now?: Date;
+  },
+) {
+  const quotation = await dependencies.getHydratedQuotation();
+
+  if (!quotation) {
+    throw new Error("La cotizacion no existe o no te pertenece.");
+  }
+
+  const generatedAt = (input.now ?? new Date()).toISOString();
+  const fileName = buildQuotationPdfFileName(quotation.quotation.number);
+  const path = buildQuotationPdfPath(
+    input.userId,
+    input.quotationId,
+    quotation.quotation.number,
+  );
+  const previousPdfPath = quotation.output.pdfPath;
+  const logoDataUrl = await dependencies.resolveLogoDataUrl(quotation);
+  const templateData = buildQuotationPdfTemplateData({
+    quotation,
+    generatedAt,
+    logoDataUrl,
+  });
+  const bytes = await dependencies.renderPdf(templateData);
+
+  await dependencies.uploadPdf({
+    path,
+    bytes,
+    contentType: "application/pdf",
+  });
+
+  try {
+    await dependencies.updateOutput({
+      pdfPath: path,
+      pdfGeneratedAt: generatedAt,
+    });
+  } catch (error) {
+    if (!previousPdfPath) {
+      await dependencies.removeUploadedPdf(path).catch(() => undefined);
+    }
+
+    throw error;
+  }
+
+  if (previousPdfPath && previousPdfPath !== path) {
+    await dependencies.removeUploadedPdf(previousPdfPath).catch(() => undefined);
+  }
+
+  return {
+    fileName,
+    path,
+    generatedAt,
+    bytes,
+    shareToken: quotation.output.shareToken,
+  };
+}
+
+export async function generateQuotationPdfForUser(
+  userId: string,
+  quotationId: string,
+) {
+  const supabase = await createClient();
+
+  return generateAndStoreQuotationPdf(
+    {
+      getHydratedQuotation: async () => getHydratedQuotation(userId, quotationId),
+      resolveLogoDataUrl: async (quotation) => {
+        if (!quotation.branding.logoPath) {
+          return null;
+        }
+
+        try {
+          const logoFile = await downloadFile(
+            STORAGE_BUCKETS.businessAssets,
+            quotation.branding.logoPath,
+          );
+
+          return buildProfileLogoDataUrl(logoFile);
+        } catch {
+          return null;
+        }
+      },
+      renderPdf: async (templateData) => {
+        const buffer = await renderToBuffer(
+          createQuotationPdfDocument(templateData),
+        );
+
+        return new Uint8Array(buffer);
+      },
+      uploadPdf: async ({ path, bytes, contentType }) => {
+        await uploadFile({
+          bucket: STORAGE_BUCKETS.quotationPdfs,
+          path,
+          body: bytes,
+          contentType,
+          upsert: true,
+        });
+      },
+      updateOutput: async ({ pdfPath, pdfGeneratedAt }) => {
+        const { data, error } = await supabase
+          .from("quotations")
+          .update({
+            pdf_path: pdfPath,
+            pdf_generated_at: pdfGeneratedAt,
+          })
+          .eq("id", quotationId)
+          .eq("user_id", userId)
+          .select("id")
+          .maybeSingle();
+
+        if (error || !data) {
+          throw new Error("No se pudo guardar la ruta del PDF.");
+        }
+      },
+      removeUploadedPdf: async (path) => {
+        await removeFile(STORAGE_BUCKETS.quotationPdfs, path);
+      },
+    },
+    {
+      userId,
+      quotationId,
+    },
+  );
+}
+
+export async function getStoredQuotationPdf(
+  dependencies: GetStoredQuotationPdfDependencies,
+) {
+  const quotation = await dependencies.getHydratedQuotation();
+
+  if (!quotation) {
+    throw new Error("La cotizacion no existe o no te pertenece.");
+  }
+
+  const pdfPath = quotation.output.pdfPath;
+
+  if (!pdfPath) {
+    throw new Error("El PDF de la cotizacion aun no fue generado.");
+  }
+
+  const fileName =
+    pdfPath.split("/").pop() ?? buildQuotationPdfFileName(quotation.quotation.number);
+
+  return {
+    fileName,
+    generatedAt: quotation.output.pdfGeneratedAt,
+    bytes: await dependencies.downloadPdf(pdfPath),
+  };
+}
+
+export async function getSharedQuotationPdf(
+  dependencies: GetSharedQuotationPdfDependencies,
+  shareToken: string,
+) {
+  const normalizedToken = shareToken.trim();
+
+  if (!normalizedToken) {
+    throw new Error("Falta indicar que cotizacion compartida quieres abrir.");
+  }
+
+  const quotation = await dependencies.getSharedQuotation(normalizedToken);
+
+  if (!quotation) {
+    throw new Error("La cotizacion compartida no existe o ya no esta disponible.");
+  }
+
+  if (!quotation.pdfPath) {
+    throw new Error("El PDF de la cotizacion aun no fue generado.");
+  }
+
+  return {
+    fileName: buildQuotationPdfFileName(quotation.number),
+    generatedAt: quotation.pdfGeneratedAt,
+    bytes: await dependencies.downloadPdf(quotation.pdfPath),
+  };
+}
+
+export async function publishQuotationSharePdf(
+  dependencies: PublishQuotationSharePdfDependencies,
+  input: {
+    userId: string;
+    shareToken: string;
+  },
+) {
+  const normalizedShareToken = input.shareToken.trim();
+
+  if (!normalizedShareToken) {
+    throw new Error("No se pudo preparar el PDF publico de la cotizacion.");
+  }
+
+  const storedPdf = await dependencies.getStoredPdf();
+  const publicSharePath = buildSharedQuotationPdfPath(
+    input.userId,
+    normalizedShareToken,
+  );
+
+  await dependencies.uploadSharedPdf({
+    path: publicSharePath,
+    body: storedPdf.bytes,
+    contentType: "application/pdf",
+    upsert: true,
+  });
+
+  return {
+    fileName: storedPdf.fileName,
+    path: publicSharePath,
+  };
+}
+
+export async function getStoredQuotationPdfForUser(
+  userId: string,
+  quotationId: string,
+) {
+  return getStoredQuotationPdf(
+    {
+      getHydratedQuotation: async () => getHydratedQuotation(userId, quotationId),
+      downloadPdf: async (path) => {
+        const file = await downloadFile(STORAGE_BUCKETS.quotationPdfs, path);
+        return file.bytes;
+      },
+    },
+  );
+}
+
+export async function publishQuotationSharePdfForUser(
+  userId: string,
+  quotationId: string,
+  shareToken: string,
+) {
+  return publishQuotationSharePdf(
+    {
+      getStoredPdf: async () => getStoredQuotationPdfForUser(userId, quotationId),
+      uploadSharedPdf: async ({ path, body, contentType, upsert }) => {
+        await uploadFile({
+          bucket: STORAGE_BUCKETS.quotationSharePdfs,
+          path,
+          body,
+          contentType,
+          upsert,
+        });
+      },
+    },
+    {
+      userId,
+      shareToken,
+    },
+  );
+}
+
+export async function getSharedQuotationPdfForToken(shareToken: string) {
+  const supabase = await createClient();
+  type SharedQuotationPdfReferenceRow = {
+    user_id: string;
+    quotation_number: string;
+  };
+
+  return getSharedQuotationPdf(
+    {
+      getSharedQuotation: async (token) => {
+        const { data, error } = await supabase
+          .rpc("get_shared_quotation_pdf_reference", {
+            share_token_input: token,
+          })
+          .maybeSingle();
+
+        if (error) {
+          throw new Error("No se pudo cargar la cotizacion compartida.");
+        }
+
+        const reference =
+          (data as SharedQuotationPdfReferenceRow | null | undefined) ?? null;
+
+        if (!reference) {
+          return null;
+        }
+
+        return {
+          number: reference.quotation_number,
+          pdfPath: buildSharedQuotationPdfPath(reference.user_id, token),
+          pdfGeneratedAt: "shared",
+        };
+      },
+      downloadPdf: async (path) => {
+        try {
+          const file = await downloadFile(STORAGE_BUCKETS.quotationSharePdfs, path);
+          return file.bytes;
+        } catch {
+          throw new Error("La cotizacion compartida no existe o ya no esta disponible.");
+        }
+      },
+    },
+    shareToken,
+  );
 }
 
 export async function getQuotationAttachments(
@@ -683,12 +1302,90 @@ export async function getQuotationAttachments(
   });
 }
 
+export async function getHydratedQuotation(
+  userId: string,
+  quotationId: string,
+): Promise<HydratedQuotation | null> {
+  const supabase = await createClient();
+  const storageModule = await import("@/lib/storage/server");
+
+  return hydrateCompleteQuotation({
+    getQuotation: async () => {
+      const { data, error } = await supabase
+        .from("quotations")
+        .select(
+          "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, created_at",
+        )
+        .eq("id", quotationId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No se pudo cargar la cotizacion.");
+      }
+
+      return (data as QuotationRow | null) ?? null;
+    },
+    getProfile: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No se pudo cargar el perfil para la cotizacion.");
+      }
+
+      return (data as Profile | null) ?? null;
+    },
+    getClient: async (clientId) => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, user_id, name, email, phone, address, created_at")
+        .eq("id", clientId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No se pudo cargar el cliente de la cotizacion.");
+      }
+
+      return (data as Client | null) ?? null;
+    },
+    getItems: async () => {
+      const { data, error } = await supabase
+        .from("quotation_items")
+        .select("id, quotation_id, position, catalog_item_id, name, description, quantity, unit, unit_price, total")
+        .eq("quotation_id", quotationId)
+        .order("position", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (error) {
+        throw new Error("No se pudieron cargar los items de la cotizacion.");
+      }
+
+      return (data as QuotationItemRow[] | null) ?? [];
+    },
+    createSignedLogoUrl: async (path) => {
+      try {
+        return await storageModule.createSignedFileUrl(
+          storageModule.STORAGE_BUCKETS.businessAssets,
+          path,
+        );
+      } catch {
+        return null;
+      }
+    },
+  });
+}
+
 export async function getQuotations(userId: string): Promise<Quotation[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotations")
     .select(
-      "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, created_at",
+      "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, created_at",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
@@ -697,10 +1394,7 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
     throw new Error("No se pudieron cargar las cotizaciones.");
   }
 
-  return ((data ?? []) as QuotationRow[]).map((quotation) => ({
-    ...quotation,
-    subtotal: normalizeAmount(quotation.subtotal),
-    tax_rate: normalizeAmount(quotation.tax_rate),
-    total: normalizeAmount(quotation.total),
-  }));
+  return ((data ?? []) as QuotationRow[]).map((quotation) =>
+    normalizeQuotationRow(quotation),
+  );
 }

@@ -5,6 +5,7 @@ import {
   buildBusinessLogoPath,
   buildInvoiceUploadPath,
   buildQuotationAttachmentPath,
+  buildSharedQuotationPdfPath,
 } from "../lib/storage/paths";
 
 test("buildBusinessLogoPath keeps a stable logo location", () => {
@@ -44,4 +45,11 @@ test("buildInvoiceUploadPath creates unique sanitized object keys", () => {
   assert.match(firstPath, /^user-123\/invoices\/mi-scan-[a-f0-9-]+\.jpg$/);
   assert.match(secondPath, /^user-123\/invoices\/mi-scan-[a-f0-9-]+\.jpg$/);
   assert.notEqual(firstPath, secondPath);
+});
+
+test("buildSharedQuotationPdfPath keeps a deterministic public path per user and share token", () => {
+  assert.equal(
+    buildSharedQuotationPdfPath("user-123", "share-token-456"),
+    "user-123/quotation-share-pdfs/share-token-456.pdf",
+  );
 });

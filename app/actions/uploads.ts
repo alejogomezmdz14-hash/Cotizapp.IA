@@ -9,6 +9,7 @@ import {
 } from "@/lib/uploads";
 import {
   assertDraftQuotationMutationAllowed,
+  DRAFT_QUOTATION_STATUS,
   formatCleanupFailureMessage,
   rollbackUploadedQuotationAttachments,
 } from "@/lib/quotations";
@@ -268,7 +269,7 @@ export async function uploadQuotationAttachmentsFromFormData(
           .select("id")
           .eq("id", draftQuotationId)
           .eq("user_id", user.id)
-          .eq("status", "draft")
+          .eq("status", DRAFT_QUOTATION_STATUS)
           .maybeSingle();
 
         if (error) {

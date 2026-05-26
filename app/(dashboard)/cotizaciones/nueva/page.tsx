@@ -72,6 +72,10 @@ export default async function NewQuotationPage({
             ? {
                 quotationId: draftHydration.draftQuotation.id,
                 number: draftHydration.draftQuotation.number,
+                status: draftHydration.draftQuotation.status,
+                pdfGeneratedAt: draftHydration.draftQuotation.pdf_generated_at,
+                shareToken: draftHydration.draftQuotation.share_token,
+                sentAt: draftHydration.draftQuotation.sent_at,
               }
             : null
         }

@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { assertCatalogPriceSuggestionIsCurrent } from "@/lib/ai/catalog-price-updates";
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { requireUser } from "@/lib/profile";
-import { calculateQuotationLineTotal, calculateQuotationTotals } from "@/lib/quotation-calculations";
+import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import {
   assertSingleQuotationRollbackMutation,
+  buildQuotationItemInsertRows,
   buildQuotationNumber,
+  DRAFT_QUOTATION_STATUS,
   persistDraftQuotation,
 } from "@/lib/quotations";
 import { createClient } from "@/lib/supabase/server";
@@ -340,7 +342,7 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
             client_id: clientId,
             client_name: clientName,
             number: quotationNumber,
-            status: "draft",
+            status: DRAFT_QUOTATION_STATUS,
             notes,
             subtotal,
             tax_rate: taxRate,
@@ -357,17 +359,9 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
         return data as { id: string; number: string };
       },
       createQuotationItems: async (quotationId, quotationItems) => {
-        const { error } = await supabase.from("quotation_items").insert(
-          quotationItems.map((item) => ({
-            quotation_id: quotationId,
-            name: item.name,
-            description: item.description,
-            quantity: item.quantity,
-            unit: item.unit,
-            unit_price: item.unitPrice,
-            total: calculateQuotationLineTotal(item.quantity, item.unitPrice),
-          })),
-        );
+        const { error } = await supabase
+          .from("quotation_items")
+          .insert(buildQuotationItemInsertRows(quotationId, quotationItems));
 
         if (error) {
           throw new Error("No se pudieron guardar los items del borrador sugerido.");
