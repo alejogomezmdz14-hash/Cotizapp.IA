@@ -191,6 +191,29 @@ test("normalizeInvoiceScanResult parses grouped decimal formats used in invoices
   );
 });
 
+test("normalizeInvoiceScanResult accepts broader metadata aliases from invoice scans", async () => {
+  const { normalizeInvoiceScanResult } = await getInvoiceModule();
+
+  const result = normalizeInvoiceScanResult({
+    company: "Proveedor Demo SA",
+    invoice_no: "B-0003-00004567",
+    moneda: "ARS",
+    issued_at: "2026-05-25",
+    products: [
+      {
+        product_name: "Teclado mecanico",
+        qty: "3",
+        unit_price: "12500",
+      },
+    ],
+  });
+
+  assert.equal(result.supplierName, "Proveedor Demo SA");
+  assert.equal(result.invoiceNumber, "B-0003-00004567");
+  assert.equal(result.currency, "ARS");
+  assert.equal(result.invoiceDate, "2026-05-25");
+});
+
 test("sanitizeInvoiceReviewItemsForCatalog only keeps valid explicit catalog drafts", async () => {
   const { sanitizeInvoiceReviewItemsForCatalog } = await getInvoiceModule();
 

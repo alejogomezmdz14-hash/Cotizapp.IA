@@ -48,6 +48,10 @@ export function markSavedCatalogRows(
   );
 }
 
+export function removeAppliedQuotationRows(rows: EditableInvoiceReviewItem[]) {
+  return rows.filter((row) => row.destination !== "quotation");
+}
+
 export function toInvoiceDraft(row: EditableInvoiceReviewItem): InvoiceScanItemDraft {
   return {
     name: row.name,

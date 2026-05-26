@@ -46,6 +46,15 @@ type ReviewModule = {
     id: string;
     destination: "quotation" | "catalog" | "discard";
   }>;
+  removeAppliedQuotationRows: (
+    rows: Array<{
+      id: string;
+      destination: "quotation" | "catalog" | "discard";
+    }>,
+  ) => Array<{
+    id: string;
+    destination: "quotation" | "catalog" | "discard";
+  }>;
 };
 
 async function getReviewModule() {
@@ -168,6 +177,52 @@ test("markSavedCatalogRows only discards rows actually persisted", async () => {
     },
     {
       ...selectedForCatalog[1],
+      destination: "catalog",
+    },
+  ]);
+});
+
+test("removeAppliedQuotationRows removes only the rows that were added to the quotation", async () => {
+  const {
+    createInvoiceReviewItems,
+    updateInvoiceReviewDestination,
+    removeAppliedQuotationRows,
+  } = await getReviewModule();
+
+  const rows = createInvoiceReviewItems({
+    supplierName: null,
+    invoiceNumber: null,
+    invoiceDate: null,
+    currency: null,
+    notes: null,
+    warnings: [],
+    items: [
+      {
+        name: "Laptop HP 15",
+        description: null,
+        quantity: 2,
+        unit: "unidad",
+        unitPrice: 120000,
+      },
+      {
+        name: "Mouse Logitech",
+        description: null,
+        quantity: 5,
+        unit: "unidad",
+        unitPrice: 3500,
+      },
+    ],
+  });
+
+  const mixedDestinations = updateInvoiceReviewDestination(
+    rows,
+    "invoice-item-2",
+    "catalog",
+  );
+
+  assert.deepEqual(removeAppliedQuotationRows(mixedDestinations), [
+    {
+      ...mixedDestinations[1],
       destination: "catalog",
     },
   ]);

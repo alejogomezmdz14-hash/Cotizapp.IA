@@ -194,9 +194,10 @@ export async function uploadInvoiceForScanFromFormData(
       .insert({
         user_id: user.id,
         file_path: filePath,
+        file_name: file.name,
         status: "uploaded",
       })
-      .select("id, file_path, status, created_at")
+      .select("id, file_path, file_name, status, created_at")
       .single();
 
     if (scanError || !scan) {

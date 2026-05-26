@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { scanInvoiceWithAi } from "@/lib/ai/invoice";
+import { getInvoiceScanDisplayFileName } from "@/lib/invoice-scan/file-name";
 import { getCurrentUser } from "@/lib/profile";
 import { createSignedFileUrl, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
@@ -12,10 +13,6 @@ type InvoiceScanRequestBody = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getFileNameFromPath(filePath: string) {
-  return filePath.split("/").pop() ?? "factura";
 }
 
 function getErrorResponse(error: unknown) {
@@ -108,7 +105,7 @@ export async function POST(request: Request) {
         scan: {
           id: scan.id,
           filePath: scan.file_path,
-          fileName: getFileNameFromPath(scan.file_path),
+          fileName: getInvoiceScanDisplayFileName(scan),
           createdAt: scan.created_at,
           status: scan.status,
         },
@@ -131,7 +128,7 @@ export async function POST(request: Request) {
 
     const aiScan = await scanInvoiceWithAi({
       signedUrl,
-      fileName: getFileNameFromPath(scan.file_path),
+      fileName: getInvoiceScanDisplayFileName(scan),
     });
 
     const storedRawResult = {
@@ -156,7 +153,7 @@ export async function POST(request: Request) {
       scan: {
         id: scan.id,
         filePath: scan.file_path,
-        fileName: getFileNameFromPath(scan.file_path),
+        fileName: getInvoiceScanDisplayFileName(scan),
         createdAt: scan.created_at,
         status: "completed",
       },

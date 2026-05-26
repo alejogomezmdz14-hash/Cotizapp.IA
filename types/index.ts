@@ -77,6 +77,7 @@ export type InvoiceScan = {
   id: string;
   user_id: string;
   file_path: string;
+  file_name: string | null;
   status: string | null;
   raw_result: Record<string, unknown> | null;
   created_at: string | null;

@@ -10,6 +10,7 @@ import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cot
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
+import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -112,7 +113,9 @@ export function QuotationForm({
   const [clientMode, setClientMode] = useState<"existing" | "inline">(
     clients.length > 0 ? "existing" : "inline",
   );
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(() =>
+    getDefaultQuotationClientId(clients),
+  );
   const [inlineClient, setInlineClient] = useState<InlineClientState>({
     name: "",
     email: "",
@@ -381,7 +384,12 @@ export function QuotationForm({
                         ? "bg-accent-token text-black hover:bg-accent-hover"
                         : "border-token bg-background"
                     }
-                    onClick={() => setClientMode("existing")}
+                    onClick={() => {
+                      setClientMode("existing");
+                      setSelectedClientId((currentValue) =>
+                        currentValue ?? getDefaultQuotationClientId(clients),
+                      );
+                    }}
                     disabled={isFormLocked || clients.length === 0}
                   >
                     Cliente existente

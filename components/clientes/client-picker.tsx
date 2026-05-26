@@ -85,7 +85,12 @@ export function ClientPicker({
               "Sin datos de contacto"}
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+          Todavia no seleccionaste ningun cliente. Haz clic en uno de la lista para
+          usarlo en esta cotizacion.
+        </div>
+      )}
 
       {filteredClients.length === 0 ? (
         <div className="flex items-center gap-3 rounded-lg border border-dashed border-token bg-surface px-4 py-4 text-sm text-muted-foreground">
@@ -128,7 +133,7 @@ export function ClientPicker({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {allowClear ? (
+        {allowClear && selectedClient ? (
           <Button
             type="button"
             variant="outline"

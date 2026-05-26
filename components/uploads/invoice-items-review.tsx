@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import {
   createInvoiceReviewItems,
   markSavedCatalogRows,
+  removeAppliedQuotationRows,
   toInvoiceDraft,
   updateInvoiceReviewDestination,
   type EditableInvoiceReviewItem,
@@ -115,13 +116,7 @@ export function InvoiceItemsReview({
 
     try {
       onAddToQuotation(quotationSelection.map(toInvoiceDraft));
-      setRows((currentRows) =>
-        currentRows.map((row) =>
-          row.destination === "quotation"
-            ? { ...row, destination: "discard" }
-            : row,
-        ),
-      );
+      setRows((currentRows) => removeAppliedQuotationRows(currentRows));
       setStatus("Items agregados a la cotizacion actual.");
     } finally {
       setIsApplyingQuotation(false);
@@ -280,8 +275,9 @@ export function InvoiceItemsReview({
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-            No encontramos items claros en esta factura. Puedes intentar con otra
-            imagen mas nitida o cargar los conceptos manualmente.
+            {result.items.length === 0
+              ? "No encontramos items claros en esta factura. Puedes intentar con otra imagen mas nitida o cargar los conceptos manualmente."
+              : "No quedan items pendientes en esta revision. Puedes limpiar la revision o subir otra factura."}
           </div>
         ) : (
           <div className="grid gap-4">
