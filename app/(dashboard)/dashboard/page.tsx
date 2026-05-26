@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, FileText, MessageSquare, Package, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Clock3,
+  FileText,
+  MessageSquare,
+  Package,
+  Send,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,35 +20,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getDashboardStats } from "@/lib/dashboard";
-import { requireUser } from "@/lib/profile";
+import { buildDashboardPageCards } from "@/lib/dashboard-page";
+import { getProfile, requireUser } from "@/lib/profile";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const stats = await getDashboardStats(user.id);
+  const [stats, profile] = await Promise.all([
+    getDashboardStats(user.id),
+    getProfile(user.id),
+  ]);
+  const { quotationMetricCards, summaryCards } = buildDashboardPageCards(
+    stats,
+    profile?.currency ?? null,
+  );
 
-  const summaryCards = [
-    {
-      title: "Cotizaciones",
-      value: stats.quotations,
-      description: "Documentos generados para tus clientes.",
-      href: "/cotizaciones",
-      icon: FileText,
-    },
-    {
-      title: "Clientes",
-      value: stats.clients,
-      description: "Contactos guardados para dar seguimiento.",
-      href: "/clientes",
-      icon: Users,
-    },
-    {
-      title: "Catalogo",
-      value: stats.catalogItems,
-      description: "Productos y servicios listos para cotizar.",
-      href: "/catalogo",
-      icon: Package,
-    },
-  ] as const;
+  const quotationMetricIcons = {
+    totalQuotedThisMonth: TrendingUp,
+    sentQuotations: Send,
+    acceptedQuotations: BadgeCheck,
+    pendingQuotations: Clock3,
+  } as const;
+
+  const summaryIcons = {
+    quotations: FileText,
+    clients: Users,
+    catalogItems: Package,
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -49,11 +56,11 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <h2 className="text-3xl font-semibold tracking-tight">
-              Resumen de tu operacion
+              Operacion de cotizaciones
             </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Revisa el estado actual de tu cuenta y entra rapido a las
-              secciones principales de Cotizapp.
+              Sigue el ritmo comercial del mes y entra rapido a las secciones
+              clave de Cotizapp.
             </p>
           </div>
 
@@ -66,38 +73,121 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
+      <section className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold tracking-tight">
+              Estado de tus cotizaciones
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Los indicadores principales se renderizan directo desde tu resumen
+              operativo.
+            </p>
+          </div>
+          <Link
+            href="/cotizaciones"
+            className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+          >
+            Ver cotizaciones
+          </Link>
+        </div>
 
-          return (
-            <Card key={card.title} className="border-token bg-surface shadow-sm">
-              <CardHeader className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="rounded-2xl bg-surface-2 p-3">
-                    <Icon className="h-5 w-5 text-foreground" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {quotationMetricCards.map((card, index) => {
+            const Icon = quotationMetricIcons[card.id];
+
+            return (
+              <Card
+                key={card.id}
+                className={
+                  index === 0
+                    ? "border-accent-token/50 bg-surface shadow-sm"
+                    : "border-token bg-surface shadow-sm"
+                }
+              >
+                <CardHeader className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div
+                      className={
+                        index === 0
+                          ? "rounded-2xl bg-accent-token/10 p-3 text-accent-token"
+                          : "rounded-2xl bg-surface-2 p-3 text-foreground"
+                      }
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <Link
+                      href={card.href}
+                      className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                    >
+                      Ver mas
+                    </Link>
                   </div>
-                  <Link
-                    href={card.href}
-                    className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-                  >
-                    Ver mas
-                  </Link>
-                </div>
-                <div className="space-y-1">
-                  <CardDescription>{card.title}</CardDescription>
-                  <CardTitle className="text-4xl">{card.value}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between gap-3">
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {card.description}
-                </p>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          );
-        })}
+                  <div className="space-y-1">
+                    <CardDescription>{card.title}</CardDescription>
+                    <CardTitle
+                      className={index === 0 ? "text-3xl lg:text-4xl" : "text-4xl"}
+                    >
+                      {card.value}
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-3">
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {card.description}
+                  </p>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold tracking-tight">
+            Base de tu cuenta
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Manten a mano el volumen total de trabajo, tus clientes y el
+            catalogo cargado.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {summaryCards.map((card) => {
+            const Icon = summaryIcons[card.id];
+
+            return (
+              <Card key={card.id} className="border-token bg-surface shadow-sm">
+                <CardHeader className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="rounded-2xl bg-surface-2 p-3">
+                      <Icon className="h-5 w-5 text-foreground" />
+                    </div>
+                    <Link
+                      href={card.href}
+                      className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                    >
+                      Ver mas
+                    </Link>
+                  </div>
+                  <div className="space-y-1">
+                    <CardDescription>{card.title}</CardDescription>
+                    <CardTitle className="text-4xl">{card.value}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-3">
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {card.description}
+                  </p>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">

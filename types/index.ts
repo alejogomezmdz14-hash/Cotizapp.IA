@@ -117,10 +117,18 @@ export type HydratedQuotation = {
   output: QuotationOutputMetadata;
 };
 
+export type DashboardQuotationMetrics = {
+  totalQuotedThisMonth: number;
+  sentQuotations: number;
+  acceptedQuotations: number;
+  pendingQuotations: number;
+};
+
 export type DashboardStats = {
   quotations: number;
   clients: number;
   catalogItems: number;
+  quotationMetrics: DashboardQuotationMetrics;
 };
 
 export type QuotationAttachment = {
