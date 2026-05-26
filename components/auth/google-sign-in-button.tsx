@@ -33,7 +33,8 @@ export function GoogleSignInButton() {
         type="button"
         onClick={handleSignIn}
         disabled={isLoading}
-        className="w-full bg-accent-token text-black hover:bg-accent-hover"
+        size="lg"
+        className="w-full rounded-[1rem]"
       >
         {isLoading ? "Redirigiendo con Google..." : "Continuar con Google"}
       </Button>

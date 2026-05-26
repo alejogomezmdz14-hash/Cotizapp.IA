@@ -32,24 +32,48 @@ export function ChatInput({
   }
 
   return (
-    <Card className="border-token bg-surface shadow-sm">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-xl">Escribi tu consulta</CardTitle>
-        <CardDescription>
-          Puedes pedir contexto del negocio, ayuda para armar una cotizacion o una
-          propuesta de actualizacion de precios.
-        </CardDescription>
+    <Card className="shell-panel overflow-hidden shadow-none">
+      <CardHeader className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-xl">Escribi tu consulta</CardTitle>
+            <CardDescription className="leading-6">
+              Puedes pedir contexto del negocio, ayuda para armar una cotizacion o
+              una propuesta de actualizacion de precios.
+            </CardDescription>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Modo seguro
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <textarea
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envio en 48 horas."
-          disabled={isLoading}
-          className={textareaClassName}
-        />
+        <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4">
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envio en 48 horas."
+            disabled={isLoading}
+            className={textareaClassName}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {[
+            "Consultar historial de cotizaciones",
+            "Pedir un borrador sugerido",
+            "Revisar precios del catalogo",
+          ].map((hint) => (
+            <span
+              key={hint}
+              className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground"
+            >
+              {hint}
+            </span>
+          ))}
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
@@ -59,7 +83,6 @@ export function ChatInput({
             type="button"
             onClick={onSubmit}
             disabled={isLoading || !value.trim()}
-            className="bg-accent-token text-black hover:bg-accent-hover"
           >
             <SendHorizontal className="mr-2 h-4 w-4" />
             {isLoading ? "Consultando..." : "Enviar mensaje"}

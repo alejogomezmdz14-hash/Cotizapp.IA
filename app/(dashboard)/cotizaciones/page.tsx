@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
 
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
@@ -73,160 +74,291 @@ export default async function QuotationsPage() {
     activeStatuses.set(label, (activeStatuses.get(label) ?? 0) + 1);
   }
 
+  const summaryCardClassName =
+    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="space-y-5 lg:space-y-6">
+      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
+          <div className="space-y-5">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               Cotizaciones
             </span>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                Historial de cotizaciones
+
+            <div className="space-y-3">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Historial comercial con mejor lectura y acciones mas claras
               </h2>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                Consulta tus borradores y futuras etapas de seguimiento desde una
-                lista clara, con totales y fechas reales.
+              <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+                Sigue tus borradores, revisa cotizaciones pendientes y vuelve al
+                flujo correcto sin perder contexto de montos, fechas ni estado.
               </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href="/cotizaciones/nueva">Nueva cotizacion</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="bg-background/75">
+                <Link href="/dashboard">Volver al panel</Link>
+              </Button>
             </div>
           </div>
 
-          <Button
-            asChild
-            className="bg-accent-token text-black hover:bg-accent-hover"
-          >
-            <Link href="/cotizaciones/nueva">Nueva cotizacion</Link>
-          </Button>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="rounded-[1.75rem] border border-token bg-background/80 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Total cargadas
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight">
+                {quotations.length}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Cotizaciones visibles entre borradores y etapas de seguimiento.
+              </p>
+            </div>
+            <div className="rounded-[1.75rem] border border-token bg-background/60 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Borradores activos
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight">
+                {draftCount}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Espacios listos para retomar y terminar antes de compartir.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <Card className="border-token bg-surface shadow-sm">
-          <CardHeader className="space-y-1">
-            <CardDescription>Total cargadas</CardDescription>
-            <CardTitle className="text-3xl">{quotations.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-token bg-surface shadow-sm">
-          <CardHeader className="space-y-1">
-            <CardDescription>Borradores activos</CardDescription>
-            <CardTitle className="text-3xl">{draftCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-token bg-surface shadow-sm">
-          <CardHeader className="space-y-2">
-            <CardDescription>Estados presentes</CardDescription>
-            <div className="flex flex-wrap gap-2">
-              {activeStatuses.size === 0 ? (
-                <span className="rounded-full border border-token/80 px-3 py-1 text-xs text-muted-foreground">
-                  Sin movimientos
+      <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Vista general
+            </p>
+            <h3 className="text-xl font-semibold tracking-tight">
+              Estado operativo de tus cotizaciones
+            </h3>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Resume rapido el volumen de trabajo y los estados presentes antes de
+              entrar a cada cotizacion.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {activeStatuses.size === 0 ? (
+              <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground">
+                Sin movimientos
+              </span>
+            ) : (
+              Array.from(activeStatuses.entries()).map(([label, count]) => (
+                <span
+                  key={label}
+                  className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground"
+                >
+                  {label}: {count}
                 </span>
-              ) : (
-                Array.from(activeStatuses.entries()).map(([label, count]) => (
-                  <span
-                    key={label}
-                    className="rounded-full border border-token/80 px-3 py-1 text-xs text-muted-foreground"
-                  >
-                    {label}: {count}
-                  </span>
-                ))
-              )}
-            </div>
-          </CardHeader>
-        </Card>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className={summaryCardClassName}>
+            <CardHeader className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="rounded-2xl border border-token bg-background/80 p-3">
+                  <ReceiptText className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <CardDescription>Total cargadas</CardDescription>
+                <CardTitle className="text-4xl">{quotations.length}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Incluye borradores guardados y cotizaciones que ya avanzaron a
+                seguimiento.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className={summaryCardClassName}>
+            <CardHeader className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] p-3 text-accent-token">
+                  <Layers3 className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <CardDescription>Borradores activos</CardDescription>
+                <CardTitle className="text-4xl">{draftCount}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Retoma una cotizacion guardada cuando quieras seguir cargando items
+                o adjuntos.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className={summaryCardClassName}>
+            <CardHeader className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="rounded-2xl border border-token bg-background/80 p-3">
+                  <Clock3 className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <CardDescription>Estados presentes</CardDescription>
+                <CardTitle className="text-4xl">{activeStatuses.size}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">
+                La mezcla actual de estados ayuda a priorizar seguimiento,
+                reenvios o edicion.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
-      {quotations.length === 0 ? (
-        <Card className="border-dashed border-token bg-surface shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">
-              Todavia no creaste cotizaciones
-            </CardTitle>
-            <CardDescription>
-              Empeza con tu primera cotizacion para ver el historial completo
-              desde esta pantalla.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              asChild
-              variant="outline"
-              className="border-token bg-transparent"
-            >
-              <Link href="/cotizaciones/nueva">Ir a nueva cotizacion</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <section className="grid gap-4">
-          {quotations.map((quotation) => {
-            const reopenDraftHref = getDraftQuotationEditorHref(quotation);
-            const canShareQuotation =
-              isDraftQuotationStatus(quotation.status) || quotation.status === "pending";
+      <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Historial detallado
+            </p>
+            <h3 className="text-xl font-semibold tracking-tight">
+              Tus cotizaciones recientes
+            </h3>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Cada tarjeta resume importes, validez y siguientes acciones para que
+              no tengas que abrir mas pantallas de las necesarias.
+            </p>
+          </div>
 
-            return (
-              <Card key={quotation.id} className="border-token bg-surface shadow-sm">
-                <CardHeader className="space-y-3">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl">{quotation.number}</CardTitle>
-                      <CardDescription>
-                        {quotation.client_name?.trim() || "Cliente sin asignar"}
-                      </CardDescription>
+          <Button asChild variant="outline" className="bg-background/75">
+            <Link href="/cotizaciones/nueva">
+              <FilePlus2 className="mr-2 h-4 w-4" />
+              Crear borrador
+            </Link>
+          </Button>
+        </div>
+
+        {quotations.length === 0 ? (
+          <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
+            <p className="text-lg font-semibold text-foreground">
+              Todavia no creaste cotizaciones
+            </p>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Empeza con tu primera cotizacion para abrir el flujo completo de
+              cliente, items, resumen y seguimiento desde una sola pantalla.
+            </p>
+            <div className="mt-5 flex justify-center">
+              <Button asChild>
+                <Link href="/cotizaciones/nueva">Ir a nueva cotizacion</Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {quotations.map((quotation) => {
+              const reopenDraftHref = getDraftQuotationEditorHref(quotation);
+              const canShareQuotation =
+                isDraftQuotationStatus(quotation.status) ||
+                quotation.status === "pending";
+
+              return (
+                <Card key={quotation.id} className={summaryCardClassName}>
+                  <CardHeader className="space-y-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            {quotation.number}
+                          </span>
+                          <span
+                            className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(quotation.status)}`}
+                          >
+                            {formatStatusLabel(quotation.status)}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <CardTitle className="text-2xl">
+                            {quotation.client_name?.trim() || "Cliente sin asignar"}
+                          </CardTitle>
+                          <CardDescription className="max-w-2xl leading-6">
+                            {quotation.notes?.trim() ||
+                              "Sin notas adicionales para esta cotizacion."}
+                          </CardDescription>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-token/80 bg-background/70 px-4 py-3 text-sm">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          Creada
+                        </p>
+                        <p className="mt-2 font-medium text-foreground">
+                          {formatDateTime(quotation.created_at)}
+                        </p>
+                      </div>
                     </div>
-                    <span
-                      className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(quotation.status)}`}
-                    >
-                      {formatStatusLabel(quotation.status)}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Subtotal</p>
-                    <p className="text-base font-semibold text-foreground">
-                      {formatCurrencyAmount(
-                        quotation.subtotal,
-                        profile?.currency ?? null,
-                      )}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Total estimado</p>
-                    <p className="text-lg font-semibold">
-                      {formatCurrencyAmount(
-                        quotation.total,
-                        profile?.currency ?? null,
-                      )}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Impuesto</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {quotation.tax_rate ?? 0}%
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Valida hasta</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDateOnly(quotation.valid_until)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Creada</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDateTime(quotation.created_at)}
-                    </p>
-                  </div>
-                  <div className="md:col-span-4">
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {quotation.notes?.trim() ||
-                        "Sin notas adicionales para esta cotizacion."}
-                    </p>
-                  </div>
-                  {canShareQuotation ? (
-                    <div className="md:col-span-4">
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          Subtotal
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-foreground">
+                          {formatCurrencyAmount(
+                            quotation.subtotal,
+                            profile?.currency ?? null,
+                          )}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          Total estimado
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-foreground">
+                          {formatCurrencyAmount(
+                            quotation.total,
+                            profile?.currency ?? null,
+                          )}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          Impuesto
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-foreground">
+                          {quotation.tax_rate ?? 0}%
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          Valida hasta
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-foreground">
+                          {formatDateOnly(quotation.valid_until)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canShareQuotation ? (
                       <QuotationShareActions
                         quotationId={quotation.id}
                         quotationNumber={quotation.number}
@@ -235,25 +367,22 @@ export default async function QuotationsPage() {
                         initialSentAt={quotation.sent_at}
                         initialStatus={quotation.status}
                       />
-                    </div>
-                  ) : null}
-                  {reopenDraftHref ? (
-                    <div className="md:col-span-4">
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-token bg-background text-foreground"
-                      >
-                        <Link href={reopenDraftHref}>Reabrir borrador</Link>
-                      </Button>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </section>
-      )}
+                    ) : null}
+
+                    {reopenDraftHref ? (
+                      <div className="flex flex-wrap gap-3">
+                        <Button asChild variant="outline" className="bg-background/75">
+                          <Link href={reopenDraftHref}>Reabrir borrador</Link>
+                        </Button>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

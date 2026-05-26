@@ -22,7 +22,7 @@ export function ThemeToggle() {
       type="button"
       size="icon"
       variant="outline"
-      className="border-token bg-surface text-foreground hover:bg-surface-2 hover:text-foreground"
+      className="rounded-[1rem] border-token bg-background/80 text-foreground hover:bg-background hover:text-foreground"
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

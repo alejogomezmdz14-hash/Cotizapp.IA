@@ -43,6 +43,19 @@ function parseDecimalValue(rawValue: string) {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
+function getDestinationCardClassName(destination: InvoiceReviewDestination) {
+  switch (destination) {
+    case "quotation":
+      return "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)]";
+    case "catalog":
+      return "border-token/80 bg-background/70";
+    case "discard":
+      return "border-token/70 bg-background/45";
+    default:
+      return "border-token/80 bg-background/70";
+  }
+}
+
 export function InvoiceItemsReview({
   fileName,
   result,
@@ -170,21 +183,27 @@ export function InvoiceItemsReview({
 
   if (!result) {
     return (
-      <Card className="border-token bg-surface shadow-sm">
+      <Card className="shell-panel overflow-hidden shadow-none">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Revision del escaneo</CardTitle>
-          <CardDescription>
+          <CardDescription className="leading-6">
             Cuando el AI termine de leer tu factura, aqui podras editar cada
             renglon y decidir si va a la cotizacion actual, al catalogo o se
             descarta.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
+            Carga una factura para abrir la revision editable y decidir destino por
+            destino antes de persistir nada.
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-token bg-surface shadow-sm">
+    <Card className="shell-panel overflow-hidden shadow-none">
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">
@@ -202,7 +221,7 @@ export function InvoiceItemsReview({
           <Button
             type="button"
             variant="outline"
-            className="border-token bg-background"
+            className="bg-background/75"
             onClick={onClear}
             disabled={disabled || isSavingCatalog || isApplyingQuotation}
           >
@@ -214,7 +233,42 @@ export function InvoiceItemsReview({
 
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Items detectados
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {result.items.length}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Para cotizacion
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {quotationSelection.length}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Para catalogo
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {catalogSelection.length}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Para descarte
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {discardedSelection.length}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Archivo
             </p>
@@ -222,7 +276,7 @@ export function InvoiceItemsReview({
               {fileName ?? "Factura sin nombre"}
             </p>
           </div>
-          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Proveedor
             </p>
@@ -230,7 +284,7 @@ export function InvoiceItemsReview({
               {result.supplierName ?? "No detectado"}
             </p>
           </div>
-          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Numero
             </p>
@@ -238,7 +292,7 @@ export function InvoiceItemsReview({
               {result.invoiceNumber ?? "No detectado"}
             </p>
           </div>
-          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Moneda
             </p>
@@ -249,14 +303,14 @@ export function InvoiceItemsReview({
         </div>
 
         {result.notes ? (
-          <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Notas del escaneo:</span>{" "}
             {result.notes}
           </div>
         ) : null}
 
         {result.warnings.length > 0 ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <div className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
             <p className="font-medium">Advertencias detectadas</p>
             <ul className="mt-2 space-y-1">
               {result.warnings.map((warning) => (
@@ -265,7 +319,7 @@ export function InvoiceItemsReview({
             </ul>
           </div>
         ) : (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+          <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             <div className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="h-4 w-4" />
               El resultado ya esta listo para revisar y confirmar.
@@ -274,7 +328,7 @@ export function InvoiceItemsReview({
         )}
 
         {rows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
             {result.items.length === 0
               ? "No encontramos items claros en esta factura. Puedes intentar con otra imagen mas nitida o cargar los conceptos manualmente."
               : "No quedan items pendientes en esta revision. Puedes limpiar la revision o subir otra factura."}
@@ -284,7 +338,7 @@ export function InvoiceItemsReview({
             {rows.map((row, index) => (
               <div
                 key={row.id}
-                className="space-y-4 rounded-xl border border-token/80 bg-background/60 p-4"
+                className={`space-y-4 rounded-[1.75rem] border p-4 ${getDestinationCardClassName(row.destination)}`}
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
@@ -298,7 +352,7 @@ export function InvoiceItemsReview({
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-3">
-                    <label className="flex items-center gap-2 text-sm text-foreground">
+                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
                       <input
                         type="radio"
                         name={`${row.id}-destination`}
@@ -313,7 +367,7 @@ export function InvoiceItemsReview({
                       />
                       Agregar a esta cotizacion
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground">
+                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
                       <input
                         type="radio"
                         name={`${row.id}-destination`}
@@ -328,7 +382,7 @@ export function InvoiceItemsReview({
                       />
                       Guardar en catalogo
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground">
+                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
                       <input
                         type="radio"
                         name={`${row.id}-destination`}
@@ -430,7 +484,7 @@ export function InvoiceItemsReview({
           </div>
         )}
 
-        <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-4 text-sm text-muted-foreground">
+        <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
           <p>
             Seleccionados para cotizacion:{" "}
             <span className="font-medium text-foreground">
@@ -452,13 +506,13 @@ export function InvoiceItemsReview({
         </div>
 
         {status ? (
-          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          <p className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {status}
           </p>
         ) : null}
 
         {error ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </p>
         ) : null}
@@ -468,7 +522,6 @@ export function InvoiceItemsReview({
             type="button"
             onClick={handleApplyToQuotation}
             disabled={disabled || isApplyingQuotation || rows.length === 0}
-            className="bg-accent-token text-black hover:bg-accent-hover"
           >
             {isApplyingQuotation
               ? "Agregando a la cotizacion..."
@@ -479,7 +532,7 @@ export function InvoiceItemsReview({
             variant="outline"
             onClick={handleSaveToCatalog}
             disabled={disabled || isSavingCatalog || rows.length === 0}
-            className="border-token bg-background"
+            className="bg-background/75"
           >
             {isSavingCatalog
               ? "Guardando en catalogo..."

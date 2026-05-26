@@ -15,46 +15,80 @@ type SidebarProps = {
   logoUrl: string | null;
 };
 
+const baseNavItemClassName =
+  "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition";
+
 export function Sidebar({ businessName, logoUrl }: SidebarProps) {
   const pathname = usePathname();
   const activeHref = getActiveNavHref(pathname, sidebarNavItems);
 
   return (
-    <aside className="hidden w-72 shrink-0 border-r border-token bg-surface lg:block">
-      <div className="sticky top-0 flex h-screen flex-col px-4 py-6">
-        <div className="mb-8 px-3">
+    <aside className="hidden w-[18.5rem] shrink-0 border-r border-token bg-background/80 lg:block">
+      <div className="shell-backdrop sticky top-0 flex h-screen flex-col gap-6 px-4 py-6">
+        <div className="shell-panel px-4 py-5">
           <BusinessIdentity
             businessName={businessName}
             logoUrl={logoUrl}
             subtitle="Tu centro de cotizaciones"
-            avatarClassName="h-12 w-12"
+            className="items-start"
+            avatarClassName="h-12 w-12 shadow-sm"
             nameElement="h2"
+            subtitleClassName="text-xs font-medium uppercase tracking-[0.18em]"
+            nameClassName="text-base"
           />
         </div>
 
-        <nav className="space-y-2">
-          {sidebarNavItems.map((item) => {
-            const active = item.href === activeHref;
-            const Icon = item.icon;
+        <div className="shell-panel flex flex-1 flex-col p-3">
+          <p className="px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Navegacion
+          </p>
+          <nav className="space-y-2">
+            {sidebarNavItems.map((item) => {
+              const active = item.href === activeHref;
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition",
-                  active
-                    ? "bg-accent-token text-black shadow-sm"
-                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    baseNavItemClassName,
+                    active
+                      ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(0,229,160,0.6)]"
+                      : "border-transparent text-muted-foreground hover:border-token hover:bg-background/80 hover:text-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-2xl border transition",
+                      active
+                        ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.15)] text-accent-token"
+                        : "border-token bg-background/70 text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.label}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {active ? "Seccion actual" : "Acceso directo"}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto rounded-3xl border border-token bg-background/70 px-4 py-4">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Shell
+            </p>
+            <p className="mt-2 text-sm leading-6 text-foreground">
+              Navegacion clara para volver rapido a las tareas clave del dia.
+            </p>
+          </div>
+        </div>
       </div>
     </aside>
   );

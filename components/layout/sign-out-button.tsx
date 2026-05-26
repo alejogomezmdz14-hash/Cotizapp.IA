@@ -39,7 +39,7 @@ export function SignOutButton() {
       <Button
         type="button"
         variant="outline"
-        className="border-token bg-surface text-foreground hover:bg-surface-2 hover:text-foreground"
+        className="rounded-[1rem] border-token bg-background/80 text-foreground hover:bg-background hover:text-foreground"
         onClick={handleSignOut}
         disabled={isPending}
       >

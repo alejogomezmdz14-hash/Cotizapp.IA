@@ -2,6 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import {
+  FileCheck2,
+  FileText,
+  ReceiptText,
+  ShieldCheck,
+  Sparkles,
+  Users2,
+} from "lucide-react";
 
 import { createDraftQuotationAction } from "@/app/actions/quotations";
 import { ClientPicker } from "@/components/clientes/client-picker";
@@ -60,6 +68,7 @@ type SavedDraftState = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const sectionCardClassName = "shell-panel overflow-hidden shadow-none";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -166,6 +175,22 @@ export function QuotationForm({
   }
 
   const isFormLocked = isSubmitting || Boolean(savedDraft);
+  const selectedExistingClientName =
+    clients.find((client) => client.id === selectedClientId)?.name ?? null;
+  const clientSnapshotLabel =
+    clientMode === "existing"
+      ? selectedExistingClientName ?? (clients.length > 0 ? "Selecciona un cliente" : "Sin clientes")
+      : inlineClient.name.trim() || "Nuevo cliente inline";
+  const invoiceSnapshotLabel =
+    invoiceScanReview?.result
+      ? `${invoiceScanReview.result.items.length} item(s) detectado(s)`
+      : invoiceScanReview?.status === "processing"
+        ? "Escaneo en curso"
+        : invoiceScanReview?.status === "failed"
+          ? "Escaneo fallido"
+          : invoiceScanReview?.fileName
+            ? "Factura cargada"
+            : "Sin factura";
 
   const itemsPayload = useMemo(
     () =>
@@ -366,25 +391,30 @@ export function QuotationForm({
 
   if (initialDraft) {
     return (
-      <div className="space-y-6">
-        <Card className="border-token bg-surface shadow-sm">
-          <CardHeader className="space-y-2">
-            <CardTitle className="text-xl">Borrador ya creado</CardTitle>
-            <CardDescription>
-              {attachmentsReadOnly
-                ? "Esta cotizacion ya fue compartida. Desde aqui puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
-                : "Este borrador ya existe y desde esta pantalla solo puedes revisar o eliminar sus adjuntos. Para editar el contenido deberas volver al flujo correspondiente cuando exista una vista de edicion."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Numero del borrador: <span className="font-medium text-foreground">{currentDraft?.number}</span>
-            </p>
-            <div className="flex flex-wrap gap-3">
+      <div className="space-y-5 lg:space-y-6">
+        <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-4">
+              <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Borrador creado
+              </span>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-semibold tracking-tight">
+                  {currentDraft?.number}
+                </h3>
+                <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
+                  {attachmentsReadOnly
+                    ? "Esta cotizacion ya fue compartida. Desde aqui puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
+                    : "Este borrador ya existe. Desde esta vista puedes completar adjuntos, regenerar el PDF o volver al historial sin duplicar informacion."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
-                className="border-token bg-background text-foreground"
+                className="bg-background/75"
                 onClick={() => router.replace("/cotizaciones/nueva")}
               >
                 Nueva cotizacion
@@ -392,14 +422,14 @@ export function QuotationForm({
               <Button
                 type="button"
                 variant="outline"
-                className="border-token bg-background text-foreground"
+                className="bg-background/75"
                 onClick={() => router.push("/cotizaciones")}
               >
                 Volver a cotizaciones
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         <QuotationShareActions
           quotationId={currentDraft?.quotationId ?? initialDraft.quotationId}
@@ -425,7 +455,7 @@ export function QuotationForm({
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-5 lg:space-y-6" onSubmit={handleSubmit}>
       <input type="hidden" name="client_mode" value={clientMode} />
       <input
         type="hidden"
@@ -439,273 +469,374 @@ export function QuotationForm({
       />
       <input type="hidden" name="items_payload" value={itemsPayload} />
 
-      <Card className="border-token bg-surface shadow-sm">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-xl">Arma tu cotizacion en una sola pantalla</CardTitle>
-          <CardDescription>
-              Elige un cliente, suma items manuales, del catalogo o desde una
-              factura escaneada y revisa los totales antes de guardar el borrador.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Flujo de trabajo
+            </span>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                Arma la cotizacion con una vista mas clara de cada etapa
+              </h3>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                Define cliente, importa conceptos desde factura o catalogo y revisa
+                el resumen antes de guardar el borrador. Todo queda organizado por
+                bloques para que el flujo se sienta continuo.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Users2 className="h-4 w-4 text-accent-token" />
+                Cliente activo
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {clientSnapshotLabel}
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <ReceiptText className="h-4 w-4 text-accent-token" />
+                Factura AI
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {invoiceSnapshotLabel}
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <FileText className="h-4 w-4 text-accent-token" />
+                Items actuales
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {items.length === 0
+                  ? "Todavia no agregaste conceptos al borrador."
+                  : `${items.length} item(s) listos para resumir y guardar.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {error ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </p>
       ) : null}
 
       {savedDraft ? (
-        <div className="flex flex-col gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 md:flex-row md:items-center md:justify-between">
-          <p>
-            El borrador <span className="font-semibold">{savedDraft.number}</span> ya
-            fue creado. Los datos quedaron bloqueados para evitar duplicados y ya
-            puedes cargar adjuntos.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="border-token bg-background text-foreground"
-            onClick={() => router.push("/cotizaciones")}
-          >
-            Ir a cotizaciones
-          </Button>
+        <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-700 dark:text-emerald-300">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p>
+              El borrador <span className="font-semibold">{savedDraft.number}</span> ya
+              fue creado. Los datos quedaron bloqueados para evitar duplicados y ya
+              puedes seguir con adjuntos y acciones de salida.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-background/75"
+              onClick={() => router.push("/cotizaciones")}
+            >
+              Ir a cotizaciones
+            </Button>
+          </div>
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-        <div className="space-y-6">
-          <Card className="border-token bg-surface shadow-sm">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl">Cliente</CardTitle>
-                  <CardDescription>
-                    Puedes reutilizar un cliente cargado o crearlo dentro de esta
-                    misma cotizacion.
-                  </CardDescription>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.78fr)] xl:items-start">
+        <div className="space-y-5 lg:space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <Users2 className="h-3.5 w-3.5 text-accent-token" />
+              Cliente
+            </div>
+            <Card className={sectionCardClassName}>
+              <CardHeader className="space-y-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl">Datos del cliente</CardTitle>
+                    <CardDescription className="leading-6">
+                      Reutiliza un cliente guardado o cargalo inline para no cortar
+                      el flujo del borrador.
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant={clientMode === "existing" ? "default" : "outline"}
+                      className={clientMode === "existing" ? undefined : "bg-background/75"}
+                      onClick={() => {
+                        setClientMode("existing");
+                        setSelectedClientId((currentValue) =>
+                          currentValue ?? getDefaultQuotationClientId(clients),
+                        );
+                      }}
+                      disabled={isFormLocked || clients.length === 0}
+                    >
+                      Cliente existente
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={clientMode === "inline" ? "default" : "outline"}
+                      className={clientMode === "inline" ? undefined : "bg-background/75"}
+                      onClick={() => {
+                        setClientMode("inline");
+                        setSelectedClientId(null);
+                      }}
+                      disabled={isFormLocked}
+                    >
+                      Crear inline
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant={clientMode === "existing" ? "default" : "outline"}
-                    className={
-                      clientMode === "existing"
-                        ? "bg-accent-token text-black hover:bg-accent-hover"
-                        : "border-token bg-background"
-                    }
-                    onClick={() => {
-                      setClientMode("existing");
-                      setSelectedClientId((currentValue) =>
-                        currentValue ?? getDefaultQuotationClientId(clients),
-                      );
-                    }}
-                    disabled={isFormLocked || clients.length === 0}
-                  >
-                    Cliente existente
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={clientMode === "inline" ? "default" : "outline"}
-                    className={
-                      clientMode === "inline"
-                        ? "bg-accent-token text-black hover:bg-accent-hover"
-                        : "border-token bg-background"
-                    }
-                    onClick={() => {
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+                  El cliente seleccionado aparece tambien en el resumen lateral para
+                  mantener el contexto del borrador mientras cargas items.
+                </div>
+
+                {clientMode === "existing" ? (
+                  <ClientPicker
+                    clients={clients}
+                    selectedClientId={selectedClientId}
+                    onSelectClient={(client) => setSelectedClientId(client?.id ?? null)}
+                    onCreateClient={() => {
                       setClientMode("inline");
                       setSelectedClientId(null);
                     }}
+                    allowClear
                     disabled={isFormLocked}
-                  >
-                    Crear inline
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
+                    description="Selecciona un cliente guardado para reutilizar sus datos en esta cotizacion."
+                    emptyMessage="Todavia no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="inline-client-name">Nombre</Label>
+                      <Input
+                        id="inline-client-name"
+                        value={inlineClient.name}
+                        onChange={(event) =>
+                          setInlineClient((currentValue) => ({
+                            ...currentValue,
+                            name: event.target.value,
+                          }))
+                        }
+                        placeholder="Ej. Constructora Andina"
+                        disabled={isFormLocked}
+                      />
+                    </div>
 
-            <CardContent className="space-y-4">
-              {clientMode === "existing" ? (
-                <ClientPicker
-                  clients={clients}
-                  selectedClientId={selectedClientId}
-                  onSelectClient={(client) => setSelectedClientId(client?.id ?? null)}
-                  onCreateClient={() => {
-                    setClientMode("inline");
-                    setSelectedClientId(null);
-                  }}
-                  allowClear
-                  disabled={isFormLocked}
-                  description="Selecciona un cliente guardado para reutilizar sus datos en esta cotizacion."
-                  emptyMessage="Todavia no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
-                />
-              ) : (
-                <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-client-email">Email</Label>
+                        <Input
+                          id="inline-client-email"
+                          type="email"
+                          value={inlineClient.email}
+                          onChange={(event) =>
+                            setInlineClient((currentValue) => ({
+                              ...currentValue,
+                              email: event.target.value,
+                            }))
+                          }
+                          placeholder="cliente@empresa.com"
+                          disabled={isFormLocked}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-client-phone">Telefono</Label>
+                        <Input
+                          id="inline-client-phone"
+                          type="tel"
+                          value={inlineClient.phone}
+                          onChange={(event) =>
+                            setInlineClient((currentValue) => ({
+                              ...currentValue,
+                              phone: event.target.value,
+                            }))
+                          }
+                          placeholder="261 555 1234"
+                          disabled={isFormLocked}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="inline-client-address">Direccion</Label>
+                      <textarea
+                        id="inline-client-address"
+                        rows={3}
+                        value={inlineClient.address}
+                        onChange={(event) =>
+                          setInlineClient((currentValue) => ({
+                            ...currentValue,
+                            address: event.target.value,
+                          }))
+                        }
+                        placeholder="Direccion o referencia de entrega"
+                        disabled={isFormLocked}
+                        className={textareaClassName}
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
+              Escaneo asistido
+            </div>
+            <InvoiceDropzone
+              disabled={isFormLocked}
+              persistedScan={invoiceScanReview}
+              onScanPersisted={handleInvoiceScanPersisted}
+              onScanComplete={handleInvoiceScanComplete}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-accent-token" />
+              Revision del escaneo
+            </div>
+            <InvoiceItemsReview
+              fileName={invoiceScanReview?.fileName ?? null}
+              result={invoiceScanReview?.result ?? null}
+              disabled={isFormLocked}
+              onAddToQuotation={handleAddInvoiceItems}
+              onClear={handleClearInvoiceScan}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <FileText className="h-3.5 w-3.5 text-accent-token" />
+              Construccion del borrador
+            </div>
+            <QuotationItemsEditor
+              items={items}
+              catalogItems={catalogItems}
+              currency={currency}
+              disabled={isFormLocked}
+              onAddManualItem={handleAddManualItem}
+              onAddCatalogItem={handleAddCatalogItem}
+              onRemoveItem={handleRemoveItem}
+              onUpdateItem={handleUpdateItem}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
+              Ajustes finales
+            </div>
+            <Card className={sectionCardClassName}>
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-xl">Ajustes del borrador</CardTitle>
+                <CardDescription className="leading-6">
+                  Define impuesto, validez y notas internas o visibles para este
+                  borrador.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="inline-client-name">Nombre</Label>
+                    <Label htmlFor="tax-rate">Impuesto (%)</Label>
                     <Input
-                      id="inline-client-name"
-                      value={inlineClient.name}
-                      onChange={(event) =>
-                        setInlineClient((currentValue) => ({
-                          ...currentValue,
-                          name: event.target.value,
-                        }))
-                      }
-                      placeholder="Ej. Constructora Andina"
+                      id="tax-rate"
+                      name="tax_rate"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={taxRate}
+                      onChange={(event) => {
+                        const parsedValue = Number.parseFloat(event.target.value);
+                        setTaxRate(Number.isFinite(parsedValue) ? parsedValue : 0);
+                      }}
                       disabled={isFormLocked}
                     />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="inline-client-email">Email</Label>
-                      <Input
-                        id="inline-client-email"
-                        type="email"
-                        value={inlineClient.email}
-                        onChange={(event) =>
-                          setInlineClient((currentValue) => ({
-                            ...currentValue,
-                            email: event.target.value,
-                          }))
-                        }
-                        placeholder="cliente@empresa.com"
-                        disabled={isFormLocked}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="inline-client-phone">Telefono</Label>
-                      <Input
-                        id="inline-client-phone"
-                        type="tel"
-                        value={inlineClient.phone}
-                        onChange={(event) =>
-                          setInlineClient((currentValue) => ({
-                            ...currentValue,
-                            phone: event.target.value,
-                          }))
-                        }
-                        placeholder="261 555 1234"
-                        disabled={isFormLocked}
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="inline-client-address">Direccion</Label>
-                    <textarea
-                      id="inline-client-address"
-                      rows={3}
-                      value={inlineClient.address}
-                      onChange={(event) =>
-                        setInlineClient((currentValue) => ({
-                          ...currentValue,
-                          address: event.target.value,
-                        }))
-                      }
-                      placeholder="Direccion o referencia de entrega"
+                    <Label htmlFor="valid-until">Valida hasta</Label>
+                    <Input
+                      id="valid-until"
+                      name="valid_until"
+                      type="date"
+                      value={validUntil}
+                      onChange={(event) => setValidUntil(event.target.value)}
                       disabled={isFormLocked}
-                      className={textareaClassName}
                     />
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <InvoiceDropzone
-            disabled={isFormLocked}
-            persistedScan={invoiceScanReview}
-            onScanPersisted={handleInvoiceScanPersisted}
-            onScanComplete={handleInvoiceScanComplete}
-          />
-
-          <InvoiceItemsReview
-            fileName={invoiceScanReview?.fileName ?? null}
-            result={invoiceScanReview?.result ?? null}
-            disabled={isFormLocked}
-            onAddToQuotation={handleAddInvoiceItems}
-            onClear={handleClearInvoiceScan}
-          />
-
-          <QuotationItemsEditor
-            items={items}
-            catalogItems={catalogItems}
-            currency={currency}
-            disabled={isFormLocked}
-            onAddManualItem={handleAddManualItem}
-            onAddCatalogItem={handleAddCatalogItem}
-            onRemoveItem={handleRemoveItem}
-            onUpdateItem={handleUpdateItem}
-          />
-
-          <Card className="border-token bg-surface shadow-sm">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-xl">Ajustes del borrador</CardTitle>
-              <CardDescription>
-                Define impuesto, validez y notas internas o visibles para este
-                borrador.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="tax-rate">Impuesto (%)</Label>
-                  <Input
-                    id="tax-rate"
-                    name="tax_rate"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={taxRate}
-                    onChange={(event) => {
-                      const parsedValue = Number.parseFloat(event.target.value);
-                      setTaxRate(Number.isFinite(parsedValue) ? parsedValue : 0);
-                    }}
-                    disabled={isFormLocked}
-                  />
+                <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+                  Define aqui condiciones, tiempos o aclaraciones que luego quieras
+                  tener visibles al revisar el borrador.
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="valid-until">Valida hasta</Label>
-                  <Input
-                    id="valid-until"
-                    name="valid_until"
-                    type="date"
-                    value={validUntil}
-                    onChange={(event) => setValidUntil(event.target.value)}
+                  <Label htmlFor="quotation-notes">Notas</Label>
+                  <textarea
+                    id="quotation-notes"
+                    name="notes"
+                    rows={4}
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Condiciones, tiempos de entrega o cualquier observacion relevante"
                     disabled={isFormLocked}
+                    className={textareaClassName}
                   />
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quotation-notes">Notas</Label>
-                <textarea
-                  id="quotation-notes"
-                  name="notes"
-                  rows={4}
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Condiciones, tiempos de entrega o cualquier observacion relevante"
-                  disabled={isFormLocked}
-                  className={textareaClassName}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <QuotationAttachments
-            quotationId={currentDraft?.quotationId ?? null}
-            initialAttachments={initialAttachments}
-            readOnly={attachmentsReadOnly}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <FileCheck2 className="h-3.5 w-3.5 text-accent-token" />
+              Material de respaldo
+            </div>
+            <QuotationAttachments
+              quotationId={currentDraft?.quotationId ?? null}
+              initialAttachments={initialAttachments}
+              readOnly={attachmentsReadOnly}
+            />
+          </div>
         </div>
 
-        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+        <div className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Cliente
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {clientSnapshotLabel}
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Factura AI
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {invoiceSnapshotLabel}
+              </p>
+            </div>
+          </div>
+
           <QuotationSummary
             items={items}
             currency={currency}

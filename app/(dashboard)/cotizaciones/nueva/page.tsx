@@ -1,4 +1,15 @@
+import Link from "next/link";
+import { ArrowRight, FileScan, Layers3, Users2 } from "lucide-react";
+
 import { QuotationForm } from "@/components/cotizacion/quotation-form";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getCatalogItems } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { getPersistedInvoiceScanReview } from "@/lib/invoice-scan/load";
@@ -44,22 +55,105 @@ export default async function NewQuotationPage({
         ? Promise.resolve(null)
         : getPersistedInvoiceScanReview(user.id, scanId),
     ]);
+  const draftAlreadyCreated = Boolean(draftHydration.draftQuotation);
+  const summaryCardClassName =
+    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Nueva cotizacion
-        </span>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Crear cotizacion borrador
-          </h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Elige o crea un cliente, agrega items manuales, del catalogo o desde
-            una factura escaneada y guarda todo como borrador sin salir de esta
-            pantalla.
-          </p>
+    <div className="space-y-5 lg:space-y-6">
+      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
+          <div className="space-y-5">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Nueva cotizacion
+            </span>
+
+            <div className="space-y-3">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                {draftAlreadyCreated
+                  ? "Revisa el borrador y termina el material de salida"
+                  : "Crear cotizacion borrador con un flujo mas claro"}
+              </h2>
+              <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+                {draftAlreadyCreated
+                  ? "El contenido principal ya esta bloqueado, pero sigues teniendo a mano adjuntos, PDF y acciones de compartir desde una superficie mas ordenada."
+                  : "Elige o crea un cliente, suma items manuales, del catalogo o desde factura escaneada y revisa el total antes de guardar."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {["Cliente", "Factura", "Items", "Resumen"].map((step) => (
+                <span
+                  key={step}
+                  className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                >
+                  {step}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" variant="outline" className="bg-background/75">
+                <Link href="/cotizaciones">Ver historial</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <Card className={summaryCardClassName}>
+              <CardHeader className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="rounded-2xl border border-token bg-background/80 p-3">
+                    <Users2 className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <CardDescription>Clientes disponibles</CardDescription>
+                  <CardTitle className="text-4xl">{clients.length}</CardTitle>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card className={summaryCardClassName}>
+              <CardHeader className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="rounded-2xl border border-token bg-background/80 p-3">
+                    <Layers3 className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <CardDescription>Items de catalogo</CardDescription>
+                  <CardTitle className="text-4xl">{catalogItems.length}</CardTitle>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card className={summaryCardClassName}>
+              <CardHeader className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] p-3 text-accent-token">
+                    <FileScan className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <CardDescription>Escaneo listo</CardDescription>
+                  <CardTitle className="text-4xl">
+                    {invoiceScanReview?.result ? "Si" : "No"}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {invoiceScanReview?.result
+                    ? "Hay una factura cargada para revisar y decidir destino."
+                    : "Puedes empezar manualmente o subir una factura para precargar conceptos."}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 

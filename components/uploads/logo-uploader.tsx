@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ImagePlus, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -113,16 +114,25 @@ export function LogoUploader({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-token/80 bg-background/60 p-4">
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold text-foreground">Logo del negocio</h3>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Puedes subirlo ahora para dejar tu marca lista en futuras cotizaciones.
-        </p>
+    <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <ImagePlus className="h-3.5 w-3.5 text-accent-token" />
+            Branding visual
+          </div>
+          <h3 className="text-base font-semibold text-foreground">Logo del negocio</h3>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Puedes subirlo ahora para dejar tu marca lista en futuras cotizaciones.
+          </p>
+        </div>
+        <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Opcional
+        </span>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-start">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-token/80 bg-surface text-center text-xs text-muted-foreground">
+        <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-[1.5rem] border border-token/80 bg-surface text-center text-xs text-muted-foreground">
           {logoUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -138,6 +148,11 @@ export function LogoUploader({
         </div>
 
         <div className="flex-1 space-y-3">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+            Si ya tienes un logo, quedara disponible para el resto de la cuenta en
+            cuanto termine la carga.
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="business-logo">Archivo</Label>
             <input
@@ -159,19 +174,19 @@ export function LogoUploader({
           </p>
 
           {selectedFile ? (
-            <p className="text-sm text-foreground">
+            <p className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-foreground">
               Archivo seleccionado: <span className="font-medium">{selectedFile.name}</span>
             </p>
           ) : null}
 
           {status ? (
-            <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+            <p className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
               {status}
             </p>
           ) : null}
 
           {error ? (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </p>
           ) : null}
@@ -181,7 +196,6 @@ export function LogoUploader({
               type="button"
               onClick={handleUpload}
               disabled={disabled || isUploading || !selectedFile}
-              className="bg-accent-token text-black hover:bg-accent-hover"
             >
               {isUploading
                 ? "Subiendo logo..."
@@ -191,7 +205,8 @@ export function LogoUploader({
             </Button>
 
             {logoPath ? (
-              <span className="self-center text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-2 self-center text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
                 El logo se guarda apenas termina la carga.
               </span>
             ) : null}

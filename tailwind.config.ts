@@ -19,7 +19,7 @@ const config: Config = {
         foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         primary: {
           DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
-          foreground: "rgb(15 17 23 / <alpha-value>)",
+          foreground: "rgb(7 19 15 / <alpha-value>)",
         },
         secondary: {
           DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
@@ -34,7 +34,7 @@ const config: Config = {
           foreground: "rgb(var(--text-secondary-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
+          DEFAULT: "rgb(var(--accent-soft-rgb) / <alpha-value>)",
           foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
         popover: {

@@ -203,25 +203,70 @@ export function InvoiceDropzone({
     persistedScan?.status !== "processing";
 
   return (
-    <Card className="border-token bg-surface shadow-sm">
-      <CardHeader className="space-y-2">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full border border-token/80 bg-background p-2 text-accent-token">
-            <ScanSearch className="h-4 w-4" />
+    <Card className="shell-panel overflow-hidden shadow-none">
+      <CardHeader className="space-y-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full border border-token/80 bg-background p-2 text-accent-token">
+              <ScanSearch className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Escaneo asistido
+              </div>
+              <CardTitle className="text-xl">Escanear factura con AI</CardTitle>
+              <CardDescription className="leading-6">
+                Sube una imagen de factura o remito, espera la lectura asistida y
+                revisa los items detectados antes de decidir si van a la cotizacion
+                actual o al catalogo.
+              </CardDescription>
+            </div>
           </div>
-          <div className="space-y-1">
-            <CardTitle className="text-xl">Escanear factura con AI</CardTitle>
-            <CardDescription>
-              Sube una imagen de factura o remito y revisa los items detectados
-              antes de decidir si van a la cotizacion actual o al catalogo.
-            </CardDescription>
+
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-[0.18em]">
+              Estado actual
+            </p>
+            <p className="mt-2 font-medium text-foreground">
+              {status ?? error ?? (persistedScan?.status === "processing" ? "Escaneando factura" : "Listo para cargar")}
+            </p>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <UploadCloud className="h-4 w-4 text-accent-token" />
+              1. Carga
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Elige una imagen nitida de la factura o remito.
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <ScanSearch className="h-4 w-4 text-accent-token" />
+              2. Analiza
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              AI interpreta los renglones y arma una revision editable.
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <FileImage className="h-4 w-4 text-accent-token" />
+              3. Decide
+            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Confirma que items van al borrador o al catalogo.
+            </p>
+          </div>
+        </div>
+
         <div
-          className={`rounded-xl border border-dashed px-4 py-6 transition ${
+          className={`rounded-[1.75rem] border border-dashed px-4 py-6 transition sm:px-5 ${
             isDragActive
               ? "border-accent-token bg-accent-token/10"
               : "border-token/80 bg-background/60"
@@ -264,7 +309,7 @@ export function InvoiceDropzone({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-token bg-background"
+                  className="bg-background/75"
                   onClick={() =>
                     persistedScan
                       ? handleScanExistingPersistedInvoice({
@@ -300,7 +345,7 @@ export function InvoiceDropzone({
               <Button
                 type="button"
                 variant="outline"
-                className="border-token bg-background"
+                className="bg-background/75"
                 onClick={() => inputRef.current?.click()}
                 disabled={disabled || isUploading || isScanning}
               >
@@ -311,7 +356,6 @@ export function InvoiceDropzone({
                 type="button"
                 onClick={handleUploadAndScan}
                 disabled={disabled || isUploading || isScanning || !selectedFile}
-                className="bg-accent-token text-black hover:bg-accent-hover"
               >
                 {isUploading
                   ? "Subiendo..."
@@ -340,39 +384,39 @@ export function InvoiceDropzone({
         </div>
 
         {selectedFile ? (
-          <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-3 text-sm">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm">
             <p className="font-medium text-foreground">Archivo listo para escanear</p>
             <p className="mt-1 text-muted-foreground">{selectedFile.name}</p>
           </div>
         ) : null}
 
         {lastFileName ? (
-          <p className="text-xs text-muted-foreground">
-            Ultima factura subida: <span className="font-medium">{lastFileName}</span>
-          </p>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-xs text-muted-foreground">
+            Ultima factura subida: <span className="font-medium text-foreground">{lastFileName}</span>
+          </div>
         ) : null}
 
         {persistedScan?.status === "processing" ? (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+          <p className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
             Esta factura ya tiene un escaneo en curso. Espera a que termine o
             vuelve a intentar cuando el proceso falle.
           </p>
         ) : null}
 
         {persistedScan?.status === "failed" && persistedScan.failureMessage ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Ultimo intento fallido: {persistedScan.failureMessage}
           </p>
         ) : null}
 
         {status ? (
-          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          <p className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {status}
           </p>
         ) : null}
 
         {error ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </p>
         ) : null}
