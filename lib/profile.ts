@@ -4,6 +4,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types";
 
+type OnboardingProfileUpsertInput = {
+  userId: string;
+  businessName: string;
+  industry: string;
+  phone: string | null;
+  email: string | null;
+  fallbackEmail: string | null;
+  address: string | null;
+  currency: string;
+};
+
 export function isProfileComplete(profile: Profile | null) {
   return Boolean(
     profile?.business_name?.trim() && profile?.industry?.trim(),
@@ -42,4 +53,25 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   }
 
   return (data as Profile | null) ?? null;
+}
+
+export function buildOnboardingProfileUpsertInput({
+  userId,
+  businessName,
+  industry,
+  phone,
+  email,
+  fallbackEmail,
+  address,
+  currency,
+}: OnboardingProfileUpsertInput) {
+  return {
+    id: userId,
+    business_name: businessName,
+    industry,
+    phone,
+    email: email ?? fallbackEmail ?? null,
+    address,
+    currency,
+  };
 }

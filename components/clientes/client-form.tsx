@@ -1,0 +1,149 @@
+"use client";
+
+import { useId, useState, type FormEvent } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import type { Client } from "@/types";
+
+type ClientFormFields = Pick<Client, "name" | "email" | "phone" | "address">;
+
+type ClientFormProps = {
+  mode?: "create" | "edit";
+  initialValues?: Partial<ClientFormFields>;
+  onSubmit: (formData: FormData) => Promise<void>;
+  onCancel?: () => void;
+  onSuccess?: () => void;
+  submitLabel?: string;
+  className?: string;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "No se pudo guardar el cliente.";
+}
+
+export function ClientForm({
+  mode = "create",
+  initialValues,
+  onSubmit,
+  onCancel,
+  onSuccess,
+  submitLabel,
+  className,
+}: ClientFormProps) {
+  const fieldId = useId();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const defaultSubmitLabel =
+    mode === "edit" ? "Guardar cambios" : "Guardar cliente";
+  const pendingLabel = mode === "edit" ? "Guardando..." : "Creando...";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(formData);
+
+      if (mode === "create") {
+        form.reset();
+      }
+
+      onSuccess?.();
+    } catch (submissionError) {
+      setError(getErrorMessage(submissionError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
+      <div className="space-y-2">
+        <Label htmlFor={`${fieldId}-name`}>Nombre</Label>
+        <Input
+          id={`${fieldId}-name`}
+          name="name"
+          placeholder="Ej. Constructora Andina"
+          defaultValue={initialValues?.name ?? ""}
+          disabled={isSubmitting}
+          required
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldId}-email`}>Email</Label>
+          <Input
+            id={`${fieldId}-email`}
+            name="email"
+            type="email"
+            placeholder="cliente@empresa.com"
+            defaultValue={initialValues?.email ?? ""}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldId}-phone`}>Telefono</Label>
+          <Input
+            id={`${fieldId}-phone`}
+            name="phone"
+            type="tel"
+            placeholder="261 555 1234"
+            defaultValue={initialValues?.phone ?? ""}
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${fieldId}-address`}>Direccion</Label>
+        <textarea
+          id={`${fieldId}-address`}
+          name="address"
+          rows={4}
+          placeholder="Direccion o referencia de entrega"
+          defaultValue={initialValues?.address ?? ""}
+          disabled={isSubmitting}
+          className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </div>
+
+      {error ? (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="border-token bg-surface text-foreground hover:bg-surface-2"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </Button>
+        ) : null}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? pendingLabel : submitLabel ?? defaultSubmitLabel}
+        </Button>
+      </div>
+    </form>
+  );
+}

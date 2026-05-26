@@ -5,30 +5,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClientAction } from "@/app/actions/clients";
+import { ClientForm } from "@/components/clientes/client-form";
+import { ClientList } from "@/components/clientes/client-list";
 import { getClients } from "@/lib/clients";
 import { requireUser } from "@/lib/profile";
 
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Sin fecha";
-  }
+type ClientsPageProps = {
+  searchParams?: {
+    search?: string;
+  };
+};
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Sin fecha";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const user = await requireUser();
-  const clients = await getClients(user.id);
+  const search =
+    typeof searchParams?.search === "string" ? searchParams.search : "";
+  const clients = await getClients(user.id, search);
 
   return (
     <div className="space-y-6">
@@ -47,55 +40,25 @@ export default async function ClientsPage() {
         </div>
       </section>
 
-      {clients.length === 0 ? (
-        <Card className="border-dashed border-token bg-surface shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Todavia no hay clientes guardados</CardTitle>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+        <Card className="border-token bg-surface shadow-sm">
+          <CardHeader className="space-y-2">
+            <CardTitle className="text-xl">Nuevo cliente</CardTitle>
             <CardDescription>
-              Cuando empieces a registrar contactos, esta vista mostrara sus
-              datos principales para reutilizarlos rapido.
+              Carga nombre, contacto y direccion para reutilizar este cliente en
+              futuras cotizaciones.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Por ahora no encontramos filas en `clients` para tu usuario.
-            </p>
+            <ClientForm
+              submitLabel="Guardar cliente"
+              onSubmit={createClientAction}
+            />
           </CardContent>
         </Card>
-      ) : (
-        <section className="grid gap-4 xl:grid-cols-2">
-          {clients.map((client) => (
-            <Card key={client.id} className="border-token bg-surface shadow-sm">
-              <CardHeader className="space-y-2">
-                <CardTitle className="text-xl">{client.name}</CardTitle>
-                <CardDescription>
-                  Agregado el {formatDate(client.created_at)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Correo</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {client.email?.trim() || "Sin correo cargado"}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Telefono</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {client.phone?.trim() || "Sin telefono cargado"}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Direccion</p>
-                  <p className="text-sm font-medium leading-6 text-foreground">
-                    {client.address?.trim() || "Sin direccion cargada"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
-      )}
+
+        <ClientList clients={clients} search={search} />
+      </div>
     </div>
   );
 }

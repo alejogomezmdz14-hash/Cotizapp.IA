@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/lib/profile";
+import { buildOnboardingProfileUpsertInput, getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 function getRequiredValue(formData: FormData, field: string) {
@@ -44,17 +44,21 @@ export async function saveOnboarding(formData: FormData) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .upsert({
-      id: user.id,
-      business_name: businessName,
-      industry,
-      phone: getOptionalValue(formData, "phone"),
-      email: getOptionalValue(formData, "email") ?? user.email ?? null,
-      address: getOptionalValue(formData, "address"),
-      currency,
-    }, {
-      onConflict: "id",
-    })
+    .upsert(
+      buildOnboardingProfileUpsertInput({
+        userId: user.id,
+        businessName,
+        industry,
+        phone: getOptionalValue(formData, "phone"),
+        email: getOptionalValue(formData, "email"),
+        fallbackEmail: user.email ?? null,
+        address: getOptionalValue(formData, "address"),
+        currency,
+      }),
+      {
+        onConflict: "id",
+      },
+    )
     .select("id")
     .single();
 

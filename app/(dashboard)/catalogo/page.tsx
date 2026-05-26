@@ -5,14 +5,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createCatalogItemAction } from "@/app/actions/catalog";
+import { CatalogItemForm } from "@/components/catalogo/catalog-item-form";
+import { CatalogTable } from "@/components/catalogo/catalog-table";
 import { getCatalogItems } from "@/lib/catalog";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
 
-export default async function CatalogPage() {
+type CatalogPageProps = {
+  searchParams?: {
+    search?: string;
+  };
+};
+
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const user = await requireUser();
+  const search =
+    typeof searchParams?.search === "string" ? searchParams.search : "";
   const [items, profile] = await Promise.all([
-    getCatalogItems(user.id),
+    getCatalogItems(user.id, { search }),
     getProfile(user.id),
   ]);
 
@@ -27,63 +38,49 @@ export default async function CatalogPage() {
             Productos y servicios disponibles
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Este listado usa tus datos reales para mostrar lo que ya esta listo
-            para incluir en futuras cotizaciones.
+            Gestiona tu catalogo real para reutilizar productos y servicios en
+            futuras cotizaciones sin volver a cargarlos cada vez.
           </p>
         </div>
       </section>
 
-      {items.length === 0 ? (
-        <Card className="border-dashed border-token bg-surface shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Tu catalogo todavia esta vacio</CardTitle>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+        <Card className="border-token bg-surface shadow-sm">
+          <CardHeader className="space-y-3">
+            <CardTitle className="text-xl">Nuevo item</CardTitle>
             <CardDescription>
-              Cuando cargues tus primeros productos o servicios, vas a verlos
-              aca listos para reutilizar.
+              Carga nombre, categoria, unidad, descripcion y precio para dejar
+              este item listo para reutilizarlo en cotizaciones.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Por ahora no encontramos elementos en `catalog_items` para tu
-              cuenta.
-            </p>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+              <p className="text-sm font-medium text-foreground">
+                Precio de referencia
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Los importes se guardan como valores numericos y luego se
+                muestran con tu moneda configurada, por ejemplo{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrencyAmount(1250, profile?.currency ?? null)}
+                </span>
+                .
+              </p>
+            </div>
+
+            <CatalogItemForm
+              submitLabel="Guardar item"
+              onSubmit={createCatalogItemAction}
+            />
           </CardContent>
         </Card>
-      ) : (
-        <section className="grid gap-4 xl:grid-cols-2">
-          {items.map((item) => (
-            <Card key={item.id} className="border-token bg-surface shadow-sm">
-              <CardHeader className="space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">{item.name}</CardTitle>
-                    <CardDescription>
-                      {item.category?.trim() || "Sin categoria"}
-                    </CardDescription>
-                  </div>
-                  <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-muted-foreground">
-                    {item.unit?.trim() || "unidad"}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {item.description?.trim() ||
-                    "Sin descripcion cargada para este elemento."}
-                </p>
-                <div className="flex items-center justify-between gap-3 border-t border-token pt-4">
-                  <span className="text-sm text-muted-foreground">
-                    Precio base
-                  </span>
-                  <span className="text-lg font-semibold">
-                    {formatCurrencyAmount(item.price, profile?.currency ?? null)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
-      )}
+
+        <CatalogTable
+          items={items}
+          search={search}
+          currency={profile?.currency ?? null}
+        />
+      </div>
     </div>
   );
 }

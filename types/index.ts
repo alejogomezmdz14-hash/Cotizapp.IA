@@ -16,7 +16,7 @@ export type CatalogItem = {
   user_id: string | null;
   name: string;
   description: string | null;
-  unit: string | null;
+  unit: string;
   price: number;
   category: string | null;
   created_at: string | null;
@@ -63,6 +63,16 @@ export type QuotationAttachment = {
   created_at: string | null;
 };
 
+export type HydratedQuotationAttachment = {
+  id: string;
+  quotationId: string;
+  filePath: string;
+  fileName: string | null;
+  fileType: string | null;
+  createdAt: string | null;
+  url: string | null;
+};
+
 export type InvoiceScan = {
   id: string;
   user_id: string;
@@ -70,4 +80,72 @@ export type InvoiceScan = {
   status: string | null;
   raw_result: Record<string, unknown> | null;
   created_at: string | null;
+};
+
+export type InvoiceScanItemDraft = {
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+};
+
+export type InvoiceCatalogDraft = {
+  name: string;
+  description: string | null;
+  unit: string;
+  price: number;
+};
+
+export type InvoiceScanResult = {
+  supplierName: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  currency: string | null;
+  notes: string | null;
+  items: InvoiceScanItemDraft[];
+  warnings: string[];
+};
+
+export type ChatRole = "user" | "assistant";
+
+export type ChatConversationMessage = {
+  role: ChatRole;
+  content: string;
+};
+
+export type ChatSuggestedQuotationItem = {
+  catalogItemId: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+};
+
+export type ChatDraftQuotationCreateAction = {
+  type: "draft_quotation_create";
+  clientId: string | null;
+  clientName: string | null;
+  clientSource: "existing" | "inline";
+  notes: string | null;
+  items: ChatSuggestedQuotationItem[];
+};
+
+export type ChatCatalogPriceUpdateAction = {
+  type: "catalog_price_update";
+  itemId: string;
+  itemName: string;
+  currentPrice: number;
+  suggestedPrice: number;
+  reason: string | null;
+};
+
+export type ChatSuggestedAction =
+  | ChatDraftQuotationCreateAction
+  | ChatCatalogPriceUpdateAction;
+
+export type ChatReplyPayload = {
+  reply: string;
+  suggestedAction: ChatSuggestedAction | null;
 };

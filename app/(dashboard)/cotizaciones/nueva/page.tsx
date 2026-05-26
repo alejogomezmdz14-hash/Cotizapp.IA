@@ -1,17 +1,41 @@
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
+import { QuotationForm } from "@/components/cotizacion/quotation-form";
+import { getCatalogItems } from "@/lib/catalog";
+import { getClients } from "@/lib/clients";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { requireUser } from "@/lib/profile";
+  getQuotationAttachments,
+  getQuotationDraft,
+  loadDraftQuotationHydrationContext,
+} from "@/lib/quotations";
+import { getProfile, requireUser } from "@/lib/profile";
 
-export default async function NewQuotationPage() {
-  await requireUser();
+type NewQuotationPageProps = {
+  searchParams?: {
+    quotationId?: string;
+  };
+};
+
+export default async function NewQuotationPage({
+  searchParams,
+}: NewQuotationPageProps) {
+  const user = await requireUser();
+  const quotationId =
+    typeof searchParams?.quotationId === "string"
+      ? searchParams.quotationId
+      : null;
+  const [clients, catalogItems, profile, draftHydration] = await Promise.all([
+    getClients(user.id),
+    getCatalogItems(user.id, { orderBy: "name", ascending: true }),
+    getProfile(user.id),
+    quotationId
+      ? loadDraftQuotationHydrationContext({
+          getDraftQuotation: () => getQuotationDraft(user.id, quotationId),
+          getAttachments: () => getQuotationAttachments(user.id, quotationId),
+        })
+      : Promise.resolve({
+          draftQuotation: null,
+          attachments: [],
+        }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -21,48 +45,30 @@ export default async function NewQuotationPage() {
         </span>
         <div className="space-y-2">
           <h2 className="text-3xl font-semibold tracking-tight">
-            Punto de entrada MVP para crear cotizaciones
+            Crear cotizacion borrador
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Esta pantalla deja listo el acceso inicial al flujo. En las
-            siguientes tareas se completa el formulario con clientes, items y
-            calculos.
+            Elige o crea un cliente, agrega items manuales, del catalogo o desde
+            una factura escaneada y guarda todo como borrador sin salir de esta
+            pantalla.
           </p>
         </div>
       </section>
 
-      <Card className="border-token bg-surface shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Que sigue</CardTitle>
-          <CardDescription>
-            El MVP ya reserva este espacio para construir la experiencia de alta
-            de cotizaciones.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ul className="space-y-3 text-sm leading-6 text-muted-foreground">
-            <li>Seleccionar cliente o cargar uno nuevo.</li>
-            <li>Agregar productos del catalogo y calcular totales.</li>
-            <li>Guardar borradores y compartir la cotizacion final.</li>
-          </ul>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              asChild
-              className="bg-accent-token text-black hover:bg-accent-hover"
-            >
-              <Link href="/cotizaciones">Volver a cotizaciones</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="border-token bg-transparent"
-            >
-              <Link href="/dashboard">Ir al panel</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <QuotationForm
+        clients={clients}
+        catalogItems={catalogItems}
+        currency={profile?.currency ?? null}
+        initialDraft={
+          draftHydration.draftQuotation
+            ? {
+                quotationId: draftHydration.draftQuotation.id,
+                number: draftHydration.draftQuotation.number,
+              }
+            : null
+        }
+        initialAttachments={draftHydration.attachments}
+      />
     </div>
   );
 }
