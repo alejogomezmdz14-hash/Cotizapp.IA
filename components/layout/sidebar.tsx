@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { CotizappLogo } from "@/components/brand/cotizapp-logo";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import {
   getActiveNavHref,
@@ -74,14 +74,7 @@ export function Sidebar() {
           className="flex shrink-0 justify-center bg-transparent px-4 py-5"
           aria-label="Ir al inicio de Cotizapp"
         >
-          <Image
-            src="/cotizapp-logo.png"
-            alt="Cotizapp"
-            width={160}
-            height={48}
-            className="h-auto w-[160px] max-w-full bg-transparent object-contain"
-            priority
-          />
+          <CotizappLogo variant="on-dark" width={160} priority />
         </Link>
 
         <div className="app-chrome-surface flex min-h-0 flex-1 flex-col p-3">

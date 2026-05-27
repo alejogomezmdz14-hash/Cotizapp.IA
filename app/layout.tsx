@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   title: "Cotizapp",
   description: "Cotizaciones profesionales en minutos para autonomos y pymes.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/cotizapp-icon.png",
+    apple: "/cotizapp-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -23,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0A0F",
+  themeColor: "#1A2332",
 };
 
 export default function RootLayout({
