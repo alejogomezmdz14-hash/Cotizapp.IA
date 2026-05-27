@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 
+import {
+  COTIZAPP_LOGO_ON_DARK,
+  COTIZAPP_LOGO_ON_LIGHT,
+} from "@/lib/brand/assets";
 import { cn } from "@/lib/utils";
 
 type CotizappLogoProps = {
@@ -34,9 +38,7 @@ export function CotizappLogo({
       : variant;
 
   const src =
-    resolvedVariant === "on-light"
-      ? "/cotizapp-logo-light.png"
-      : "/cotizapp-logo.png";
+    resolvedVariant === "on-light" ? COTIZAPP_LOGO_ON_LIGHT : COTIZAPP_LOGO_ON_DARK;
 
   return (
     <Image
@@ -45,7 +47,7 @@ export function CotizappLogo({
       width={width}
       height={Math.round(width * 0.3)}
       className={cn("h-auto max-w-full bg-transparent object-contain", className)}
-      style={{ width }}
+      style={{ width, height: "auto" }}
       priority={priority}
     />
   );

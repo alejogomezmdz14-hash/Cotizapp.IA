@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { ImageIcon, Loader2, ShieldCheck } from "lucide-react";
 
 import { completeOnboardingLogoStep } from "@/app/actions/profile";
+import { CotizappLogo } from "@/components/brand/cotizapp-logo";
 import { Button } from "@/components/ui/button";
 
 type OnboardingLogoStepProps = {
@@ -89,6 +90,9 @@ export function OnboardingLogoStep({
       <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(90deg,rgba(245,196,0,0.25)_1px,transparent_1px),linear-gradient(rgba(245,196,0,0.25)_1px,transparent_1px)] [background-size:64px_64px]" />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-8 flex justify-center">
+          <CotizappLogo variant="auto" width={160} priority />
+        </div>
         <div className="w-full max-w-2xl">
           <div className="space-y-3">
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

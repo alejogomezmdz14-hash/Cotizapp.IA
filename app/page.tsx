@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Camera, FileOutput, FileText } from "lucide-react";
 
+import { LandingNavbar } from "@/components/layout/landing-navbar";
+
 const features = [
   {
     icon: FileText,
@@ -22,7 +24,8 @@ const features = [
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0A0A0F] text-white">
-      <section className="relative flex min-h-screen flex-col items-center justify-center bg-[#0A0A0F] px-6 py-20">
+      <LandingNavbar />
+      <section className="relative flex min-h-screen flex-col items-center justify-center bg-[#0A0A0F] px-6 pb-20 pt-28">
         <div
           className="pointer-events-none absolute inset-0 bg-[#0A0A0F]"
           aria-hidden

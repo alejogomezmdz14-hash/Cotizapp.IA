@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { BadgeCheck, Building2, Palette, PhoneCall } from "lucide-react";
 
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
+import { CotizappLogo } from "@/components/brand/cotizapp-logo";
 import { OnboardingForm } from "@/components/uploads/onboarding-form";
 import { getProfile, isProfileComplete, requireUser } from "@/lib/profile";
 import { OnboardingLogoStep } from "@/components/uploads/onboarding-logo-step";
@@ -66,6 +67,9 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   return (
     <main className="shell-backdrop min-h-screen bg-background px-4 py-10 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-8 flex justify-center">
+          <CotizappLogo variant="auto" width={160} priority />
+        </div>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
           <section className="order-2 shell-panel-strong shell-highlight flex flex-col justify-between gap-6 p-6 sm:p-8 lg:order-1">
             <div className="space-y-4">

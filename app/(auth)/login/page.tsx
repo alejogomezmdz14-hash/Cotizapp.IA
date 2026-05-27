@@ -7,7 +7,7 @@ export default function LoginPage() {
       <section className="shell-panel-strong w-full max-w-md p-6 sm:p-8">
         <div className="mx-auto flex w-full flex-col gap-6">
           <div className="flex justify-center">
-            <CotizappLogo variant="auto" width={200} priority />
+            <CotizappLogo variant="auto" width={160} priority />
           </div>
           <div className="space-y-2 text-center">
             <h1 className="text-3xl font-semibold tracking-tight">Entrá a Cotizapp</h1>

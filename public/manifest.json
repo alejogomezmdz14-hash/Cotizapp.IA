@@ -21,7 +21,7 @@
       "purpose": "any"
     },
     {
-      "src": "/cotizapp-icon.png",
+      "src": "/icons/cotizapp-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

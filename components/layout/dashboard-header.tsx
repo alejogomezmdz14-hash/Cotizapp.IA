@@ -1,5 +1,6 @@
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { CotizappIcon } from "@/components/brand/cotizapp-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type DashboardHeaderProps = {
@@ -24,7 +25,11 @@ export function DashboardHeader({
     <header className="sticky top-0 z-30 bg-header px-4 pt-4 md:px-6">
       <div className="app-chrome-header-bar flex items-center justify-between gap-4 px-4 py-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Avatar className="h-10 w-10 border border-white/15 bg-white/10">
+          <div className="shrink-0 lg:hidden">
+            <CotizappIcon size={40} priority />
+          </div>
+
+          <Avatar className="hidden h-10 w-10 border border-white/15 bg-white/10 lg:flex">
             {logoUrl ? <AvatarImage src={logoUrl} alt="Logo del negocio" /> : null}
             <AvatarFallback className="bg-white/10 text-sm font-semibold text-header">
               {getBusinessInitials(businessName)}
@@ -32,7 +37,7 @@ export function DashboardHeader({
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium uppercase tracking-[0.18em] text-header/60">
+            <p className="truncate text-xs font-medium uppercase tracking-[0.18em] text-header/60 lg:block">
               Panel principal
             </p>
             <h1 className="truncate text-lg font-semibold text-header">

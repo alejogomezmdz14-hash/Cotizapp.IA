@@ -74,7 +74,7 @@ export function Sidebar() {
           className="flex shrink-0 justify-center bg-transparent px-4 py-5"
           aria-label="Ir al inicio de Cotizapp"
         >
-          <CotizappLogo variant="on-dark" width={160} priority />
+          <CotizappLogo variant="on-dark" width={140} priority />
         </Link>
 
         <div className="app-chrome-surface flex min-h-0 flex-1 flex-col p-3">

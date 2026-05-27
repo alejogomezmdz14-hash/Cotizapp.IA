@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   description: "Cotizaciones profesionales en minutos para autonomos y pymes.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/cotizapp-icon.png",
-    apple: "/cotizapp-icon.png",
+    icon: "/icons/cotizapp-icon.png",
+    apple: "/icons/cotizapp-icon.png",
   },
   appleWebApp: {
     capable: true,
