@@ -98,6 +98,31 @@ export function parseLogoUploadFormData(formData: FormData): ParsedLogoUpload {
   return { file };
 }
 
+export function parseExpenseReceiptUploadFormData(
+  formData: FormData,
+): ParsedInvoiceUpload {
+  const file = assertFileWasSelected(
+    formData.get("file"),
+    "Seleccioná una imagen o PDF del recibo para continuar.",
+  );
+
+  if (!INVOICE_ALLOWED_TYPES.has(file.type)) {
+    throw new UploadActionError(
+      "El recibo debe ser una imagen PNG, JPG, WEBP o un PDF.",
+    );
+  }
+
+  if (file.size > INVOICE_UPLOAD_MAX_BYTES) {
+    throw new UploadActionError(
+      `El recibo supera el tamaño máximo permitido de ${getQuotedSizeInMegabytes(
+        INVOICE_UPLOAD_MAX_BYTES,
+      )}.`,
+    );
+  }
+
+  return { file };
+}
+
 export function parseInvoiceUploadFormData(
   formData: FormData,
 ): ParsedInvoiceUpload {

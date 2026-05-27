@@ -8,42 +8,47 @@ import { ExpenseFormSheet } from "@/components/gastos/expense-form-sheet";
 import { ExpenseKpis } from "@/components/gastos/expense-kpis";
 import { ExpenseList } from "@/components/gastos/expense-list";
 import { Button } from "@/components/ui/button";
-import type { Expense, ExpenseMonthStats } from "@/types";
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
+import type { ExpenseMonthGroup, ExpenseMonthStats } from "@/types";
 
 type GastosPageClientProps = {
-  expenses: Expense[];
+  monthGroups: ExpenseMonthGroup[];
   stats: ExpenseMonthStats;
-  currency: string | null;
+  defaultCurrency: string;
 };
 
 export function GastosPageClient({
-  expenses,
+  monthGroups,
   stats,
-  currency,
+  defaultCurrency,
 }: GastosPageClientProps) {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const currency = normalizeExpenseCurrency(defaultCurrency);
 
   return (
     <div className="space-y-6 pb-20">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <span className="inline-flex w-fit rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-orange-700 dark:text-orange-300">
             Gastos
-          </p>
+          </span>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Registro de gastos
           </h2>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="bg-emerald-600 text-white hover:bg-emerald-700"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo gasto
         </Button>
       </section>
 
-      <ExpenseKpis stats={stats} currency={currency} />
+      <ExpenseKpis stats={stats} />
 
-      <ExpenseList expenses={expenses} currency={currency} />
+      <ExpenseList monthGroups={monthGroups} defaultCurrency={currency} />
 
       <ExpenseFormSheet
         open={isCreateOpen}

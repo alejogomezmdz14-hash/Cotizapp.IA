@@ -2,12 +2,14 @@ CREATE TABLE public.expenses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
-  amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-  currency TEXT NOT NULL DEFAULT 'MXN',
+  amount DECIMAL(10, 2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'ARS',
   category TEXT NOT NULL,
-  date DATE NOT NULL DEFAULT (CURRENT_DATE),
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
   receipt_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  receipt_path TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX expenses_user_id_date_idx ON public.expenses (user_id, date DESC);

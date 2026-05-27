@@ -399,7 +399,8 @@ export async function uploadQuotationSignatureFromFormData(
 export async function uploadExpenseReceiptFromFormData(
   formData: FormData,
 ): Promise<UploadedExpenseReceiptResult> {
-  const { file } = parseLogoUploadFormData(formData);
+  const { parseExpenseReceiptUploadFormData } = await import("@/lib/uploads");
+  const { file } = parseExpenseReceiptUploadFormData(formData);
   const [{ getCurrentUser }, { createClient }, storageModule, pathsModule] =
     await Promise.all([
       import("@/lib/profile"),

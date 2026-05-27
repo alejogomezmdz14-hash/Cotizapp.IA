@@ -1,20 +1,23 @@
 import { GastosPageClient } from "@/components/gastos/gastos-page-client";
-import { getExpenseMonthStats, getExpenses } from "@/lib/expenses";
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
+import { getExpenseMonthStats, getExpensesByMonth } from "@/lib/expenses";
 import { getProfile, requireUser } from "@/lib/profile";
 
 export default async function GastosPage() {
   const user = await requireUser();
-  const [profile, expenses, stats] = await Promise.all([
+  const [profile, monthGroups, stats] = await Promise.all([
     getProfile(user.id),
-    getExpenses(user.id),
+    getExpensesByMonth(user.id),
     getExpenseMonthStats(user.id),
   ]);
 
+  const defaultCurrency = normalizeExpenseCurrency(profile?.currency ?? "ARS");
+
   return (
     <GastosPageClient
-      expenses={expenses}
+      monthGroups={monthGroups}
       stats={stats}
-      currency={profile?.currency ?? null}
+      defaultCurrency={defaultCurrency}
     />
   );
 }

@@ -1,18 +1,34 @@
 import { Hash, Receipt, Tags } from "lucide-react";
 
-import { formatCurrencyAmount } from "@/lib/formatting";
+import {
+  formatCurrencyAmount,
+  formatExpenseAmount,
+  formatExpenseTotalsByCurrency,
+} from "@/lib/formatting";
 import type { ExpenseMonthStats } from "@/types";
 
 type ExpenseKpisProps = {
   stats: ExpenseMonthStats;
-  currency: string | null;
 };
 
-export function ExpenseKpis({ stats, currency }: ExpenseKpisProps) {
+export function ExpenseKpis({ stats }: ExpenseKpisProps) {
+  const totalLabel =
+    stats.totalsByCurrency.length > 0
+      ? formatExpenseTotalsByCurrency(stats.totalsByCurrency)
+      : formatCurrencyAmount(0, "ARS");
+
+  const topCategoryValue =
+    stats.topCategory && stats.topCategoryAmount > 0
+      ? `${stats.topCategory} · ${formatExpenseAmount(
+          stats.topCategoryAmount,
+          stats.totalsByCurrency[0]?.currency ?? "ARS",
+        )}`
+      : stats.topCategory ?? "Sin datos";
+
   const cards = [
     {
       title: "Total este mes",
-      value: formatCurrencyAmount(stats.totalThisMonth, currency),
+      value: totalLabel,
       description: "Suma de gastos registrados en el mes.",
       icon: Receipt,
       accent: "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-300",
@@ -25,9 +41,9 @@ export function ExpenseKpis({ stats, currency }: ExpenseKpisProps) {
       accent: "border-token bg-background/80 text-foreground",
     },
     {
-      title: "Categoría más usada",
-      value: stats.topCategory ?? "Sin datos",
-      description: "La categoría con más registros este mes.",
+      title: "Categoría con más gasto",
+      value: topCategoryValue,
+      description: "La categoría con mayor monto este mes.",
       icon: Tags,
       accent: "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300",
     },

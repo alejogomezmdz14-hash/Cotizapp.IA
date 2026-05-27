@@ -1,4 +1,7 @@
-import { formatCurrencyAmount } from "@/lib/formatting";
+import {
+  formatCurrencyAmount,
+  formatExpenseTotalsByCurrency,
+} from "@/lib/formatting";
 import type { DashboardStats } from "@/types";
 
 export type QuotationMetricCardId =
@@ -46,7 +49,10 @@ export function buildDashboardPageCards(
   currency: string | null,
 ): DashboardPageCards {
   const acceptedQuotedThisMonth = stats.acceptedQuotedThisMonth;
-  const hasExpenses = stats.expensesThisMonth > 0;
+  const hasExpenses = stats.expensesByCurrency.length > 0;
+  const expensesLabel = hasExpenses
+    ? formatExpenseTotalsByCurrency(stats.expensesByCurrency)
+    : formatCurrencyAmount(0, currency);
 
   const quotationMetricCards: DashboardQuotationMetricCard[] = [
     {
@@ -80,13 +86,15 @@ export function buildDashboardPageCards(
     {
       id: "expensesThisMonth",
       title: "Gastos este mes",
-      value: formatCurrencyAmount(stats.expensesThisMonth, currency),
-      description: "Total registrado en gastos del mes actual.",
+      value: expensesLabel,
+      description: hasExpenses
+        ? "Total registrado en gastos del mes actual."
+        : "Todavía no hay gastos registrados este mes.",
       href: "/gastos",
     },
   ];
 
-  if (hasExpenses) {
+  if (hasExpenses && stats.canCalculateNetProfit) {
     quotationMetricCards.push({
       id: "netProfitThisMonth",
       title: "Ganancia neta",
@@ -99,7 +107,9 @@ export function buildDashboardPageCards(
       id: "netProfitPlaceholder",
       title: "Ganancia neta",
       value: "—",
-      description: "Registrá gastos para ver tu margen.",
+      description: hasExpenses
+        ? "Registrá gastos en una sola moneda para ver tu margen."
+        : "Registrá gastos para ver tu margen real.",
       href: "/gastos",
     });
   }

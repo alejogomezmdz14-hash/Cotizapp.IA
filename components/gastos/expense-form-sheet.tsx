@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, ScanLine, Upload } from "lucide-react";
 
-import {
-  createExpenseAction,
-  updateExpenseAction,
-} from "@/app/actions/expenses";
+import { createExpense, updateExpense } from "@/app/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,13 +15,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
+import { EXPENSE_CURRENCIES } from "@/lib/expense-currencies";
+import { formatExpenseAmount } from "@/lib/formatting";
 import type { Expense, ExpenseReceiptScanResult } from "@/types";
 
 type ExpenseFormSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense?: Expense | null;
-  defaultCurrency: string | null;
+  defaultCurrency: string;
   onSaved: () => void;
 };
 
@@ -33,16 +32,19 @@ type ReceiptUploadResponse = {
     receiptPath: string;
     previewUrl: string | null;
   };
-  error?: string;
-};
-
-type ScanResponse = {
-  result?: ExpenseReceiptScanResult;
+  scan?: ExpenseReceiptScanResult;
   error?: string;
 };
 
 function todayDateInputValue() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatAmountForInput(value: number) {
+  return new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function ExpenseFormSheet({
@@ -59,8 +61,10 @@ export function ExpenseFormSheet({
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(defaultCurrency);
   const [category, setCategory] = useState<string>("Materiales");
   const [date, setDate] = useState(todayDateInputValue());
+  const [notes, setNotes] = useState("");
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,7 +75,6 @@ export function ExpenseFormSheet({
   );
 
   const isEditing = Boolean(expense?.id);
-  const currency = expense?.currency ?? defaultCurrency ?? "MXN";
 
   useEffect(() => {
     if (!open) {
@@ -84,24 +87,36 @@ export function ExpenseFormSheet({
 
     if (expense) {
       setDescription(expense.description);
-      setAmount(String(expense.amount).replace(".", ","));
+      setAmount(formatAmountForInput(expense.amount));
+      setCurrency(expense.currency);
       setCategory(expense.category);
       setDate(expense.date);
-      setReceiptPath(expense.receipt_url);
+      setNotes(expense.notes ?? "");
+      setReceiptPath(expense.receipt_path ?? expense.receipt_url);
       setReceiptPreviewUrl(null);
       return;
     }
 
     setDescription("");
     setAmount("");
+    setCurrency(defaultCurrency);
     setCategory("Materiales");
     setDate(todayDateInputValue());
+    setNotes("");
     setReceiptPath(null);
     setReceiptPreviewUrl(null);
-  }, [open, expense]);
+  }, [open, expense, defaultCurrency]);
 
-  async function uploadReceiptIfNeeded() {
+  async function uploadReceipt(scan = false) {
+    if (!selectedFile && !scan) {
+      return receiptPath;
+    }
+
     if (!selectedFile) {
+      if (scan) {
+        throw new Error("Seleccioná una foto del recibo antes de escanear.");
+      }
+
       return receiptPath;
     }
 
@@ -112,7 +127,11 @@ export function ExpenseFormSheet({
       const formData = new FormData();
       formData.set("file", selectedFile);
 
-      const response = await fetch("/api/uploads/expense-receipt", {
+      if (scan) {
+        formData.set("scan", "true");
+      }
+
+      const response = await fetch("/api/uploads/receipt", {
         method: "POST",
         body: formData,
       });
@@ -131,6 +150,10 @@ export function ExpenseFormSheet({
         fileInputRef.current.value = "";
       }
 
+      if (scan && payload.scan) {
+        setScanPreview(payload.scan);
+      }
+
       return payload.receipt.receiptPath;
     } finally {
       setIsUploadingReceipt(false);
@@ -142,39 +165,7 @@ export function ExpenseFormSheet({
     setIsScanning(true);
 
     try {
-      const path = await uploadReceiptIfNeeded();
-
-      if (!path) {
-        throw new Error("Seleccioná una foto del recibo antes de escanear.");
-      }
-
-      const response = await fetch("/api/ai/expense-receipt-scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ receiptPath: path }),
-      });
-
-      const payload = (await response.json()) as ScanResponse;
-
-      if (!response.ok || !payload.result) {
-        throw new Error(payload.error || "No se pudo escanear el recibo.");
-      }
-
-      setScanPreview(payload.result);
-
-      if (payload.result.description) {
-        setDescription(payload.result.description);
-      }
-
-      if (payload.result.amount !== null) {
-        setAmount(String(payload.result.amount).replace(".", ","));
-      }
-
-      if (payload.result.category) {
-        setCategory(payload.result.category);
-      }
+      await uploadReceipt(true);
     } catch (scanError) {
       setError(
         scanError instanceof Error
@@ -186,23 +177,51 @@ export function ExpenseFormSheet({
     }
   }
 
+  function applyScanToForm() {
+    if (!scanPreview) {
+      return;
+    }
+
+    if (scanPreview.description) {
+      setDescription(scanPreview.description);
+    }
+
+    if (scanPreview.amount !== null) {
+      setAmount(formatAmountForInput(scanPreview.amount));
+    }
+
+    if (scanPreview.currency) {
+      setCurrency(scanPreview.currency);
+    }
+
+    if (scanPreview.category) {
+      setCategory(scanPreview.category);
+    }
+
+    if (scanPreview.date) {
+      setDate(scanPreview.date);
+    }
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     startTransition(async () => {
       try {
-        const finalReceiptPath = await uploadReceiptIfNeeded();
+        const finalReceiptPath = await uploadReceipt(false);
         const formData = new FormData(event.currentTarget);
 
+        formData.set("currency", currency);
+
         if (finalReceiptPath) {
-          formData.set("receipt_url", finalReceiptPath);
+          formData.set("receipt_path", finalReceiptPath);
         }
 
         if (isEditing && expense) {
-          await updateExpenseAction(expense.id, formData);
+          await updateExpense(expense.id, formData);
         } else {
-          await createExpenseAction(formData);
+          await createExpense(formData);
         }
 
         onSaved();
@@ -233,11 +252,6 @@ export function ExpenseFormSheet({
           onSubmit={handleSubmit}
           className="mt-6 space-y-5 pb-8"
         >
-          <input type="hidden" name="currency" value={currency} />
-          {receiptPath ? (
-            <input type="hidden" name="receipt_url" value={receiptPath} />
-          ) : null}
-
           <div className="space-y-2">
             <Label htmlFor="expense-description">Descripción</Label>
             <Input
@@ -265,6 +279,41 @@ export function ExpenseFormSheet({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="expense-currency">Moneda</Label>
+              <select
+                id="expense-currency"
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {EXPENSE_CURRENCIES.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.code} — {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="expense-category">Categoría</Label>
+              <select
+                id="expense-category"
+                name="category"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {EXPENSE_CATEGORIES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="expense-date">Fecha</Label>
               <Input
                 id="expense-date"
@@ -278,20 +327,16 @@ export function ExpenseFormSheet({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="expense-category">Categoría</Label>
-            <select
-              id="expense-category"
-              name="category"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              {EXPENSE_CATEGORIES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="expense-notes">Notas (opcional)</Label>
+            <textarea
+              id="expense-notes"
+              name="notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={3}
+              placeholder="Detalle adicional del gasto"
+              className="flex min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
           </div>
 
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4 space-y-3">
@@ -300,14 +345,14 @@ export function ExpenseFormSheet({
                 Foto del recibo (opcional)
               </p>
               <p className="text-xs leading-5 text-muted-foreground">
-                PNG, JPG o WEBP. Máximo 5 MB.
+                PNG, JPG, WEBP o PDF. Máximo 10 MB.
               </p>
             </div>
 
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,application/pdf"
               className="hidden"
               disabled={isUploadingReceipt || isScanning || isPending}
               onChange={(event) => {
@@ -342,7 +387,7 @@ export function ExpenseFormSheet({
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Elegir imagen
+                Elegir archivo
               </Button>
 
               <Button
@@ -365,18 +410,59 @@ export function ExpenseFormSheet({
                 ) : (
                   <>
                     <ScanLine className="mr-2 h-4 w-4" />
-                    Escanear recibo con IA
+                    Escanear con IA
                   </>
                 )}
               </Button>
             </div>
 
             {scanPreview ? (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-                <p className="font-medium">Resultado del escaneo</p>
-                <p className="mt-1">
-                  Revisá los campos antes de guardar. Podés editarlos libremente.
-                </p>
+              <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
+                <div>
+                  <p className="font-medium">Resultado del escaneo</p>
+                  <p className="mt-1 text-emerald-800/90 dark:text-emerald-100/90">
+                    Revisá los datos antes de aplicarlos al formulario.
+                  </p>
+                </div>
+                <dl className="grid gap-2 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Descripción</dt>
+                    <dd className="text-right font-medium">
+                      {scanPreview.description ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Monto</dt>
+                    <dd className="text-right font-medium">
+                      {scanPreview.amount !== null
+                        ? formatExpenseAmount(
+                            scanPreview.amount,
+                            scanPreview.currency ?? currency,
+                          )
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Categoría</dt>
+                    <dd className="text-right font-medium">
+                      {scanPreview.category ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Fecha</dt>
+                    <dd className="text-right font-medium">
+                      {scanPreview.date ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full"
+                  onClick={applyScanToForm}
+                >
+                  Aplicar al formulario
+                </Button>
               </div>
             ) : null}
           </div>
@@ -397,7 +483,11 @@ export function ExpenseFormSheet({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending || isUploadingReceipt}>
+            <Button
+              type="submit"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={isPending || isUploadingReceipt}
+            >
               {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar gasto"}
             </Button>
           </div>

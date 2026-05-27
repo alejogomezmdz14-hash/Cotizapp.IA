@@ -2,14 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import {
+  getExpenseMonthStats,
+  getExpenses,
+  getExpensesByMonth,
   normalizeExpenseCategory,
   normalizeExpenseDateInput,
   parseExpenseAmountInput,
 } from "@/lib/expenses";
-import { normalizeProfileCurrency } from "@/lib/profile";
-import { requireUser } from "@/lib/profile";
+import { getProfile, requireUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import type { Expense, ExpenseMonthGroup, ExpenseMonthStats } from "@/types";
 
 function revalidateExpenseViews() {
   revalidatePath("/gastos");
@@ -26,8 +30,8 @@ function getRequiredValue(formData: FormData, field: string) {
   return value.trim();
 }
 
-function getOptionalReceiptPath(formData: FormData) {
-  const value = formData.get("receipt_url");
+function getOptionalValue(formData: FormData, field: string) {
+  const value = formData.get(field);
 
   if (typeof value !== "string") {
     return null;
@@ -37,17 +41,27 @@ function getOptionalReceiptPath(formData: FormData) {
   return normalized.length > 0 ? normalized : null;
 }
 
-export async function createExpenseAction(formData: FormData) {
-  const user = await requireUser();
+async function getDefaultExpenseCurrency(userId: string) {
+  const profile = await getProfile(userId);
+  return normalizeExpenseCurrency(profile?.currency ?? "ARS");
+}
+
+function buildExpensePayload(formData: FormData, defaultCurrency: string) {
   const description = getRequiredValue(formData, "description");
   const amountRaw = getRequiredValue(formData, "amount");
   const category = normalizeExpenseCategory(
     getRequiredValue(formData, "category") || "Otro",
   );
   const date = normalizeExpenseDateInput(getRequiredValue(formData, "date"));
-  const currencyInput = getRequiredValue(formData, "currency");
-
+  const currency = normalizeExpenseCurrency(
+    getRequiredValue(formData, "currency") || defaultCurrency,
+    defaultCurrency,
+  );
   const amount = parseExpenseAmountInput(amountRaw);
+  const receiptPath =
+    getOptionalValue(formData, "receipt_path") ??
+    getOptionalValue(formData, "receipt_url");
+  const notes = getOptionalValue(formData, "notes");
 
   if (!description) {
     throw new Error("Ingresá una descripción para el gasto.");
@@ -57,23 +71,27 @@ export async function createExpenseAction(formData: FormData) {
     throw new Error("Ingresá un monto válido mayor a cero.");
   }
 
-  let currency = "MXN";
-
-  try {
-    currency = normalizeProfileCurrency(currencyInput || "MXN");
-  } catch {
-    currency = "MXN";
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("expenses").insert({
-    user_id: user.id,
+  return {
     description,
     amount,
     currency,
     category,
     date,
-    receipt_url: getOptionalReceiptPath(formData),
+    receipt_url: receiptPath,
+    receipt_path: receiptPath,
+    notes,
+  };
+}
+
+export async function createExpense(formData: FormData) {
+  const user = await requireUser();
+  const defaultCurrency = await getDefaultExpenseCurrency(user.id);
+  const payload = buildExpensePayload(formData, defaultCurrency);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("expenses").insert({
+    user_id: user.id,
+    ...payload,
   });
 
   if (error) {
@@ -83,45 +101,15 @@ export async function createExpenseAction(formData: FormData) {
   revalidateExpenseViews();
 }
 
-export async function updateExpenseAction(id: string, formData: FormData) {
+export async function updateExpense(id: string, formData: FormData) {
   const user = await requireUser();
-  const description = getRequiredValue(formData, "description");
-  const amountRaw = getRequiredValue(formData, "amount");
-  const category = normalizeExpenseCategory(
-    getRequiredValue(formData, "category") || "Otro",
-  );
-  const date = normalizeExpenseDateInput(getRequiredValue(formData, "date"));
-  const currencyInput = getRequiredValue(formData, "currency");
-
-  const amount = parseExpenseAmountInput(amountRaw);
-
-  if (!description) {
-    throw new Error("Ingresá una descripción para el gasto.");
-  }
-
-  if (amount === null || amount <= 0) {
-    throw new Error("Ingresá un monto válido mayor a cero.");
-  }
-
-  let currency = "MXN";
-
-  try {
-    currency = normalizeProfileCurrency(currencyInput || "MXN");
-  } catch {
-    currency = "MXN";
-  }
+  const defaultCurrency = await getDefaultExpenseCurrency(user.id);
+  const payload = buildExpensePayload(formData, defaultCurrency);
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("expenses")
-    .update({
-      description,
-      amount,
-      currency,
-      category,
-      date,
-      receipt_url: getOptionalReceiptPath(formData),
-    })
+    .update(payload)
     .eq("id", id)
     .eq("user_id", user.id)
     .select("id");
@@ -133,7 +121,7 @@ export async function updateExpenseAction(id: string, formData: FormData) {
   revalidateExpenseViews();
 }
 
-export async function deleteExpenseAction(id: string) {
+export async function deleteExpense(id: string) {
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -150,3 +138,22 @@ export async function deleteExpenseAction(id: string) {
 
   revalidateExpenseViews();
 }
+
+export async function getExpensesByMonthAction(): Promise<ExpenseMonthGroup[]> {
+  const user = await requireUser();
+  return getExpensesByMonth(user.id);
+}
+
+export async function getExpenseStatsAction(): Promise<ExpenseMonthStats> {
+  const user = await requireUser();
+  return getExpenseMonthStats(user.id);
+}
+
+export async function getExpensesAction(): Promise<Expense[]> {
+  const user = await requireUser();
+  return getExpenses(user.id);
+}
+
+export const createExpenseAction = createExpense;
+export const updateExpenseAction = updateExpense;
+export const deleteExpenseAction = deleteExpense;

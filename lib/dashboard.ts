@@ -6,8 +6,13 @@ import {
   getAcceptedQuotedThisMonth,
   getExpenseMonthStats,
 } from "@/lib/expenses";
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import { createClient } from "@/lib/supabase/server";
-import type { DashboardQuotationMetrics, DashboardStats } from "@/types";
+import type {
+  DashboardQuotationMetrics,
+  DashboardStats,
+  ExpenseCurrencyTotal,
+} from "@/types";
 
 type DashboardQuotationMetricsRpcRow = {
   quotations: number | string | null;
@@ -30,9 +35,11 @@ export const EMPTY_DASHBOARD_STATS: DashboardStats = {
   catalogItems: 0,
   quotationMetrics: EMPTY_DASHBOARD_QUOTATION_METRICS,
   expensesThisMonth: 0,
+  expensesByCurrency: [],
   acceptedQuotedThisMonth: 0,
   invoicedThisMonth: 0,
   netProfitThisMonth: 0,
+  canCalculateNetProfit: false,
   monthlyComparison: [],
 };
 
@@ -53,6 +60,14 @@ function parseDashboardCount(value: number | string | null | undefined) {
   const parsedValue = parseDashboardMoney(value);
 
   return Number.isFinite(parsedValue) ? Math.max(0, Math.trunc(parsedValue)) : 0;
+}
+
+function getPrimaryExpenseTotal(totals: ExpenseCurrencyTotal[]) {
+  if (totals.length === 0) {
+    return 0;
+  }
+
+  return totals[0]?.total ?? 0;
 }
 
 export function parseDashboardQuotationMetricsRow(
@@ -133,6 +148,7 @@ async function getDashboardQuotationMetricsFallback(userId: string) {
 
 export async function getDashboardStats(
   userId: string,
+  profileCurrency: string | null = null,
 ): Promise<DashboardStats> {
   const supabase = await createClient();
 
@@ -155,9 +171,10 @@ export async function getDashboardStats(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
     getExpenseMonthStats(userId).catch(() => ({
-      totalThisMonth: 0,
+      totalsByCurrency: [],
       expenseCount: 0,
       topCategory: null,
+      topCategoryAmount: 0,
     })),
     getAcceptedQuotedThisMonth().catch(() => 0),
     getInvoicedThisMonth(userId).catch(() => 0),
@@ -185,8 +202,22 @@ export async function getDashboardStats(
           null,
       );
 
-  const expensesThisMonth = expenseMonthStats.totalThisMonth;
-  const netProfitThisMonth = acceptedQuotedThisMonth - expensesThisMonth;
+  const expensesByCurrency = expenseMonthStats.totalsByCurrency;
+  const expensesThisMonth = getPrimaryExpenseTotal(expensesByCurrency);
+  const normalizedProfileCurrency = normalizeExpenseCurrency(
+    profileCurrency ?? "ARS",
+  );
+  const hasExpenses = expenseMonthStats.expenseCount > 0;
+  const singleExpenseCurrency =
+    expensesByCurrency.length === 1 ? expensesByCurrency[0]?.currency : null;
+  const canCalculateNetProfit =
+    hasExpenses &&
+    expensesByCurrency.length === 1 &&
+    singleExpenseCurrency === normalizedProfileCurrency;
+
+  const netProfitThisMonth = canCalculateNetProfit
+    ? acceptedQuotedThisMonth - (expensesByCurrency[0]?.total ?? 0)
+    : 0;
 
   return {
     quotations: quotationSummary.quotations,
@@ -194,9 +225,11 @@ export async function getDashboardStats(
     catalogItems: catalogItemsResult.count ?? 0,
     quotationMetrics: quotationSummary.quotationMetrics,
     expensesThisMonth,
+    expensesByCurrency,
     acceptedQuotedThisMonth,
     invoicedThisMonth,
     netProfitThisMonth,
+    canCalculateNetProfit,
     monthlyComparison,
   };
 }

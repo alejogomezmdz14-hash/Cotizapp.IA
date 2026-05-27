@@ -1,6 +1,6 @@
 import { normalizeDateOnlyString } from "@/lib/quotation-validity";
 
-const DEFAULT_CURRENCY = "MXN";
+const DEFAULT_CURRENCY = "ARS";
 
 function getCurrencyCode(currency: string | null) {
   const normalizedCurrency = currency?.trim().toUpperCase();
@@ -34,6 +34,37 @@ export function formatCurrencyAmount(
       maximumFractionDigits: 2,
     }).format(amount);
   }
+}
+
+export function formatExpenseAmount(
+  value: number | null | undefined,
+  currency: string | null,
+) {
+  const amount = value ?? 0;
+  const currencyCode = getCurrencyCode(currency);
+  const formattedAmount = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+  return `${formattedAmount} ${currencyCode}`;
+}
+
+type ExpenseCurrencyTotalInput = {
+  currency: string;
+  total: number;
+};
+
+export function formatExpenseTotalsByCurrency(
+  totals: ExpenseCurrencyTotalInput[],
+) {
+  if (totals.length === 0) {
+    return formatExpenseAmount(0, "ARS");
+  }
+
+  return totals
+    .map((item) => formatExpenseAmount(item.total, item.currency))
+    .join(" + ");
 }
 
 export function formatPercentage(value: number | null | undefined) {

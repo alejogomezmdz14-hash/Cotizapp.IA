@@ -20,6 +20,7 @@ import {
 import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
 import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
+import { formatExpenseTotalsByCurrency } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
@@ -56,9 +57,10 @@ function getStatusBadgeClassName(value: string | null) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [stats, profile, quotations] = await Promise.all([
-    getDashboardStats(user.id).catch(() => EMPTY_DASHBOARD_STATS),
-    getProfile(user.id),
+  const profile = await getProfile(user.id);
+  const currency = profile?.currency ?? null;
+  const [stats, quotations] = await Promise.all([
+    getDashboardStats(user.id, currency).catch(() => EMPTY_DASHBOARD_STATS),
     getQuotations(user.id).catch(() => []),
   ]);
   const { quotationMetricCards } = buildDashboardPageCards(
@@ -76,8 +78,10 @@ export default async function DashboardPage() {
     netProfitPlaceholder: Wallet,
   } as const;
   const recentQuotations = quotations.slice(0, 5);
-  const currency = profile?.currency ?? null;
-  const hasExpenses = stats.expensesThisMonth > 0;
+  const hasExpenses = stats.expensesByCurrency.length > 0;
+  const expensesSummary = hasExpenses
+    ? formatExpenseTotalsByCurrency(stats.expensesByCurrency)
+    : formatCurrencyAmount(0, currency);
   const monthlySummary = [
     {
       label: "Aceptado este mes",
@@ -89,9 +93,9 @@ export default async function DashboardPage() {
     },
     {
       label: "Gastos",
-      value: formatCurrencyAmount(stats.expensesThisMonth, currency),
+      value: expensesSummary,
     },
-    ...(hasExpenses
+    ...(hasExpenses && stats.canCalculateNetProfit
       ? [
           {
             label: "Ganancia neta",
@@ -187,7 +191,11 @@ export default async function DashboardPage() {
                 <CardContent className="flex items-center justify-between gap-3">
                   {isNetProfitPlaceholder ? (
                     <Button asChild variant="outline" size="sm" className="bg-background/75">
-                      <Link href="/gastos">Registrá tus gastos</Link>
+                      <Link href="/gastos">
+                        {hasExpenses
+                          ? "Ver gastos"
+                          : "Registra tus gastos para ver tu margen real"}
+                      </Link>
                     </Button>
                   ) : (
                     <p className="text-sm leading-6 text-muted-foreground">

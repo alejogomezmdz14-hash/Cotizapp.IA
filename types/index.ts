@@ -192,10 +192,17 @@ export type DashboardStats = {
   catalogItems: number;
   quotationMetrics: DashboardQuotationMetrics;
   expensesThisMonth: number;
+  expensesByCurrency: ExpenseCurrencyTotal[];
   acceptedQuotedThisMonth: number;
   invoicedThisMonth: number;
   netProfitThisMonth: number;
+  canCalculateNetProfit: boolean;
   monthlyComparison: DashboardMonthlyPoint[];
+};
+
+export type ExpenseCurrencyTotal = {
+  currency: string;
+  total: number;
 };
 
 export type Expense = {
@@ -207,13 +214,22 @@ export type Expense = {
   category: string;
   date: string;
   receipt_url: string | null;
+  receipt_path: string | null;
+  notes: string | null;
   created_at: string | null;
 };
 
+export type ExpenseMonthGroup = {
+  monthKey: string;
+  monthLabel: string;
+  expenses: Expense[];
+};
+
 export type ExpenseMonthStats = {
-  totalThisMonth: number;
+  totalsByCurrency: ExpenseCurrencyTotal[];
   expenseCount: number;
   topCategory: string | null;
+  topCategoryAmount: number;
 };
 
 export type ExpenseReceiptScanResult = {
@@ -221,6 +237,7 @@ export type ExpenseReceiptScanResult = {
   amount: number | null;
   currency: string | null;
   category: string | null;
+  date: string | null;
 };
 
 export type QuotationAttachment = {

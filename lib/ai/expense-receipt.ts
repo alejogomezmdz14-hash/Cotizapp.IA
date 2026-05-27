@@ -1,6 +1,12 @@
 import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
-import { parseExpenseAmountInput } from "@/lib/expenses";
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
+import {
+  normalizeExpenseDateInput,
+  parseExpenseAmountInput,
+} from "@/lib/expenses";
 import type { ExpenseReceiptScanResult } from "@/types";
+
+const EXPENSE_RECEIPT_SCAN_MODEL = "gpt-4o";
 
 type ScanExpenseReceiptInput = {
   signedUrl: string;
@@ -58,6 +64,7 @@ export function normalizeExpenseReceiptScanResult(
       amount: null,
       currency: null,
       category: null,
+      date: null,
     };
   }
 
@@ -71,6 +78,16 @@ export function normalizeExpenseReceiptScanResult(
     amount = parseExpenseAmountInput(amountRaw);
   }
 
+  const dateRaw =
+    getTrimmedString(parsed.date) ??
+    getTrimmedString(parsed.fecha) ??
+    getTrimmedString(parsed.issue_date);
+
+  const currencyRaw =
+    getTrimmedString(parsed.currency)?.toUpperCase() ??
+    getTrimmedString(parsed.moneda)?.toUpperCase() ??
+    null;
+
   return {
     description:
       getTrimmedString(parsed.description) ??
@@ -78,11 +95,9 @@ export function normalizeExpenseReceiptScanResult(
       getTrimmedString(parsed.merchant) ??
       getTrimmedString(parsed.proveedor),
     amount,
-    currency:
-      getTrimmedString(parsed.currency)?.toUpperCase() ??
-      getTrimmedString(parsed.moneda)?.toUpperCase() ??
-      null,
+    currency: currencyRaw ? normalizeExpenseCurrency(currencyRaw) : null,
     category: normalizeCategory(parsed.category ?? parsed.categoria),
+    date: dateRaw ? normalizeExpenseDateInput(dateRaw) : null,
   };
 }
 
@@ -90,11 +105,9 @@ export async function scanExpenseReceiptWithAi({
   signedUrl,
   fileName,
 }: ScanExpenseReceiptInput) {
-  const [{ getInvoiceScanModel, getOpenAIClient }] = await Promise.all([
-    import("./openai"),
-  ]);
+  const { getOpenAIClient } = await import("./openai");
   const client = getOpenAIClient();
-  const model = getInvoiceScanModel();
+  const model = EXPENSE_RECEIPT_SCAN_MODEL;
 
   const completion = await client.chat.completions.create({
     model,
@@ -104,7 +117,7 @@ export async function scanExpenseReceiptWithAi({
     messages: [
       {
         role: "system",
-        content: `Analiza la imagen de un recibo o ticket de compra y devuelve solo JSON con: description (texto corto del gasto), amount (número), currency (código ISO de 3 letras o null), category (una de: ${EXPENSE_CATEGORIES.join(", ")}). Si no puedes leer un dato con certeza, usa null. No inventes valores.`,
+        content: `Analiza la imagen de un recibo o ticket de compra y devuelve solo JSON con: description (texto corto del gasto), amount (número), currency (código ISO de 3 letras o null), category (una de: ${EXPENSE_CATEGORIES.join(", ")}), date (YYYY-MM-DD o null). Si no puedes leer un dato con certeza, usa null. No inventes valores.`,
       },
       {
         role: "user",
