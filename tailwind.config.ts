@@ -13,7 +13,7 @@ const config: Config = {
     extend: {
       colors: {
         border: "rgb(var(--border-rgb) / <alpha-value>)",
-        input: "rgb(var(--border-rgb) / <alpha-value>)",
+        input: "rgb(var(--input-border-rgb) / <alpha-value>)",
         ring: "rgb(var(--accent-rgb) / <alpha-value>)",
         background: "rgb(var(--background-rgb) / <alpha-value>)",
         foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",

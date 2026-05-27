@@ -4,40 +4,46 @@
 
 @layer base {
   :root {
-    --sidebar-bg: #0a0a0f;
-    --sidebar-bg-rgb: 10 10 15;
+    --sidebar-bg: #111318;
+    --sidebar-bg-rgb: 17 19 24;
     --sidebar-text: #ffffff;
     --sidebar-text-rgb: 255 255 255;
     --sidebar-text-muted-rgb: 139 143 168;
     --sidebar-active: #00e5a0;
     --sidebar-active-rgb: 0 229 160;
-    --header-bg: #0a0a0f;
-    --header-bg-rgb: 10 10 15;
+    --header-bg: #111318;
+    --header-bg-rgb: 17 19 24;
     --header-text: #ffffff;
     --header-text-rgb: 255 255 255;
     --radius: 1rem;
+    --input-bg-rgb: 255 255 255;
+    --input-border-rgb: 209 213 219;
+    --card-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   }
 
   :root,
   .light {
     color-scheme: light;
-    --background: #f0f4f0;
-    --background-rgb: 240 244 240;
+    --background: #f0f2f5;
+    --background-rgb: 240 242 245;
     --surface: #ffffff;
     --surface-rgb: 255 255 255;
-    --surface-2: #e8f5f0;
-    --surface-2-rgb: 232 245 240;
+    --surface-2: #f9fafb;
+    --surface-2-rgb: 249 250 251;
     --accent: #00c984;
     --accent-rgb: 0 201 132;
-    --accent-soft: #e8f5f0;
-    --accent-soft-rgb: 232 245 240;
+    --accent-soft: #ecfdf5;
+    --accent-soft-rgb: 236 253 245;
     --accent-hover: #00a870;
-    --text-primary: #0a0a0f;
-    --text-primary-rgb: 10 10 15;
-    --text-secondary: #4a5568;
-    --text-secondary-rgb: 74 85 104;
-    --border: #d1e8df;
-    --border-rgb: 209 232 223;
+    --text-primary: #111827;
+    --text-primary-rgb: 17 24 39;
+    --text-secondary: #6b7280;
+    --text-secondary-rgb: 107 114 128;
+    --border: #e5e7eb;
+    --border-rgb: 229 231 235;
+    --input-bg-rgb: 255 255 255;
+    --input-border-rgb: 209 213 219;
+    --card-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   }
 
   .dark {
@@ -59,6 +65,9 @@
     --text-secondary-rgb: 139 143 168;
     --border: #2a2d3e;
     --border-rgb: 42 45 62;
+    --input-bg-rgb: 17 19 24;
+    --input-border-rgb: 42 45 62;
+    --card-shadow: 0 12px 32px -24px rgb(0 0 0 / 0.45);
   }
 
   * {
@@ -97,8 +106,14 @@
     mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.2));
   }
 
+  .light .shell-backdrop {
+    background-color: rgb(var(--background-rgb) / 1);
+    background-image: none;
+  }
+
   .light .shell-backdrop::before {
-    mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.35));
+    opacity: 0.35;
+    mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.15));
   }
 
   .shell-panel {
@@ -112,10 +127,8 @@
 
   .light .shell-panel {
     background: rgb(var(--surface-rgb) / 1);
-    border-color: rgb(var(--border-rgb) / 0.95);
-    box-shadow:
-      0 1px 2px rgb(10 10 15 / 0.04),
-      0 12px 32px -20px rgb(10 10 15 / 0.14);
+    border-color: rgb(var(--border-rgb) / 1);
+    box-shadow: var(--card-shadow);
     backdrop-filter: none;
   }
 
@@ -136,10 +149,8 @@
 
   .light .shell-panel-strong {
     background: rgb(var(--surface-rgb) / 1);
-    border-color: rgb(var(--border-rgb) / 0.95);
-    box-shadow:
-      0 1px 2px rgb(10 10 15 / 0.05),
-      0 18px 42px -24px rgb(10 10 15 / 0.16);
+    border-color: rgb(var(--border-rgb) / 1);
+    box-shadow: var(--card-shadow);
     backdrop-filter: none;
   }
 
@@ -174,6 +185,19 @@
     border-radius: calc(var(--radius) + 0.75rem);
     background: rgb(255 255 255 / 0.05);
     box-shadow: 0 12px 32px -24px rgb(0 0 0 / 0.45);
+  }
+
+  .light .ui-card {
+    background-color: rgb(var(--surface-rgb) / 1);
+    border-color: rgb(var(--border-rgb) / 1);
+    box-shadow: var(--card-shadow);
+  }
+
+  .light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  .light textarea,
+  .light select {
+    background-color: rgb(var(--input-bg-rgb) / 1);
+    border-color: rgb(var(--input-border-rgb) / 1);
   }
 }
 

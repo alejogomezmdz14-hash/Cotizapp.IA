@@ -27,8 +27,9 @@ test("global tokens keep the approved accent across both theme roots", async () 
     "utf8",
   );
 
-  assert.match(source, /--sidebar-bg:\s*#0a0a0f;/i);
-  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#f0f4f0;/i);
+  assert.match(source, /--sidebar-bg:\s*#111318;/i);
+  assert.match(source, /--header-bg:\s*#111318;/i);
+  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#f0f2f5;/i);
   assert.match(source, /\.light\s*\{[\s\S]*--accent:\s*#00c984;/i);
   assert.match(source, /\.dark\s*\{[\s\S]*--background:\s*#0a0a0f;/i);
   assert.match(source, /\.dark\s*\{[\s\S]*--accent:\s*#00e5a0;/i);
@@ -63,8 +64,8 @@ test("shared primitives render the updated elevated dark theme classes", () => {
   assert.match(outlineButton, /text-foreground/);
   assert.match(secondaryButton, /border-border\/60/);
   assert.match(secondaryButton, /bg-secondary/);
-  assert.match(inputHtml, /bg-card\/80/);
-  assert.match(inputHtml, /border-border\/70/);
+  assert.match(inputHtml, /bg-\[rgb\(var\(--input-bg-rgb\)\/1\)\]/);
+  assert.match(inputHtml, /border-input/);
   assert.match(cardHtml, /border-border\/80/);
-  assert.match(cardHtml, /bg-card\/95/);
+  assert.match(cardHtml, /bg-card/);
 });

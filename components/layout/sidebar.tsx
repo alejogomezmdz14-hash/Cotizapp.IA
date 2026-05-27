@@ -64,7 +64,7 @@ export function Sidebar() {
   const activeHref = getActiveNavHref(pathname, allNavItems);
 
   return (
-    <aside className="hidden w-[18.5rem] shrink-0 bg-sidebar lg:block">
+    <aside className="hidden w-[18.5rem] shrink-0 border-r border-[rgba(255,255,255,0.06)] bg-sidebar lg:block">
       <div className="sticky top-0 flex h-screen flex-col">
         <Link
           href="/dashboard"
