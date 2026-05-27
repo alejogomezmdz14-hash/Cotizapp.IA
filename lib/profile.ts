@@ -84,13 +84,15 @@ export async function requireUser() {
 const PROFILE_LEGACY_COLUMNS =
   "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
 const PROFILE_TAX_COLUMNS = `${PROFILE_LEGACY_COLUMNS}, tax_id`;
-const PROFILE_PDF_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color, pdf_template`;
+const PROFILE_PDF_ACCENT_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color`;
+const PROFILE_PDF_COLUMNS = `${PROFILE_PDF_ACCENT_COLUMNS}, pdf_template`;
 const PROFILE_PERSONAL_COLUMNS = `${PROFILE_PDF_COLUMNS}, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed`;
 const PROFILE_EXTENDED_COLUMNS = PROFILE_PERSONAL_COLUMNS;
 
 const PROFILE_SELECT_FALLBACKS = [
   PROFILE_EXTENDED_COLUMNS,
   PROFILE_PDF_COLUMNS,
+  PROFILE_PDF_ACCENT_COLUMNS,
   PROFILE_TAX_COLUMNS,
   PROFILE_LEGACY_COLUMNS,
 ] as const;
@@ -126,13 +128,7 @@ async function fetchProfileWithFallback(userId: string) {
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const profile = await fetchProfileWithFallback(userId);
-
-  if (!profile) {
-    throw new Error("No se pudo cargar el perfil.");
-  }
-
-  return profile;
+  return fetchProfileWithFallback(userId);
 }
 
 export async function getProfileForQuotation(

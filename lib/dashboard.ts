@@ -58,6 +58,66 @@ export function parseDashboardQuotationMetricsRow(
   };
 }
 
+async function getDashboardQuotationMetricsFallback(userId: string) {
+  const supabase = await createClient();
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const nextMonthStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+  );
+
+  const { data, error } = await supabase
+    .from("quotations")
+    .select("status, total, sent_at, created_at")
+    .eq("user_id", userId);
+
+  if (error) {
+    return parseDashboardQuotationMetricsRow(null);
+  }
+
+  const rows = data ?? [];
+  const monthStartMs = monthStart.getTime();
+  const nextMonthStartMs = nextMonthStart.getTime();
+
+  let totalQuotedThisMonth = 0;
+  let sentQuotations = 0;
+  let acceptedQuotations = 0;
+  let pendingQuotations = 0;
+
+  for (const row of rows) {
+    const status = row.status?.trim().toLowerCase() ?? "";
+    const createdAt = row.created_at ? Date.parse(row.created_at) : Number.NaN;
+
+    if (row.sent_at) {
+      sentQuotations += 1;
+    }
+
+    if (status === "accepted" || status === "approved") {
+      acceptedQuotations += 1;
+    }
+
+    if (status === "pending" || status === "sent") {
+      pendingQuotations += 1;
+    }
+
+    if (
+      Number.isFinite(createdAt) &&
+      createdAt >= monthStartMs &&
+      createdAt < nextMonthStartMs
+    ) {
+      totalQuotedThisMonth += parseDashboardMoney(row.total);
+    }
+  }
+
+  return parseDashboardQuotationMetricsRow({
+    quotations: rows.length,
+    sent_quotations: sentQuotations,
+    accepted_quotations: acceptedQuotations,
+    pending_quotations: pendingQuotations,
+    total_quoted_this_month: totalQuotedThisMonth,
+  });
+}
+
 export async function getDashboardStats(
   userId: string,
 ): Promise<DashboardStats> {
@@ -91,18 +151,16 @@ export async function getDashboardStats(
     getDashboardMonthlyComparison(userId).catch(() => []),
   ]);
 
-  if (
-    quotationMetricsResult.error ||
-    clientsResult.error ||
-    catalogItemsResult.error
-  ) {
+  if (clientsResult.error || catalogItemsResult.error) {
     throw new Error("No se pudo cargar el resumen del panel.");
   }
 
-  const quotationSummary = parseDashboardQuotationMetricsRow(
-    (quotationMetricsResult.data as DashboardQuotationMetricsRpcRow | null | undefined) ??
-      null,
-  );
+  const quotationSummary = quotationMetricsResult.error
+    ? await getDashboardQuotationMetricsFallback(userId)
+    : parseDashboardQuotationMetricsRow(
+        (quotationMetricsResult.data as DashboardQuotationMetricsRpcRow | null | undefined) ??
+          null,
+      );
 
   const expensesThisMonth = expenseMonthStats.totalThisMonth;
   const netProfitThisMonth = acceptedQuotedThisMonth - expensesThisMonth;
