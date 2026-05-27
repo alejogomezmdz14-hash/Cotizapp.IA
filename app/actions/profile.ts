@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
 import {
   buildBusinessProfileUpsertInput,
   buildOnboardingProfileUpsertInput,
@@ -215,4 +216,63 @@ export async function saveBusinessProfileAction(formData: FormData) {
   revalidatePath("/cotizaciones/nueva");
 
   redirect("/perfil-empresa?saved=1");
+}
+
+export async function saveAppearanceSettingsAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const theme = getRequiredValue(formData, "theme");
+  const pdfAccentColor = normalizePdfAccentColor(
+    getRequiredValue(formData, "pdf_accent_color"),
+  );
+
+  if (theme !== "light" && theme !== "dark") {
+    throw new Error("Seleccioná un tema válido.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        theme,
+        pdf_accent_color: pdfAccentColor,
+      },
+      { onConflict: "id" },
+    );
+
+  if (error) {
+    throw new Error("No se pudieron guardar los ajustes de apariencia.");
+  }
+
+  revalidatePath("/ajustes");
+  revalidatePath("/perfil-empresa");
+  revalidatePath("/dashboard");
+  redirect("/ajustes?saved=appearance");
+}
+
+export async function deleteAccountAction() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const supabase = await createClient();
+  const { error: deleteError } = await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", user.id);
+
+  if (deleteError) {
+    throw new Error("No se pudo eliminar la cuenta. Intentá de nuevo.");
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?deleted=1");
 }

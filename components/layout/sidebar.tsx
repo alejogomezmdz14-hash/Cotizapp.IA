@@ -1,92 +1,110 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { BusinessIdentity } from "@/components/layout/business-identity";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import {
   getActiveNavHref,
+  sidebarFooterNavItems,
   sidebarNavItems,
+  type NavItem,
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
-
-type SidebarProps = {
-  businessName: string | null;
-  logoUrl: string | null;
-};
 
 const baseNavItemClassName =
   "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition";
 
-export function Sidebar({ businessName, logoUrl }: SidebarProps) {
+function SidebarNavLink({
+  item,
+  active,
+}: {
+  item: NavItem;
+  active: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        baseNavItemClassName,
+        active
+          ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(59,130,246,0.6)]"
+          : "border-transparent text-muted-foreground hover:border-token hover:bg-background/80 hover:text-foreground",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-2xl border transition",
+          active
+            ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.15)] text-accent-token"
+            : "border-token bg-background/70 text-muted-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{item.label}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {active ? "Sección actual" : "Acceso directo"}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+export function Sidebar() {
   const pathname = usePathname();
-  const activeHref = getActiveNavHref(pathname, sidebarNavItems);
+  const allNavItems = [...sidebarNavItems, ...sidebarFooterNavItems];
+  const activeHref = getActiveNavHref(pathname, allNavItems);
 
   return (
     <aside className="hidden w-[18.5rem] shrink-0 border-r border-token bg-background/80 lg:block">
-      <div className="shell-backdrop sticky top-0 flex h-screen flex-col gap-6 px-4 py-6">
-        <div className="shell-panel px-4 py-5">
-          <BusinessIdentity
-            businessName={businessName}
-            logoUrl={logoUrl}
-            subtitle="Tu centro de cotizaciones"
-            className="items-start"
-            avatarClassName="h-12 w-12 shadow-sm"
-            nameElement="h2"
-            subtitleClassName="text-xs font-medium uppercase tracking-[0.18em]"
-            nameClassName="text-base"
+      <div className="shell-backdrop sticky top-0 flex h-screen flex-col gap-4 px-4 py-6">
+        <Link
+          href="/dashboard"
+          className="shell-panel flex shrink-0 justify-center px-4 py-5"
+          aria-label="Ir al inicio de Cotizapp"
+        >
+          <Image
+            src="/icons/icon-512.svg"
+            alt="Cotizapp"
+            width={140}
+            height={140}
+            className="h-auto w-[8.75rem] max-w-full"
+            priority
           />
-        </div>
+        </Link>
 
-        <div className="shell-panel flex flex-1 flex-col p-3">
-          <p className="px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="shell-panel flex min-h-0 flex-1 flex-col p-3">
+          <p className="shrink-0 px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Navegación
           </p>
-          <nav className="space-y-2">
-            {sidebarNavItems.map((item) => {
-              const active = item.href === activeHref;
-              const Icon = item.icon;
 
-              return (
-                <Link
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {sidebarNavItems.map((item) => (
+                <SidebarNavLink
                   key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    baseNavItemClassName,
-                    active
-                      ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(59,130,246,0.6)]"
-                      : "border-transparent text-muted-foreground hover:border-token hover:bg-background/80 hover:text-foreground",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-2xl border transition",
-                      active
-                        ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.15)] text-accent-token"
-                        : "border-token bg-background/70 text-muted-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{item.label}</span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {active ? "Sección actual" : "Acceso directo"}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
+                  item={item}
+                  active={item.href === activeHref}
+                />
+              ))}
+            </nav>
 
-          <div className="mt-auto rounded-3xl border border-token bg-background/70 px-4 py-4">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Shell
-            </p>
-            <p className="mt-2 text-sm leading-6 text-foreground">
-              Navegación clara para volver rápido a las tareas clave del día.
-            </p>
+            <div className="shrink-0 space-y-2 border-t border-token/80 pt-3">
+              {sidebarFooterNavItems.map((item) => (
+                <SidebarNavLink
+                  key={item.href}
+                  item={item}
+                  active={item.href === activeHref}
+                />
+              ))}
+              <SignOutButton className="w-full justify-center" />
+            </div>
           </div>
         </div>
       </div>

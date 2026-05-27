@@ -24,10 +24,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
-      <Sidebar
-        businessName={branding.businessName}
-        logoUrl={branding.logoUrl}
-      />
+      <Sidebar />
       <div className="shell-backdrop relative flex min-h-screen min-w-0 flex-1 flex-col">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[rgb(var(--accent-rgb)/0.12)] to-transparent" />
         <DashboardHeader

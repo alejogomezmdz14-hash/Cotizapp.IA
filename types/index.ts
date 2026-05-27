@@ -16,6 +16,7 @@ export type Profile = {
   avatar_url?: string | null;
   logo_onboarding_completed?: boolean | null;
   pdf_footer?: string | null;
+  pdf_accent_color?: string | null;
   theme: string | null;
   created_at: string | null;
 };
@@ -89,6 +90,7 @@ export type HydratedQuotationBranding = {
   address: string | null;
   currency: string | null;
   pdfFooter: string | null;
+  pdfAccentColor: string | null;
 };
 
 export type HydratedQuotationCustomer = {
@@ -139,6 +141,34 @@ export type DashboardStats = {
   clients: number;
   catalogItems: number;
   quotationMetrics: DashboardQuotationMetrics;
+  expensesThisMonth: number;
+  acceptedQuotedThisMonth: number;
+  netProfitThisMonth: number;
+};
+
+export type Expense = {
+  id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  category: string;
+  date: string;
+  receipt_url: string | null;
+  created_at: string | null;
+};
+
+export type ExpenseMonthStats = {
+  totalThisMonth: number;
+  expenseCount: number;
+  topCategory: string | null;
+};
+
+export type ExpenseReceiptScanResult = {
+  description: string | null;
+  amount: number | null;
+  currency: string | null;
+  category: string | null;
 };
 
 export type QuotationAttachment = {

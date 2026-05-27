@@ -3,8 +3,11 @@ import {
   BadgeCheck,
   Clock3,
   FileText,
+  Receipt,
   Send,
+  TrendingDown,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,8 @@ export default async function DashboardPage() {
     sentQuotations: Send,
     acceptedQuotations: BadgeCheck,
     pendingQuotations: Clock3,
+    expensesThisMonth: Receipt,
+    netProfitThisMonth: Wallet,
   } as const;
   const recentQuotations = quotations.slice(0, 5);
   const panelClassName =
@@ -98,17 +103,26 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {quotationMetricCards.map((card, index) => {
             const Icon = quotationMetricIcons[card.id];
+            const isExpenseCard = card.id === "expensesThisMonth";
+            const isNetProfitCard = card.id === "netProfitThisMonth";
+            const isHighlight = index === 0;
 
             return (
               <Card
                 key={card.id}
                 className={cn(
                   statCardClassName,
-                  index === 0 &&
+                  isHighlight &&
                     "!border-[rgb(var(--accent-rgb)/0.3)] !bg-[rgb(var(--accent-rgb)/0.08)]",
+                  isExpenseCard &&
+                    "!border-orange-500/30 !bg-orange-500/8",
+                  isNetProfitCard &&
+                    (stats.netProfitThisMonth >= 0
+                      ? "!border-emerald-500/30 !bg-emerald-500/8"
+                      : "!border-destructive/30 !bg-destructive/8"),
                 )}
               >
                 <CardHeader className="space-y-4">
@@ -116,19 +130,34 @@ export default async function DashboardPage() {
                     <div
                       className={cn(
                         "rounded-2xl border p-3",
-                        index === 0
-                          ? "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] text-accent-token"
-                          : "border-token bg-background/80 text-foreground",
+                        isHighlight &&
+                          "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] text-accent-token",
+                        isExpenseCard &&
+                          "border-orange-500/30 bg-orange-500/15 text-orange-600 dark:text-orange-300",
+                        isNetProfitCard &&
+                          (stats.netProfitThisMonth >= 0
+                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                            : "border-destructive/40 bg-destructive/15 text-destructive"),
+                        !isHighlight &&
+                          !isExpenseCard &&
+                          !isNetProfitCard &&
+                          "border-token bg-background/80 text-foreground",
                       )}
                     >
-                      <Icon className="h-5 w-5" />
+                      {isNetProfitCard && stats.netProfitThisMonth < 0 ? (
+                        <TrendingDown className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
                     </div>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-1">
                     <CardDescription>{card.title}</CardDescription>
                     <CardTitle
-                      className={index === 0 ? "text-3xl lg:text-4xl" : "text-4xl"}
+                      className={
+                        isHighlight ? "text-3xl lg:text-4xl" : "text-4xl"
+                      }
                     >
                       {card.value}
                     </CardTitle>

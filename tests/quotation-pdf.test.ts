@@ -37,6 +37,7 @@ function createHydratedQuotation(): HydratedQuotation {
       address: "Rodriguez Pena 3341",
       currency: "ARS",
       pdfFooter: "Precios sujetos a cambios sin previo aviso.",
+      pdfAccentColor: "#3B82F6",
     },
     customer: {
       id: "client-1",
@@ -110,6 +111,7 @@ test("resolveProfileBranding trims profile values for PDF generation", () => {
       address: "Rodriguez Pena 3341",
       currency: "ars",
       pdfFooter: null,
+      pdfAccentColor: "#3B82F6",
     },
   );
 });
@@ -135,6 +137,7 @@ test("buildQuotationPdfTemplateData provides safe fallbacks and formatted line i
     address: null,
     currency: "ARS",
     pdfFooter: null,
+    pdfAccentColor: "#3B82F6",
   };
   quotation.customer.name = null;
   quotation.quotation.notes = "   ";

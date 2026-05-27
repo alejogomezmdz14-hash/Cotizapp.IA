@@ -14,6 +14,7 @@ import {
   formatDateOnly,
   formatPercentage,
 } from "@/lib/formatting";
+import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
 import {
   normalizeDateOnlyString,
   sanitizeQuotationValidityDate,
@@ -21,7 +22,6 @@ import {
 import type { HydratedQuotation } from "@/types";
 
 const NAVY = "#1A2A4A";
-const ACCENT_LINE = "#3B82F6";
 const MUTED = "#64748B";
 const ROW_ALT = "#F5F5F5";
 const CLIENT_BG = "#F5F5F5";
@@ -36,6 +36,7 @@ export type QuotationPdfTemplateData = {
   validUntilLabel: string;
   notes: string | null;
   footerNote: string | null;
+  pdfAccentColor: string;
   logoDataUrl: string | null;
   taxRateLabel: string;
   subtotalLabel: string;
@@ -122,6 +123,7 @@ export function buildQuotationPdfTemplateData({
     ),
     notes: normalizeOptionalText(quotation.quotation.notes),
     footerNote: normalizeOptionalText(quotation.branding.pdfFooter),
+    pdfAccentColor: normalizePdfAccentColor(quotation.branding.pdfAccentColor),
     logoDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
     subtotalLabel: formatCurrencyAmount(subtotal, currency),
@@ -138,7 +140,8 @@ export function buildQuotationPdfTemplateData({
   };
 }
 
-const styles = StyleSheet.create({
+function createPdfStyles(accentColor: string) {
+  return StyleSheet.create({
   page: {
     paddingTop: 36,
     paddingRight: 40,
@@ -223,7 +226,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 2,
-    backgroundColor: ACCENT_LINE,
+    backgroundColor: accentColor,
     marginBottom: 18,
   },
   clientSection: {
@@ -371,9 +374,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-});
+  });
+}
 
 export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
+  const styles = createPdfStyles(data.pdfAccentColor);
+
   return (
     <Document
       title={`Cotización ${data.quotationNumber}`}

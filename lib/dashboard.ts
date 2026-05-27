@@ -1,3 +1,7 @@
+import {
+  getAcceptedQuotedThisMonth,
+  getExpenseMonthStats,
+} from "@/lib/expenses";
 import { createClient } from "@/lib/supabase/server";
 import type { DashboardQuotationMetrics, DashboardStats } from "@/types";
 
@@ -55,10 +59,14 @@ export async function getDashboardStats(
 ): Promise<DashboardStats> {
   const supabase = await createClient();
 
-  const [quotationMetricsResult, clientsResult, catalogItemsResult] = await Promise.all([
-    supabase
-      .rpc("get_dashboard_quotation_metrics")
-      .single(),
+  const [
+    quotationMetricsResult,
+    clientsResult,
+    catalogItemsResult,
+    expenseMonthStats,
+    acceptedQuotedThisMonth,
+  ] = await Promise.all([
+    supabase.rpc("get_dashboard_quotation_metrics").single(),
     supabase
       .from("clients")
       .select("id", { count: "exact", head: true })
@@ -67,6 +75,12 @@ export async function getDashboardStats(
       .from("catalog_items")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
+    getExpenseMonthStats(userId).catch(() => ({
+      totalThisMonth: 0,
+      expenseCount: 0,
+      topCategory: null,
+    })),
+    getAcceptedQuotedThisMonth().catch(() => 0),
   ]);
 
   if (
@@ -82,10 +96,16 @@ export async function getDashboardStats(
       null,
   );
 
+  const expensesThisMonth = expenseMonthStats.totalThisMonth;
+  const netProfitThisMonth = acceptedQuotedThisMonth - expensesThisMonth;
+
   return {
     quotations: quotationSummary.quotations,
     clients: clientsResult.count ?? 0,
     catalogItems: catalogItemsResult.count ?? 0,
     quotationMetrics: quotationSummary.quotationMetrics,
+    expensesThisMonth,
+    acceptedQuotedThisMonth,
+    netProfitThisMonth,
   };
 }

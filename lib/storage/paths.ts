@@ -64,6 +64,14 @@ export function buildInvoiceUploadPath(
   return `${userId}/invoices/${buildUniqueStorageFileName(fileName, objectId)}`;
 }
 
+export function buildExpenseReceiptPath(
+  userId: string,
+  fileName: string,
+  objectId?: string,
+) {
+  return `${userId}/receipts/${buildUniqueStorageFileName(fileName, objectId)}`;
+}
+
 export function buildQuotationPdfFileName(quotationNumber: string) {
   return `${sanitizeStorageSegment(quotationNumber, "cotizacion")}.pdf`;
 }

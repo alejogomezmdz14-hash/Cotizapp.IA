@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 import {
   cancelAllPendingTasks,
@@ -10,7 +11,11 @@ import {
 } from "@/lib/pending-tasks";
 import { createClient } from "@/lib/supabase/client";
 
-export function SignOutButton() {
+type SignOutButtonProps = {
+  className?: string;
+};
+
+export function SignOutButton({ className }: SignOutButtonProps) {
   const { toast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,11 +69,14 @@ export function SignOutButton() {
       <Button
         type="button"
         variant="outline"
-        className="rounded-[1rem] border-token bg-background/80 text-foreground hover:bg-background hover:text-foreground"
+        className={cn(
+          "rounded-[1rem] border-token bg-background/80 text-foreground hover:bg-background hover:text-foreground",
+          className,
+        )}
         onClick={handleSignOut}
         disabled={isPending}
       >
-        {isPending ? "Saliendo..." : "Salir"}
+        {isPending ? "Saliendo..." : "Cerrar sesión"}
       </Button>
       {errorMessage ? (
         <p className="text-right text-xs text-destructive">{errorMessage}</p>

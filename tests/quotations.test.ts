@@ -826,6 +826,7 @@ test("hydrateCompleteQuotation returns a full business object with branding, cus
       address: "Rodriguez Pena 3341",
       currency: "ARS",
       pdfFooter: null,
+      pdfAccentColor: "#3B82F6",
     },
     customer: {
       id: "client-1",

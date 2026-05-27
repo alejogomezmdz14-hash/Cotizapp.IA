@@ -5,7 +5,9 @@ export type QuotationMetricCardId =
   | "totalQuotedThisMonth"
   | "sentQuotations"
   | "acceptedQuotations"
-  | "pendingQuotations";
+  | "pendingQuotations"
+  | "expensesThisMonth"
+  | "netProfitThisMonth";
 
 export type DashboardSummaryCardId =
   | "quotations"
@@ -74,6 +76,20 @@ export function buildDashboardPageCards(
         value: formatDashboardCount(stats.quotationMetrics.pendingQuotations),
         description: "Oportunidades que siguen en seguimiento.",
         href: "/cotizaciones",
+      },
+      {
+        id: "expensesThisMonth",
+        title: "Gastos este mes",
+        value: formatCurrencyAmount(stats.expensesThisMonth, currency),
+        description: "Total registrado en gastos del mes actual.",
+        href: "/gastos",
+      },
+      {
+        id: "netProfitThisMonth",
+        title: "Ganancia neta",
+        value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
+        description: "Cotizado aceptado menos gastos del mes.",
+        href: "/gastos",
       },
     ],
     summaryCards: [

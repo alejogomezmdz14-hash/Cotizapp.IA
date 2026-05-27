@@ -4,4 +4,5 @@ export const STORAGE_BUCKETS = {
   quotationPdfs: "quotation-pdfs",
   quotationSharePdfs: "quotation-share-pdfs",
   invoiceUploads: "invoice-uploads",
+  expenseReceipts: "expense-receipts",
 } as const;

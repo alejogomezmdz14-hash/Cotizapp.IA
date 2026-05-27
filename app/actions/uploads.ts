@@ -310,6 +310,79 @@ export async function uploadAvatarFromFormData(
   };
 }
 
+type UploadedExpenseReceiptResult = {
+  fileName: string;
+  receiptPath: string;
+  previewUrl: string | null;
+};
+
+export async function getExpenseReceiptUploadState(receiptPath: string | null) {
+  if (!receiptPath) {
+    return null;
+  }
+
+  const { STORAGE_BUCKETS } = await import("@/lib/storage/server");
+  const previewUrl = await buildSignedUrl(
+    STORAGE_BUCKETS.expenseReceipts,
+    receiptPath,
+  );
+
+  if (!previewUrl) {
+    return null;
+  }
+
+  return {
+    receiptPath,
+    previewUrl,
+  };
+}
+
+export async function uploadExpenseReceiptFromFormData(
+  formData: FormData,
+): Promise<UploadedExpenseReceiptResult> {
+  const { file } = parseLogoUploadFormData(formData);
+  const [{ getCurrentUser }, { createClient }, storageModule, pathsModule] =
+    await Promise.all([
+      import("@/lib/profile"),
+      import("@/lib/supabase/server"),
+      import("@/lib/storage/server"),
+      import("@/lib/storage/paths"),
+    ]);
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new UploadActionError(
+      "Debes iniciar sesión para subir un recibo.",
+      401,
+    );
+  }
+
+  const receiptPath = pathsModule.buildExpenseReceiptPath(user.id, file.name);
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const supabase = await createClient();
+
+  const { error: uploadError } = await supabase.storage
+    .from(storageModule.STORAGE_BUCKETS.expenseReceipts)
+    .upload(receiptPath, fileBuffer, {
+      contentType: file.type || undefined,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new UploadActionError("No se pudo subir el recibo.", 500);
+  }
+
+  return {
+    fileName: file.name,
+    receiptPath,
+    previewUrl: await buildSignedUrl(
+      storageModule.STORAGE_BUCKETS.expenseReceipts,
+      receiptPath,
+    ),
+  };
+}
+
 export async function uploadInvoiceForScanFromFormData(
   formData: FormData,
 ): Promise<UploadedInvoiceScanResult> {
