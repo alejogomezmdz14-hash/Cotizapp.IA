@@ -22,6 +22,10 @@ import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
 import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
 import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
+import {
+  getQuotationValidityBounds,
+  getQuotationValidityPresetDate,
+} from "@/lib/quotation-validity";
 import { isDraftQuotationStatus } from "@/lib/quotation-status";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +73,7 @@ type SavedDraftState = {
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 const sectionCardClassName = "shell-panel overflow-hidden shadow-none";
+const validityPresets = [30, 60, 90] as const;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -175,6 +180,7 @@ export function QuotationForm({
   }
 
   const isFormLocked = isSubmitting || Boolean(savedDraft);
+  const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
   const selectedExistingClientName =
     clients.find((client) => client.id === selectedClientId)?.name ?? null;
   const clientSnapshotLabel =
@@ -777,8 +783,31 @@ export function QuotationForm({
                       type="date"
                       value={validUntil}
                       onChange={(event) => setValidUntil(event.target.value)}
+                      min={validityBounds.minDate}
+                      max={validityBounds.maxDate}
                       disabled={isFormLocked}
                     />
+                    <div className="flex flex-wrap gap-2">
+                      {validityPresets.map((days) => (
+                        <Button
+                          key={days}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="bg-background/75"
+                          disabled={isFormLocked}
+                          onClick={() => {
+                            setValidUntil(getQuotationValidityPresetDate(days));
+                            setError(null);
+                          }}
+                        >
+                          {days} dias
+                        </Button>
+                      ))}
+                    </div>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Elige una fecha entre {validityBounds.minDate} y {validityBounds.maxDate}.
+                    </p>
                   </div>
                 </div>
 

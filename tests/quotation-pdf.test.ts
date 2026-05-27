@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildQuotationPdfTemplateData } from "../components/cotizacion/quotation-pdf-template";
+import { formatCurrencyAmount, formatPercentage } from "../lib/formatting";
 import { buildProfileLogoDataUrl, resolveProfileBranding } from "../lib/profile";
 import { generateAndStoreQuotationPdf, getStoredQuotationPdf } from "../lib/quotations";
 import { buildQuotationPdfPath } from "../lib/storage/paths";
-import type { HydratedQuotation } from "../types";
+import type { HydratedQuotation, Profile } from "../types";
 
 function createHydratedQuotation(): HydratedQuotation {
   return {
@@ -98,7 +99,7 @@ test("resolveProfileBranding trims profile values for PDF generation", () => {
       currency: " ars ",
       theme: "dark",
       created_at: "2026-01-01T00:00:00.000Z",
-    }),
+    } as Profile),
     {
       businessName: "Pro Mat Mendoza",
       logoPath: "user-1/logo/logo.png",
@@ -148,6 +149,35 @@ test("buildQuotationPdfTemplateData provides safe fallbacks and formatted line i
   assert.equal(templateData.notes, null);
   assert.equal(templateData.items[0]?.quantityLabel, "2 bolsa");
   assert.equal(templateData.items[0]?.description, "Bolsa de 50 kg");
+});
+
+test("buildQuotationPdfTemplateData keeps subtotal, tax and total labels ready for the summary block", () => {
+  const quotation = createHydratedQuotation();
+  const templateData = buildQuotationPdfTemplateData({
+    quotation,
+    generatedAt: "2026-05-26T01:10:00.000Z",
+    logoDataUrl: null,
+  });
+
+  assert.equal(
+    templateData.subtotalLabel,
+    formatCurrencyAmount(quotation.quotation.subtotal, quotation.branding.currency),
+  );
+  assert.equal(
+    templateData.taxAmountLabel,
+    formatCurrencyAmount(
+      (quotation.quotation.total ?? 0) - (quotation.quotation.subtotal ?? 0),
+      quotation.branding.currency,
+    ),
+  );
+  assert.equal(
+    templateData.totalLabel,
+    formatCurrencyAmount(quotation.quotation.total, quotation.branding.currency),
+  );
+  assert.equal(
+    templateData.taxRateLabel,
+    formatPercentage(quotation.quotation.tax_rate),
+  );
 });
 
 test("generateAndStoreQuotationPdf renders, uploads and persists the latest PDF metadata", async () => {

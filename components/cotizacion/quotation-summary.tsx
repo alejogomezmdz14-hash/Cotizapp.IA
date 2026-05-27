@@ -11,6 +11,7 @@ import { QuotationShareActions } from "@/components/cotizacion/quotation-share-a
 import { Separator } from "@/components/ui/separator";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import { formatCurrencyAmount, formatDateOnly } from "@/lib/formatting";
+import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 
 type QuotationSummaryProps = {
   items: Array<{
@@ -124,7 +125,9 @@ export function QuotationSummary({
         <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm">
           <p className="font-medium text-foreground">Validez</p>
           <p className="mt-1 text-muted-foreground">
-            {validUntil ? formatDateOnly(validUntil) : "Sin fecha definida"}
+            {validUntil
+              ? formatDateOnly(sanitizeQuotationValidityDate(validUntil))
+              : "Sin fecha definida"}
           </p>
         </div>
 

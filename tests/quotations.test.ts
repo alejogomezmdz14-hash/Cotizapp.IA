@@ -13,6 +13,7 @@ import {
   deleteQuotationAttachmentWithCleanup,
   formatCleanupFailureMessage,
   getDraftQuotationEditorHref,
+  getWhatsAppSharePhoneState,
   hydrateCompleteQuotation,
   hydrateQuotationAttachments,
   loadDraftQuotationHydrationContext,
@@ -62,6 +63,46 @@ test("parseQuotationFormData accepts an existing client selection and normalizes
       },
     ],
   });
+});
+
+test("parseQuotationFormData rejects validity dates in the past", () => {
+  const formData = new FormData();
+  formData.set("client_mode", "existing");
+  formData.set("client_id", "client-1");
+  formData.set("tax_rate", "21");
+  formData.set("valid_until", "2026-05-25");
+  formData.set(
+    "items_payload",
+    JSON.stringify([{ name: "Servicio", quantity: 1, unit: "unidad", unitPrice: 1 }]),
+  );
+
+  assert.throws(
+    () =>
+      parseQuotationFormData(formData, {
+        now: new Date("2026-05-26T12:00:00.000Z"),
+      }),
+    /La fecha de validez no puede estar en el pasado\./,
+  );
+});
+
+test("parseQuotationFormData rejects validity dates beyond the allowed year window", () => {
+  const formData = new FormData();
+  formData.set("client_mode", "existing");
+  formData.set("client_id", "client-1");
+  formData.set("tax_rate", "21");
+  formData.set("valid_until", "2032-01-01");
+  formData.set(
+    "items_payload",
+    JSON.stringify([{ name: "Servicio", quantity: 1, unit: "unidad", unitPrice: 1 }]),
+  );
+
+  assert.throws(
+    () =>
+      parseQuotationFormData(formData, {
+        now: new Date("2026-05-26T12:00:00.000Z"),
+      }),
+    /La fecha de validez no puede superar 5 anos desde hoy\./,
+  );
 });
 
 test("parseQuotationFormData accepts inline client payload and trims optional fields", () => {
@@ -968,6 +1009,26 @@ test("buildWhatsAppShareHref falls back to the generic share flow when the store
       text: "Te comparto la cotizacion",
     }),
     "https://wa.me/?text=Te%20comparto%20la%20cotizacion",
+  );
+});
+
+test("buildWhatsAppShareHref marks missing phones as requiring manual input before sharing", () => {
+  assert.deepEqual(
+    getWhatsAppSharePhoneState(null),
+    {
+      normalizedPhone: null,
+      requiresPhoneInput: true,
+    },
+  );
+});
+
+test("buildWhatsAppShareHref accepts stored client phones when they normalize safely", () => {
+  assert.deepEqual(
+    getWhatsAppSharePhoneState("261 555 1234"),
+    {
+      normalizedPhone: "5492615551234",
+      requiresPhoneInput: false,
+    },
   );
 });
 

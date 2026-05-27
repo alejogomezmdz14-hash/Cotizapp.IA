@@ -5,11 +5,13 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 type DashboardHeaderProps = {
   businessName: string | null;
   logoUrl: string | null;
+  showSignOut?: boolean;
 };
 
 export function DashboardHeader({
   businessName,
   logoUrl,
+  showSignOut = true,
 }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-30 px-4 pt-4 md:px-6">
@@ -27,7 +29,7 @@ export function DashboardHeader({
 
         <div className="flex shrink-0 items-center gap-2 rounded-[1.4rem] border border-token bg-background/70 p-1.5 shadow-sm">
           <ThemeToggle />
-          <SignOutButton />
+          {showSignOut ? <SignOutButton /> : null}
         </div>
       </div>
     </header>

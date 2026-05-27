@@ -9,6 +9,10 @@ import { normalizeCatalogUnit } from "@/lib/catalog";
 import { buildProfileLogoDataUrl, resolveProfileBranding } from "@/lib/profile";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import {
+  sanitizeQuotationValidityDate,
+  validateQuotationValidityDate,
+} from "@/lib/quotation-validity";
+import {
   buildSharedQuotationPdfPath,
   buildQuotationPdfFileName,
   buildQuotationPdfPath,
@@ -247,7 +251,7 @@ export {
   isDraftQuotationStatus,
   normalizeQuotationStatus,
 } from "@/lib/quotation-status";
-export { buildWhatsAppShareHref } from "@/lib/whatsapp";
+export { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
 function normalizeAmount(value: number | string | null) {
   if (typeof value === "number") {
@@ -347,26 +351,6 @@ function parseNonNegativeDecimal(value: unknown) {
   return parsedValue;
 }
 
-function isValidDateInput(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-  if (!match) {
-    return false;
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    !Number.isNaN(date.getTime()) &&
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
-
 function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
   if (typeof rawValue !== "string" || !rawValue.trim()) {
     throw new Error("Completa los datos del cliente antes de guardar la cotizacion.");
@@ -447,14 +431,29 @@ function parseTaxRate(formData: FormData) {
   return parsedValue;
 }
 
-function parseValidUntil(formData: FormData) {
+function parseValidUntil(
+  formData: FormData,
+  options?: {
+    now?: Date;
+  },
+) {
   const value = getStringValue(formData, "valid_until");
 
   if (!value) {
     return null;
   }
 
-  if (!isValidDateInput(value)) {
+  const validityState = validateQuotationValidityDate(value, options);
+
+  if (!validityState.valid) {
+    if (validityState.reason === "past") {
+      throw new Error("La fecha de validez no puede estar en el pasado.");
+    }
+
+    if (validityState.reason === "too_far") {
+      throw new Error("La fecha de validez no puede superar 5 anos desde hoy.");
+    }
+
     throw new Error("Ingresa una fecha de validez valida.");
   }
 
@@ -488,6 +487,7 @@ function normalizeQuotationRow(quotation: QuotationRow): Quotation {
     subtotal: normalizeAmount(quotation.subtotal),
     tax_rate: normalizeAmount(quotation.tax_rate),
     total: normalizeAmount(quotation.total),
+    valid_until: sanitizeQuotationValidityDate(quotation.valid_until),
   };
 }
 
@@ -540,6 +540,9 @@ export function sanitizeDraftQuotationItems(
 
 export function parseQuotationFormData(
   formData: FormData,
+  options?: {
+    now?: Date;
+  },
 ): ParsedQuotationFormData {
   const clientMode = getStringValue(formData, "client_mode") === "inline"
     ? "inline"
@@ -547,7 +550,7 @@ export function parseQuotationFormData(
   const items = parseItemsPayload(formData.get("items_payload"));
   const notes = getOptionalStringValue(formData.get("notes"));
   const taxRate = parseTaxRate(formData);
-  const validUntil = parseValidUntil(formData);
+  const validUntil = parseValidUntil(formData, options);
 
   if (clientMode === "inline") {
     return {

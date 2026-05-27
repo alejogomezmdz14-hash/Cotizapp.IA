@@ -16,6 +16,7 @@ import {
   formatDateTime,
 } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
+import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import {
   getDraftQuotationEditorHref,
   getQuotations,
@@ -353,7 +354,9 @@ export default async function QuotationsPage() {
                           Valida hasta
                         </p>
                         <p className="mt-2 text-lg font-semibold text-foreground">
-                          {formatDateOnly(quotation.valid_until)}
+                          {formatDateOnly(
+                            sanitizeQuotationValidityDate(quotation.valid_until),
+                          )}
                         </p>
                       </div>
                     </div>

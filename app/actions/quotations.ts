@@ -13,6 +13,7 @@ import {
   DRAFT_QUOTATION_STATUS,
   deleteQuotationAttachmentWithCleanup,
   generateQuotationPdfForUser,
+  getWhatsAppSharePhoneState,
   normalizeQuotationStatus,
   parseQuotationFormData,
   persistDraftQuotation,
@@ -266,6 +267,89 @@ export async function generateQuotationPdfAction(quotationId: string) {
     fileName: result.fileName,
     path: result.path,
     generatedAt: result.generatedAt,
+  };
+}
+
+export async function getQuotationWhatsappRecipientAction(quotationId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data: quotationData, error: quotationError } = await supabase
+    .from("quotations")
+    .select("id, client_id")
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (quotationError || !quotationData) {
+    throw new Error("No se pudo cargar el cliente de la cotizacion.");
+  }
+
+  if (!quotationData.client_id) {
+    return {
+      clientPhone: null,
+    };
+  }
+
+  const { data: clientData, error: clientError } = await supabase
+    .from("clients")
+    .select("phone")
+    .eq("id", quotationData.client_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (clientError) {
+    throw new Error("No se pudo cargar el telefono del cliente.");
+  }
+
+  return {
+    clientPhone: clientData?.phone ?? null,
+  };
+}
+
+export async function saveQuotationClientPhoneAction(
+  quotationId: string,
+  phone: string,
+) {
+  const user = await requireUser();
+  const normalizedPhoneInput = phone.trim();
+  const phoneState = getWhatsAppSharePhoneState(normalizedPhoneInput);
+
+  if (!normalizedPhoneInput || !phoneState.normalizedPhone) {
+    throw new Error("Ingresa un telefono valido antes de compartir por WhatsApp.");
+  }
+
+  const supabase = await createClient();
+  const { data: quotationData, error: quotationError } = await supabase
+    .from("quotations")
+    .select("client_id")
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (quotationError || !quotationData) {
+    throw new Error("No se pudo cargar la cotizacion para actualizar el telefono.");
+  }
+
+  if (!quotationData.client_id) {
+    throw new Error("La cotizacion no tiene un cliente asociado para guardar el telefono.");
+  }
+
+  const { data: clientData, error: clientError } = await supabase
+    .from("clients")
+    .update({
+      phone: normalizedPhoneInput,
+    })
+    .eq("id", quotationData.client_id)
+    .eq("user_id", user.id)
+    .select("phone")
+    .maybeSingle();
+
+  if (clientError || !clientData) {
+    throw new Error("No se pudo guardar el telefono del cliente.");
+  }
+
+  return {
+    clientPhone: clientData.phone ?? normalizedPhoneInput,
   };
 }
 

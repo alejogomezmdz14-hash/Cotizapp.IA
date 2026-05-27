@@ -49,6 +49,15 @@ export function normalizePhoneForWhatsApp(phone: string | null) {
     : null;
 }
 
+export function getWhatsAppSharePhoneState(phone: string | null) {
+  const normalizedPhone = normalizePhoneForWhatsApp(phone);
+
+  return {
+    normalizedPhone,
+    requiresPhoneInput: normalizedPhone === null,
+  };
+}
+
 export function buildWhatsAppShareHref(input: {
   phone: string | null;
   text: string;

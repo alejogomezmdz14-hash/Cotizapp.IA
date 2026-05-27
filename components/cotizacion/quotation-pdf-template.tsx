@@ -15,6 +15,7 @@ import {
   formatDateTime,
   formatPercentage,
 } from "@/lib/formatting";
+import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import type { HydratedQuotation } from "@/types";
 
 export type QuotationPdfTemplateData = {
@@ -95,7 +96,9 @@ export function buildQuotationPdfTemplateData({
     quotationNumber: quotation.quotation.number,
     issuedAtLabel: formatDateTime(quotation.quotation.created_at ?? generatedAt),
     generatedAtLabel: formatDateTime(generatedAt),
-    validUntilLabel: formatDateOnly(quotation.quotation.valid_until),
+    validUntilLabel: formatDateOnly(
+      sanitizeQuotationValidityDate(quotation.quotation.valid_until),
+    ),
     notes: normalizeOptionalText(quotation.quotation.notes),
     logoDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
@@ -124,34 +127,36 @@ export function buildQuotationPdfTemplateData({
 
 const styles = StyleSheet.create({
   page: {
-    padding: 32,
-    fontSize: 10,
-    color: "#111827",
+    paddingTop: 32,
+    paddingRight: 32,
+    paddingBottom: 28,
+    paddingLeft: 32,
+    fontSize: 10.5,
+    color: "#0F172A",
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 20,
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: "#E5E7EB",
+    marginBottom: 18,
   },
   brandBlock: {
     flexDirection: "row",
-    gap: 12,
+    gap: 14,
     flexGrow: 1,
     maxWidth: "62%",
   },
   logo: {
-    width: 56,
-    height: 56,
+    width: 58,
+    height: 58,
     objectFit: "contain",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    padding: 4,
+    borderColor: "#D4D8E1",
+    borderRadius: 8,
+    padding: 6,
   },
   title: {
     fontSize: 22,
@@ -159,74 +164,128 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   muted: {
-    color: "#6B7280",
+    color: "#64748B",
   },
-  metaBlock: {
-    alignItems: "flex-end",
-    gap: 4,
+  subtitle: {
+    fontSize: 9.5,
+    color: "#64748B",
+    marginBottom: 7,
+    textTransform: "uppercase",
+  },
+  headerLine: {
+    marginBottom: 3,
+    lineHeight: 1.45,
+  },
+  metaCard: {
+    width: 180,
+    borderWidth: 1,
+    borderColor: "#D9DEE8",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#F8FAFC",
+    gap: 8,
   },
   metaLabel: {
-    fontSize: 9,
-    color: "#6B7280",
+    fontSize: 8.5,
+    color: "#64748B",
     textTransform: "uppercase",
   },
   metaValue: {
     fontSize: 11,
     fontWeight: 700,
   },
+  divider: {
+    height: 1,
+    backgroundColor: "#D9DEE8",
+    marginBottom: 18,
+  },
   sectionGrid: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   sectionCard: {
     flexGrow: 1,
     flexBasis: 0,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 12,
-    gap: 6,
+    borderColor: "#D9DEE8",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 7,
   },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
     textTransform: "uppercase",
-    color: "#6B7280",
+    color: "#64748B",
   },
   sectionLine: {
-    lineHeight: 1.4,
+    lineHeight: 1.45,
+  },
+  sectionSpacer: {
+    marginTop: 4,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  summaryLabel: {
+    color: "#64748B",
+  },
+  summaryValue: {
+    fontWeight: 700,
+  },
+  summaryTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  summaryTotalLabel: {
+    fontSize: 10.5,
+    fontWeight: 700,
+  },
+  summaryTotalValue: {
+    fontSize: 13.5,
+    fontWeight: 700,
+    color: "#0F172A",
   },
   table: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
+    borderColor: "#D9DEE8",
+    borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: 18,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 9,
     fontWeight: 700,
     textTransform: "uppercase",
-    color: "#4B5563",
+    color: "#475569",
   },
   tableRow: {
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#E2E8F0",
   },
   colConcept: {
-    width: "43%",
+    width: "44%",
     paddingRight: 8,
   },
   colQty: {
-    width: "17%",
+    width: "16%",
     paddingRight: 8,
   },
   colPrice: {
@@ -244,33 +303,52 @@ const styles = StyleSheet.create({
   },
   totalsWrap: {
     marginLeft: "auto",
-    width: "45%",
+    width: "42%",
+    borderWidth: 1,
+    borderColor: "#D9DEE8",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 18,
+    backgroundColor: "#F8FAFC",
   },
   totalsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
   },
+  totalsLabel: {
+    color: "#64748B",
+  },
   totalStrong: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 700,
   },
   notesCard: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 12,
+    borderColor: "#D9DEE8",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     gap: 6,
   },
+  notesHeading: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#64748B",
+    textTransform: "uppercase",
+  },
   footer: {
-    marginTop: 20,
+    marginTop: 18,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#D9DEE8",
     fontSize: 9,
-    color: "#6B7280",
+    color: "#64748B",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
   },
 });
 
@@ -293,23 +371,32 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
             ) : null}
             <View>
               <Text style={styles.title}>{data.businessName}</Text>
+              <Text style={styles.subtitle}>Cotizacion comercial</Text>
               {data.businessContact.map((line) => (
-                <Text key={line} style={styles.sectionLine}>
+                <Text key={line} style={styles.headerLine}>
                   {line}
                 </Text>
               ))}
             </View>
           </View>
 
-          <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Cotizacion</Text>
-            <Text style={styles.metaValue}>{data.quotationNumber}</Text>
-            <Text style={styles.metaLabel}>Emitida</Text>
-            <Text>{data.issuedAtLabel}</Text>
-            <Text style={styles.metaLabel}>Valida hasta</Text>
-            <Text>{data.validUntilLabel}</Text>
+          <View style={styles.metaCard}>
+            <View>
+              <Text style={styles.metaLabel}>Cotizacion</Text>
+              <Text style={styles.metaValue}>{data.quotationNumber}</Text>
+            </View>
+            <View>
+              <Text style={styles.metaLabel}>Fecha de emision</Text>
+              <Text>{data.issuedAtLabel}</Text>
+            </View>
+            <View>
+              <Text style={styles.metaLabel}>PDF generado</Text>
+              <Text>{data.generatedAtLabel}</Text>
+            </View>
           </View>
         </View>
+
+        <View style={styles.divider} />
 
         <View style={styles.sectionGrid}>
           <View style={styles.sectionCard}>
@@ -329,18 +416,31 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Resumen</Text>
             <Text style={styles.sectionLine}>Items: {data.items.length}</Text>
-            <Text style={styles.sectionLine}>Impuesto: {data.taxRateLabel}</Text>
-            <Text style={styles.sectionLine}>
-              PDF generado: {data.generatedAtLabel}
-            </Text>
+            <Text style={styles.sectionLine}>Valida hasta: {data.validUntilLabel}</Text>
+            <View style={styles.sectionSpacer}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>{data.subtotalLabel}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Impuesto ({data.taxRateLabel})
+                </Text>
+                <Text style={styles.summaryValue}>{data.taxAmountLabel}</Text>
+              </View>
+              <View style={styles.summaryTotalRow}>
+                <Text style={styles.summaryTotalLabel}>Total</Text>
+                <Text style={styles.summaryTotalValue}>{data.totalLabel}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.colConcept}>Concepto</Text>
+            <Text style={styles.colConcept}>Descripcion</Text>
             <Text style={styles.colQty}>Cantidad</Text>
-            <Text style={styles.colPrice}>Unitario</Text>
+            <Text style={styles.colPrice}>Precio unitario</Text>
             <Text style={styles.colTotal}>Total</Text>
           </View>
 
@@ -361,12 +461,12 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
 
         <View style={styles.totalsWrap}>
           <View style={styles.totalsRow}>
-            <Text style={styles.muted}>Subtotal</Text>
-            <Text>{data.subtotalLabel}</Text>
+            <Text style={styles.totalsLabel}>Subtotal</Text>
+            <Text style={styles.summaryValue}>{data.subtotalLabel}</Text>
           </View>
           <View style={styles.totalsRow}>
-            <Text style={styles.muted}>Impuesto ({data.taxRateLabel})</Text>
-            <Text>{data.taxAmountLabel}</Text>
+            <Text style={styles.totalsLabel}>Impuesto ({data.taxRateLabel})</Text>
+            <Text style={styles.summaryValue}>{data.taxAmountLabel}</Text>
           </View>
           <View style={styles.totalsRow}>
             <Text style={styles.totalStrong}>Total</Text>
@@ -374,15 +474,16 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
           </View>
         </View>
 
-        {data.notes ? (
-          <View style={styles.notesCard}>
-            <Text style={styles.sectionTitle}>Notas</Text>
-            <Text style={styles.sectionLine}>{data.notes}</Text>
-          </View>
-        ) : null}
+        <View style={styles.notesCard}>
+          <Text style={styles.notesHeading}>Notas y condiciones</Text>
+          <Text style={styles.sectionLine}>
+            {data.notes ?? "Cotizacion sujeta a disponibilidad de stock y confirmacion final."}
+          </Text>
+        </View>
 
         <View style={styles.footer}>
-          <Text>Documento generado por Cotizapp.</Text>
+          <Text>{data.businessName}</Text>
+          <Text>Generado con Cotizapp</Text>
         </View>
       </Page>
     </Document>

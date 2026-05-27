@@ -5,10 +5,14 @@ import { useMemo, useState } from "react";
 import {
   confirmQuotationWhatsappShareAction,
   generateQuotationPdfAction,
+  getQuotationWhatsappRecipientAction,
+  saveQuotationClientPhoneAction,
 } from "@/app/actions/quotations";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatDateTime } from "@/lib/formatting";
-import { buildWhatsAppShareHref } from "@/lib/whatsapp";
+import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
 type QuotationShareActionsProps = {
   quotationId: string;
@@ -60,8 +64,13 @@ export function QuotationShareActions({
   const [shareStatus, setShareStatus] = useState(initialStatus);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isLoadingRecipient, setIsLoadingRecipient] = useState(false);
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clientPhone, setClientPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [needsPhoneInput, setNeedsPhoneInput] = useState(false);
 
   const sharePath = useMemo(
     () =>
@@ -71,6 +80,75 @@ export function QuotationShareActions({
     [shareToken],
   );
   const shareStatusLabel = getShareStatusLabel(shareStatus, sentAt);
+
+  async function resolveNormalizedSharePhone() {
+    setIsLoadingRecipient(true);
+
+    try {
+      const result = await getQuotationWhatsappRecipientAction(quotationId);
+      const phoneState = getWhatsAppSharePhoneState(result.clientPhone);
+      setClientPhone(result.clientPhone);
+
+      if (phoneState.requiresPhoneInput) {
+        setNeedsPhoneInput(true);
+        setPhoneInput(result.clientPhone ?? "");
+        return null;
+      }
+
+      setNeedsPhoneInput(false);
+      return phoneState.normalizedPhone;
+    } finally {
+      setIsLoadingRecipient(false);
+    }
+  }
+
+  async function continueWhatsappShare(normalizedPhone: string) {
+    const confirmed = window.confirm(
+      `Se abrira WhatsApp con un link publico para ${quotationNumber} y la cotizacion quedara marcada como pendiente. Queres continuar?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setStatusMessage(null);
+    setIsSharing(true);
+
+    try {
+      const result = await confirmQuotationWhatsappShareAction(quotationId);
+      const shareUrl = new URL(result.sharePath, window.location.origin).toString();
+      const whatsappHref = buildWhatsAppShareHref({
+        phone: normalizedPhone,
+        text: `Hola, te comparto la cotizacion ${result.quotationNumber}. Puedes verla aqui: ${shareUrl}`,
+      });
+
+      setShareToken(result.shareToken);
+      setSentAt(result.sentAt);
+      setShareStatus(result.shareStatus);
+      onStateChange?.({
+        pdfGeneratedAt,
+        shareToken: result.shareToken,
+        sentAt: result.sentAt,
+        status: result.shareStatus,
+      });
+      setStatusMessage("WhatsApp abierto con el destinatario precargado.");
+
+      const openedWindow = window.open(
+        whatsappHref,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      if (!openedWindow) {
+        window.location.href = whatsappHref;
+      }
+    } catch (actionError) {
+      setError(getErrorMessage(actionError));
+    } finally {
+      setIsSharing(false);
+    }
+  }
 
   async function handleGeneratePdf() {
     setError(null);
@@ -100,54 +178,45 @@ export function QuotationShareActions({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Se abrira WhatsApp con un link publico para ${quotationNumber} y la cotizacion quedara marcada como pendiente. Queres continuar?`,
-    );
+    setError(null);
+    setStatusMessage(null);
 
-    if (!confirmed) {
+    try {
+      const normalizedPhone = await resolveNormalizedSharePhone();
+
+      if (!normalizedPhone) {
+        setError("Ingresa el telefono del cliente antes de continuar con WhatsApp.");
+        return;
+      }
+
+      await continueWhatsappShare(normalizedPhone);
+    } catch (actionError) {
+      setError(getErrorMessage(actionError));
+    }
+  }
+
+  async function handleSavePhoneAndShare() {
+    const phoneState = getWhatsAppSharePhoneState(phoneInput);
+
+    if (!phoneInput.trim() || !phoneState.normalizedPhone) {
+      setError("Ingresa un telefono valido antes de compartir por WhatsApp.");
       return;
     }
 
     setError(null);
     setStatusMessage(null);
-    setIsSharing(true);
+    setIsSavingPhone(true);
 
     try {
-      const result = await confirmQuotationWhatsappShareAction(quotationId);
-      const shareUrl = new URL(result.sharePath, window.location.origin).toString();
-      const whatsappHref = buildWhatsAppShareHref({
-        phone: result.clientPhone,
-        text: `Hola, te comparto la cotizacion ${result.quotationNumber}. Puedes verla aqui: ${shareUrl}`,
-      });
-
-      setShareToken(result.shareToken);
-      setSentAt(result.sentAt);
-      setShareStatus(result.shareStatus);
-      onStateChange?.({
-        pdfGeneratedAt,
-        shareToken: result.shareToken,
-        sentAt: result.sentAt,
-        status: result.shareStatus,
-      });
-      setStatusMessage(
-        result.clientPhone
-          ? "WhatsApp abierto con el destinatario precargado."
-          : "WhatsApp abierto sin destinatario precargado porque el cliente no tiene telefono.",
-      );
-
-      const openedWindow = window.open(
-        whatsappHref,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      if (!openedWindow) {
-        window.location.href = whatsappHref;
-      }
+      const result = await saveQuotationClientPhoneAction(quotationId, phoneInput);
+      setClientPhone(result.clientPhone);
+      setPhoneInput(result.clientPhone ?? phoneInput.trim());
+      setNeedsPhoneInput(false);
+      await continueWhatsappShare(phoneState.normalizedPhone);
     } catch (actionError) {
       setError(getErrorMessage(actionError));
     } finally {
-      setIsSharing(false);
+      setIsSavingPhone(false);
     }
   }
 
@@ -178,6 +247,43 @@ export function QuotationShareActions({
         <p className="text-sm text-muted-foreground">{shareStatusLabel}</p>
       ) : null}
 
+      {clientPhone ? (
+        <p className="text-sm text-muted-foreground">
+          Destino de WhatsApp: <span className="font-medium text-foreground">{clientPhone}</span>
+        </p>
+      ) : null}
+
+      {needsPhoneInput ? (
+        <div className="space-y-3 rounded-lg border border-token/80 bg-background/70 px-4 py-3">
+          <div className="space-y-1">
+            <Label htmlFor={`quotation-share-phone-${quotationId}`}>
+              Telefono del cliente
+            </Label>
+            <Input
+              id={`quotation-share-phone-${quotationId}`}
+              type="tel"
+              value={phoneInput}
+              onChange={(event) => setPhoneInput(event.target.value)}
+              placeholder="Ej. 261 555 1234"
+              disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+            />
+          </div>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Esta cotizacion necesita un telefono de cliente antes de abrir WhatsApp.
+          </p>
+          <Button
+            type="button"
+            className="bg-accent-token text-black hover:bg-accent-hover"
+            disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+            onClick={() => {
+              void handleSavePhoneAndShare();
+            }}
+          >
+            {isSavingPhone ? "Guardando telefono..." : "Guardar telefono y compartir"}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-3">
         <Button
           type="button"
@@ -202,13 +308,21 @@ export function QuotationShareActions({
         <Button
           type="button"
           className="bg-accent-token text-black hover:bg-accent-hover"
-          disabled={!pdfGeneratedAt || isGeneratingPdf || isSharing}
+          disabled={
+            !pdfGeneratedAt ||
+            isGeneratingPdf ||
+            isSharing ||
+            isLoadingRecipient ||
+            isSavingPhone
+          }
           onClick={() => {
             void handleShareWhatsapp();
           }}
         >
-          {isSharing
-            ? "Abriendo WhatsApp..."
+          {isLoadingRecipient
+            ? "Cargando destinatario..."
+            : isSharing
+              ? "Abriendo WhatsApp..."
             : sentAt
               ? "Reenviar por WhatsApp"
               : "Compartir por WhatsApp"}
