@@ -1,4 +1,8 @@
 import {
+  getDashboardMonthlyComparison,
+  getInvoicedThisMonth,
+} from "@/lib/dashboard-monthly";
+import {
   getAcceptedQuotedThisMonth,
   getExpenseMonthStats,
 } from "@/lib/expenses";
@@ -65,6 +69,8 @@ export async function getDashboardStats(
     catalogItemsResult,
     expenseMonthStats,
     acceptedQuotedThisMonth,
+    invoicedThisMonth,
+    monthlyComparison,
   ] = await Promise.all([
     supabase.rpc("get_dashboard_quotation_metrics").single(),
     supabase
@@ -81,6 +87,8 @@ export async function getDashboardStats(
       topCategory: null,
     })),
     getAcceptedQuotedThisMonth().catch(() => 0),
+    getInvoicedThisMonth(userId).catch(() => 0),
+    getDashboardMonthlyComparison(userId).catch(() => []),
   ]);
 
   if (
@@ -106,6 +114,8 @@ export async function getDashboardStats(
     quotationMetrics: quotationSummary.quotationMetrics,
     expensesThisMonth,
     acceptedQuotedThisMonth,
+    invoicedThisMonth,
     netProfitThisMonth,
+    monthlyComparison,
   };
 }

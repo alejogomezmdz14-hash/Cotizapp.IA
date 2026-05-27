@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   BadgeCheck,
   Clock3,
-  FileText,
   Receipt,
   Send,
   TrendingDown,
@@ -18,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
 import { getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
@@ -74,6 +74,28 @@ export default async function DashboardPage() {
     netProfitThisMonth: Wallet,
   } as const;
   const recentQuotations = quotations.slice(0, 5);
+  const currency = profile?.currency ?? null;
+  const monthlySummary = [
+    {
+      label: "Cotizado",
+      value: formatCurrencyAmount(
+        stats.quotationMetrics.totalQuotedThisMonth,
+        currency,
+      ),
+    },
+    {
+      label: "Facturado",
+      value: formatCurrencyAmount(stats.invoicedThisMonth, currency),
+    },
+    {
+      label: "Gastos",
+      value: formatCurrencyAmount(stats.expensesThisMonth, currency),
+    },
+    {
+      label: "Ganancia neta",
+      value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
+    },
+  ];
   const panelClassName =
     "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
   const statCardClassName =
@@ -90,10 +112,6 @@ export default async function DashboardPage() {
             <h3 className="text-xl font-semibold tracking-tight">
               Estado de tus cotizaciones
             </h3>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Los indicadores principales se renderizan directo desde tu resumen
-              operativo para ayudarte a priorizar.
-            </p>
           </div>
           <Link
             href="/cotizaciones"
@@ -126,31 +144,28 @@ export default async function DashboardPage() {
                 )}
               >
                 <CardHeader className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div
-                      className={cn(
-                        "rounded-2xl border p-3",
-                        isHighlight &&
-                          "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] text-accent-token",
-                        isExpenseCard &&
-                          "border-orange-500/30 bg-orange-500/15 text-orange-600 dark:text-orange-300",
-                        isNetProfitCard &&
-                          (stats.netProfitThisMonth >= 0
-                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
-                            : "border-destructive/40 bg-destructive/15 text-destructive"),
-                        !isHighlight &&
-                          !isExpenseCard &&
-                          !isNetProfitCard &&
-                          "border-token bg-background/80 text-foreground",
-                      )}
-                    >
-                      {isNetProfitCard && stats.netProfitThisMonth < 0 ? (
-                        <TrendingDown className="h-5 w-5" />
-                      ) : (
-                        <Icon className="h-5 w-5" />
-                      )}
-                    </div>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div
+                    className={cn(
+                      "w-fit rounded-2xl border p-3",
+                      isHighlight &&
+                        "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] text-accent-token",
+                      isExpenseCard &&
+                        "border-orange-500/30 bg-orange-500/15 text-orange-600 dark:text-orange-300",
+                      isNetProfitCard &&
+                        (stats.netProfitThisMonth >= 0
+                          ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                          : "border-destructive/40 bg-destructive/15 text-destructive"),
+                      !isHighlight &&
+                        !isExpenseCard &&
+                        !isNetProfitCard &&
+                        "border-token bg-background/80 text-foreground",
+                    )}
+                  >
+                    {isNetProfitCard && stats.netProfitThisMonth < 0 ? (
+                      <TrendingDown className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <CardDescription>{card.title}</CardDescription>
@@ -171,6 +186,47 @@ export default async function DashboardPage() {
               </Card>
             );
           })}
+        </div>
+      </section>
+
+      <section className={panelClassName}>
+        <div className="mb-5 space-y-2">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Este mes
+          </p>
+          <h3 className="text-xl font-semibold tracking-tight">
+            Resumen financiero del mes
+          </h3>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Compará lo cotizado, facturado y gastado para entender tu margen del
+            mes en curso.
+          </p>
+        </div>
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {monthlySummary.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4"
+            >
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
+          <p className="mb-4 text-sm font-medium text-foreground">
+            Cotizaciones vs gastos (últimos 6 meses)
+          </p>
+          <DashboardMonthlyChart
+            data={stats.monthlyComparison}
+            currency={currency}
+          />
         </div>
       </section>
 
@@ -236,7 +292,7 @@ export default async function DashboardPage() {
                       {formatCurrencyAmount(quotation.total, profile?.currency ?? null)}
                     </p>
                     <Button asChild variant="outline" className="bg-background/75">
-                      <Link href="/cotizaciones">Ver detalle</Link>
+                      <Link href={`/cotizaciones/${quotation.id}`}>Ver detalle</Link>
                     </Button>
                   </div>
                 </CardContent>
