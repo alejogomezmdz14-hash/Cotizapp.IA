@@ -137,7 +137,7 @@ test("parseInvoiceUploadFormData accepts a supported invoice image", () => {
   assert.equal(result.file.type, "image/jpeg");
 });
 
-test("parseInvoiceUploadFormData rejects unsupported invoice file types", () => {
+test("parseInvoiceUploadFormData accepts invoice PDF files", () => {
   const parseInvoiceUploadFormData = (
     uploadsModule as Record<string, unknown>
   ).parseInvoiceUploadFormData;
@@ -150,12 +150,33 @@ test("parseInvoiceUploadFormData rejects unsupported invoice file types", () => 
     new File(["pdf"], "factura.pdf", { type: "application/pdf" }),
   );
 
+  const result = (
+    parseInvoiceUploadFormData as (value: FormData) => { file: File }
+  )(formData);
+
+  assert.equal(result.file.name, "factura.pdf");
+  assert.equal(result.file.type, "application/pdf");
+});
+
+test("parseInvoiceUploadFormData rejects unsupported invoice file types", () => {
+  const parseInvoiceUploadFormData = (
+    uploadsModule as Record<string, unknown>
+  ).parseInvoiceUploadFormData;
+
+  assert.equal(typeof parseInvoiceUploadFormData, "function");
+
+  const formData = new FormData();
+  formData.set(
+    "file",
+    new File(["txt"], "factura.txt", { type: "text/plain" }),
+  );
+
   assert.throws(
     () =>
       (parseInvoiceUploadFormData as (value: FormData) => { file: File })(
         formData,
       ),
-    /La factura debe ser una imagen PNG, JPG o WEBP\./,
+    /La factura debe ser una imagen PNG, JPG, WEBP o un PDF\./,
   );
 });
 

@@ -396,7 +396,7 @@ export async function scanInvoiceWithAi({
       {
         role: "system",
         content:
-          "Analiza la imagen de una factura o remito y devuelve solo un JSON válido. Incluye supplier_name, invoice_number, invoice_date, currency, notes e items. Prioriza extraer el nombre del proveedor, el número de factura y la moneda aunque también existan encabezados o sellos. Cada item debe tener name, description, quantity, unit y unit_price. Si un dato no se puede leer con certeza, usa null o una cadena vacía según corresponda, pero no inventes valores.",
+          "Analiza la imagen o el PDF de una factura o remito y devuelve solo un JSON válido. Incluye supplier_name, invoice_number, invoice_date, currency, notes e items. Prioriza extraer el nombre del proveedor, el número de factura y la moneda aunque también existan encabezados o sellos. Cada item debe tener name, description, quantity, unit y unit_price. Si un dato no se puede leer con certeza, usa null o una cadena vacía según corresponda, pero no inventes valores.",
       },
       {
         role: "user",

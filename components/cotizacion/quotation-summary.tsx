@@ -86,7 +86,7 @@ export function QuotationSummary({
               {isSaved
                 ? "Guardado y bloqueado"
                 : items.length === 0
-                  ? "Agregá al menos un ítem para guardar."
+                  ? "Agregá al menos un ítem para continuar"
                   : "Listo para guardar"}
             </p>
           </div>
@@ -166,7 +166,7 @@ export function QuotationSummary({
         <Button
           type="submit"
           className="w-full bg-accent-token text-black hover:bg-accent-hover"
-          disabled={isSubmitting || isSaved}
+          disabled={isSubmitting || isSaved || items.length === 0}
         >
           {isSubmitting
             ? "Guardando borrador..."

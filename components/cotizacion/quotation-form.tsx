@@ -21,6 +21,7 @@ import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
 import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
 import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
+import { markUnsavedDraft } from "@/lib/pending-tasks";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
 import {
   getQuotationValidityBounds,
@@ -76,6 +77,12 @@ const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 const sectionCardClassName = "shell-panel overflow-hidden shadow-none";
 const validityPresets = [30, 60, 90] as const;
+const quotationFlowSteps = [
+  { id: 1, label: "Cliente" },
+  { id: 2, label: "Ítems" },
+  { id: 3, label: "Escaneo" },
+  { id: 4, label: "Ajustes" },
+] as const;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -159,6 +166,9 @@ export function QuotationForm({
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
   const [invoiceScanReview, setInvoiceScanReview] =
     useState<HydratedInvoiceScanReview | null>(initialInvoiceScan);
+  const [scanSectionExpanded, setScanSectionExpanded] = useState(
+    Boolean(initialInvoiceScan),
+  );
   const currentDraft = savedDraft ?? initialDraft;
   const attachmentsReadOnly = currentDraft?.status
     ? !isDraftQuotationStatus(currentDraft.status)
@@ -195,8 +205,49 @@ export function QuotationForm({
     setIsSubmitting(false);
     setSavedDraft(null);
     setInvoiceScanReview(initialInvoiceScan);
+    setScanSectionExpanded(Boolean(initialInvoiceScan));
+    markUnsavedDraft(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, initialDraft?.quotationId]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (savedDraft) {
+      return false;
+    }
+
+    const hasClientData =
+      clientMode === "inline"
+        ? Boolean(
+            inlineClient.name.trim() ||
+              inlineClient.email.trim() ||
+              inlineClient.phone.trim() ||
+              inlineClient.address.trim(),
+          )
+        : Boolean(selectedClientId);
+
+    return (
+      hasClientData ||
+      items.length > 0 ||
+      taxRate > 0 ||
+      Boolean(validUntil.trim()) ||
+      Boolean(notes.trim()) ||
+      Boolean(invoiceScanReview)
+    );
+  }, [
+    clientMode,
+    inlineClient,
+    invoiceScanReview,
+    items.length,
+    notes,
+    savedDraft,
+    selectedClientId,
+    taxRate,
+    validUntil,
+  ]);
+
+  useEffect(() => {
+    markUnsavedDraft(hasUnsavedChanges && !savedDraft);
+  }, [hasUnsavedChanges, savedDraft]);
 
   function replaceCurrentEditorUrl(scanId: string | null) {
     router.replace(
@@ -434,6 +485,7 @@ export function QuotationForm({
       const formData = new FormData(event.currentTarget);
       const result = await createDraftQuotationAction(formData);
       setSavedDraft(result);
+      markUnsavedDraft(false);
       toast({
         title: "Cotización guardada",
         description: `El borrador ${result.number} ya está listo para seguir con PDF y WhatsApp.`,
@@ -579,6 +631,20 @@ export function QuotationForm({
               </p>
             </div>
           </div>
+
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {quotationFlowSteps.map((entry) => (
+              <li
+                key={entry.id}
+                className="rounded-[1.5rem] border border-token bg-background/75 px-4 py-3"
+              >
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Paso {entry.id}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{entry.label}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -613,7 +679,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <Users2 className="h-3.5 w-3.5 text-accent-token" />
-              Cliente
+              Paso 1 · Cliente
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-3">
@@ -745,35 +811,8 @@ export function QuotationForm({
 
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
-              Escaneo asistido
-            </div>
-            <InvoiceDropzone
-              disabled={isFormLocked}
-              persistedScan={invoiceScanReview}
-              onScanPersisted={handleInvoiceScanPersisted}
-              onScanComplete={handleInvoiceScanComplete}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-accent-token" />
-              Revisión del escaneo
-            </div>
-            <InvoiceItemsReview
-              fileName={invoiceScanReview?.fileName ?? null}
-              result={invoiceScanReview?.result ?? null}
-              disabled={isFormLocked}
-              onAddToQuotation={handleAddInvoiceItems}
-              onClear={handleClearInvoiceScan}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3.5 w-3.5 text-accent-token" />
-              Construcción del borrador
+              Paso 2 · Ítems
             </div>
             <QuotationItemsEditor
               items={items}
@@ -788,9 +827,69 @@ export function QuotationForm({
           </div>
 
           <div className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
+                Paso 3 · Escaneo (opcional)
+              </div>
+              {!scanSectionExpanded ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-background/75"
+                  onClick={() => setScanSectionExpanded(true)}
+                  disabled={isFormLocked}
+                >
+                  Tengo una factura para escanear
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={() => setScanSectionExpanded(false)}
+                  disabled={isFormLocked}
+                >
+                  Ocultar escaneo
+                </Button>
+              )}
+            </div>
+
+            {scanSectionExpanded ? (
+              <>
+                <InvoiceDropzone
+                  disabled={isFormLocked}
+                  persistedScan={invoiceScanReview}
+                  onScanPersisted={handleInvoiceScanPersisted}
+                  onScanComplete={handleInvoiceScanComplete}
+                />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    <Sparkles className="h-3.5 w-3.5 text-accent-token" />
+                    Revisión del escaneo
+                  </div>
+                  <InvoiceItemsReview
+                    fileName={invoiceScanReview?.fileName ?? null}
+                    result={invoiceScanReview?.result ?? null}
+                    disabled={isFormLocked}
+                    onAddToQuotation={handleAddInvoiceItems}
+                    onClear={handleClearInvoiceScan}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="rounded-[1.5rem] border border-dashed border-token/80 bg-background/60 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Si tenés una factura o remito, podés escanearla con IA para importar ítems
+                sin salir del flujo de cotización.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
-              Ajustes finales
+              Paso 4 · Ajustes finales
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-1">

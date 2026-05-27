@@ -1,6 +1,12 @@
 const MEGABYTE_IN_BYTES = 1024 * 1024;
 
 const IMAGE_ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const INVOICE_ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/pdf",
+]);
 
 export const LOGO_UPLOAD_MAX_BYTES = 5 * MEGABYTE_IN_BYTES;
 export const INVOICE_UPLOAD_MAX_BYTES = 10 * MEGABYTE_IN_BYTES;
@@ -97,12 +103,12 @@ export function parseInvoiceUploadFormData(
 ): ParsedInvoiceUpload {
   const file = assertFileWasSelected(
     formData.get("file"),
-    "Selecciona una imagen de factura para continuar.",
+    "Selecciona una factura en imagen o PDF para continuar.",
   );
 
-  if (!IMAGE_ALLOWED_TYPES.has(file.type)) {
+  if (!INVOICE_ALLOWED_TYPES.has(file.type)) {
     throw new UploadActionError(
-      "La factura debe ser una imagen PNG, JPG o WEBP.",
+      "La factura debe ser una imagen PNG, JPG, WEBP o un PDF.",
     );
   }
 

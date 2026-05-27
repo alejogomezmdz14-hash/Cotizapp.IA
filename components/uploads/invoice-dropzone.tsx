@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileImage, ScanSearch, UploadCloud } from "lucide-react";
+import { FileImage, ScanSearch, UploadCloud, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { createPendingTaskSignal } from "@/lib/pending-tasks";
 import type { HydratedInvoiceScanReview, InvoiceScanResult } from "@/types";
 
 type UploadedInvoiceScan = {
@@ -84,6 +85,15 @@ export function InvoiceDropzone({
     }
   }, [persistedScan?.fileName]);
 
+  function clearSelectedFile() {
+    setSelectedFile(null);
+    setError(null);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }
+
   async function handleScanExistingPersistedInvoice(scan: {
     id: string;
     fileName: string;
@@ -98,6 +108,8 @@ export function InvoiceDropzone({
       failureMessage: null,
     });
 
+    const signal = createPendingTaskSignal();
+
     try {
       const scanResponse = await fetch("/api/ai/invoice-scan", {
         method: "POST",
@@ -107,6 +119,7 @@ export function InvoiceDropzone({
         body: JSON.stringify({
           scanId: scan.id,
         }),
+        signal,
       });
       const scanPayload = await getJsonResponse<ScanInvoiceResponse>(scanResponse);
 
@@ -124,13 +137,15 @@ export function InvoiceDropzone({
       setStatus(
         scanPayload.result.items.length > 0
           ? "Escaneo listo. Revisa y confirma los items antes de agregarlos."
-          : "No detectamos items claros. Puedes volver a intentar con otra imagen.",
+          : "No detectamos items claros. Puedes volver a intentar con otra imagen o PDF.",
       );
-      setSelectedFile(null);
-
-      if (inputRef.current) {
-        inputRef.current.value = "";
+      clearSelectedFile();
+    } catch (scanError) {
+      if (scanError instanceof DOMException && scanError.name === "AbortError") {
+        return;
       }
+
+      throw scanError;
     } finally {
       setIsScanning(false);
     }
@@ -146,6 +161,7 @@ export function InvoiceDropzone({
     setStatus(null);
     setIsUploading(true);
     let uploadedScan: UploadedInvoiceScan | null = null;
+    const signal = createPendingTaskSignal();
 
     try {
       const formData = new FormData();
@@ -154,6 +170,7 @@ export function InvoiceDropzone({
       const uploadResponse = await fetch("/api/uploads/invoice", {
         method: "POST",
         body: formData,
+        signal,
       });
       const uploadPayload =
         await getJsonResponse<UploadInvoiceResponse>(uploadResponse);
@@ -177,6 +194,10 @@ export function InvoiceDropzone({
         fileName: uploadedScan.fileName,
       });
     } catch (scanError) {
+      if (scanError instanceof DOMException && scanError.name === "AbortError") {
+        return;
+      }
+
       const message =
         scanError instanceof Error && scanError.message.trim()
           ? scanError.message
@@ -216,7 +237,7 @@ export function InvoiceDropzone({
               </div>
               <CardTitle className="text-xl">Escanear factura con IA</CardTitle>
               <CardDescription className="leading-6">
-                Sube una imagen de factura o remito, espera la lectura asistida y
+                Sube una imagen o PDF de factura o remito, espera la lectura asistida y
                 revisa los ítems detectados antes de decidir si van a la cotización
                 actual o al catálogo.
               </CardDescription>
@@ -242,7 +263,7 @@ export function InvoiceDropzone({
               1. Carga
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Elige una imagen nítida de la factura o remito.
+              Elige una imagen nítida o un PDF de la factura o remito.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
@@ -300,7 +321,7 @@ export function InvoiceDropzone({
                 Arrastra la factura aquí o elige un archivo
               </div>
               <p className="text-sm leading-6 text-muted-foreground">
-                Formatos admitidos: PNG, JPG y WEBP. Tamaño máximo: 10 MB.
+                Formatos admitidos: PNG, JPG, WEBP y PDF. Tamaño máximo: 10 MB.
               </p>
             </div>
 
@@ -316,6 +337,13 @@ export function InvoiceDropzone({
                           id: persistedScan.scanId,
                           fileName: persistedScan.fileName,
                         }).catch((scanError) => {
+                          if (
+                            scanError instanceof DOMException &&
+                            scanError.name === "AbortError"
+                          ) {
+                            return;
+                          }
+
                           const message =
                             scanError instanceof Error && scanError.message.trim()
                               ? scanError.message
@@ -373,7 +401,7 @@ export function InvoiceDropzone({
             ref={inputRef}
             id="invoice-scan-file"
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg,image/webp,application/pdf"
             disabled={disabled || isUploading || isScanning}
             onChange={(event) => {
               setSelectedFile(event.target.files?.[0] ?? null);
@@ -384,9 +412,21 @@ export function InvoiceDropzone({
         </div>
 
         {selectedFile ? (
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm">
-            <p className="font-medium text-foreground">Archivo listo para escanear</p>
-            <p className="mt-1 text-muted-foreground">{selectedFile.name}</p>
+          <div className="flex flex-col gap-3 rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-foreground">Archivo listo para escanear</p>
+              <p className="mt-1 text-muted-foreground">{selectedFile.name}</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-background/75"
+              onClick={clearSelectedFile}
+              disabled={disabled || isUploading || isScanning}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Quitar archivo
+            </Button>
           </div>
         ) : null}
 

@@ -4,6 +4,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast-provider";
+import {
+  cancelAllPendingTasks,
+  hasUnsavedDraft,
+} from "@/lib/pending-tasks";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignOutButton() {
@@ -12,7 +16,13 @@ export function SignOutButton() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    const confirmed = window.confirm("Vas a cerrar sesión. ¿Querés continuar?");
+    const draftWarning = hasUnsavedDraft()
+      ? "\n\nTenés un borrador con cambios sin guardar. Si salís ahora, vas a perder ese progreso."
+      : "";
+
+    const confirmed = window.confirm(
+      `Vas a cerrar sesión.${draftWarning}\n\n¿Querés continuar?`,
+    );
 
     if (!confirmed) {
       return;
@@ -20,6 +30,7 @@ export function SignOutButton() {
 
     setErrorMessage(null);
     setIsPending(true);
+    cancelAllPendingTasks();
 
     try {
       const supabase = createClient();

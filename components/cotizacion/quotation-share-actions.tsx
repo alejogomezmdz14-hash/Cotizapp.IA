@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
+import { buildPublicAppPath } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/formatting";
 import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
@@ -74,13 +75,21 @@ export function QuotationShareActions({
   const [phoneInput, setPhoneInput] = useState("");
   const [needsPhoneInput, setNeedsPhoneInput] = useState(false);
 
-  const sharePath = useMemo(
-    () =>
-      shareToken
-        ? `/api/quotations/share/${encodeURIComponent(shareToken)}`
-        : null,
-    [shareToken],
+  const pdfViewUrl = useMemo(
+    () => `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
+    [quotationId],
   );
+
+  const publicShareUrl = useMemo(() => {
+    if (!shareToken) {
+      return null;
+    }
+
+    return buildPublicAppPath(
+      `/api/quotations/share/${encodeURIComponent(shareToken)}`,
+    );
+  }, [shareToken]);
+
   const shareStatusLabel = getShareStatusLabel(shareStatus, sentAt);
 
   async function resolveNormalizedSharePhone() {
@@ -119,10 +128,10 @@ export function QuotationShareActions({
 
     try {
       const result = await confirmQuotationWhatsappShareAction(quotationId);
-      const shareUrl = new URL(result.sharePath, window.location.origin).toString();
+      const shareUrl = buildPublicAppPath(result.sharePath);
       const whatsappHref = buildWhatsAppShareHref({
         phone: normalizedPhone,
-        text: `Hola, te comparto la cotización ${result.quotationNumber}. Puedes verla aquí: ${shareUrl}`,
+        text: `Hola, te comparto la cotización ${result.quotationNumber}. Podés verla aquí: ${shareUrl}`,
       });
 
       setShareToken(result.shareToken);
@@ -170,10 +179,10 @@ export function QuotationShareActions({
         sentAt,
         status: shareStatus,
       });
-      setStatusMessage("PDF generado. Ya puedes compartir la cotización por WhatsApp.");
+      setStatusMessage("PDF generado. Revisalo antes de compartir la cotización.");
       toast({
         title: "PDF generado",
-        description: "La cotización ya está lista para compartir.",
+        description: "Ya podés verlo, descargarlo o compartirlo.",
       });
     } catch (actionError) {
       setError(getErrorMessage(actionError));
@@ -183,11 +192,6 @@ export function QuotationShareActions({
   }
 
   async function handleShareWhatsapp() {
-    if (!pdfGeneratedAt) {
-      setError("Genera el PDF antes de compartir la cotización.");
-      return;
-    }
-
     setError(null);
     setStatusMessage(null);
 
@@ -195,7 +199,7 @@ export function QuotationShareActions({
       const normalizedPhone = await resolveNormalizedSharePhone();
 
       if (!normalizedPhone) {
-        setError("Ingresa el teléfono del cliente antes de continuar con WhatsApp.");
+        setError("Ingresá el teléfono del cliente antes de continuar con WhatsApp.");
         return;
       }
 
@@ -209,7 +213,7 @@ export function QuotationShareActions({
     const phoneState = getWhatsAppSharePhoneState(phoneInput);
 
     if (!phoneInput.trim() || !phoneState.normalizedPhone) {
-      setError("Ingresa un teléfono válido antes de compartir por WhatsApp.");
+      setError("Ingresá un teléfono válido antes de compartir por WhatsApp.");
       return;
     }
 
@@ -240,8 +244,8 @@ export function QuotationShareActions({
         <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {pdfGeneratedAt
-            ? "El PDF ya está listo. Comparte un link estable por WhatsApp sin adjuntar archivos manualmente."
-            : "Genera el PDF para habilitar el link estable y compartir esta cotización por WhatsApp."}
+            ? "Revisá el PDF, descargalo si hace falta y compartilo por WhatsApp cuando estés conforme."
+            : "Generá el PDF primero. Después vas a poder verlo, descargarlo y compartirlo."}
         </p>
       </div>
 
@@ -319,39 +323,60 @@ export function QuotationShareActions({
               : "Generar PDF"}
         </Button>
 
-        <Button
-          type="button"
-          className="bg-accent-token text-black hover:bg-accent-hover"
-          disabled={
-            !pdfGeneratedAt ||
-            isGeneratingPdf ||
-            isSharing ||
-            isLoadingRecipient ||
-            isSavingPhone
-          }
-          onClick={() => {
-            void handleShareWhatsapp();
-          }}
-        >
-          {isLoadingRecipient
-            ? "Cargando destinatario..."
-            : isSharing
-              ? "Abriendo WhatsApp..."
-            : sentAt
-              ? "Reenviar por WhatsApp"
-              : "Compartir por WhatsApp"}
-        </Button>
+        {pdfGeneratedAt ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-token bg-background text-foreground"
+              asChild
+            >
+              <a href={pdfViewUrl} target="_blank" rel="noreferrer">
+                Ver PDF
+              </a>
+            </Button>
 
-        {sharePath ? (
-          <Button
-            variant="outline"
-            className="border-token bg-background text-foreground"
-            asChild
-          >
-            <a href={sharePath} target="_blank" rel="noreferrer">
-              Ver link público
-            </a>
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-token bg-background text-foreground"
+              asChild
+            >
+              <a href={pdfViewUrl} download>
+                Descargar PDF
+              </a>
+            </Button>
+
+            <Button
+              type="button"
+              className="bg-accent-token text-black hover:bg-accent-hover"
+              disabled={isSharing || isLoadingRecipient || isSavingPhone}
+              onClick={() => {
+                void handleShareWhatsapp();
+              }}
+            >
+              {isLoadingRecipient
+                ? "Cargando destinatario..."
+                : isSharing
+                  ? "Abriendo WhatsApp..."
+                  : sentAt
+                    ? "Reenviar por WhatsApp"
+                    : "Compartir por WhatsApp"}
+            </Button>
+
+            {publicShareUrl ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-token bg-background text-foreground"
+                asChild
+              >
+                <a href={publicShareUrl} target="_blank" rel="noreferrer">
+                  Ver link público
+                </a>
+              </Button>
+            ) : null}
+          </>
         ) : null}
       </div>
     </div>
