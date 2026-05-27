@@ -4,14 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import { requireUser } from "@/lib/profile";
+import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import {
   assertDraftQuotationMutationAllowed,
   assertSingleQuotationRollbackMutation,
   buildQuotationItemInsertRows,
-  buildQuotationNumber,
   confirmQuotationWhatsappShare,
   DRAFT_QUOTATION_STATUS,
   deleteQuotationAttachmentWithCleanup,
+  isDraftQuotationStatus,
   generateQuotationPdfForUser,
   getWhatsAppSharePhoneState,
   normalizeQuotationStatus,
@@ -185,7 +186,7 @@ export async function createDraftQuotationAction(formData: FormData) {
     },
     {
       values: sanitizedValues,
-      quotationNumber: buildQuotationNumber(),
+      quotationNumber: await reserveNextQuotationNumber(),
       subtotal: totals.subtotal,
       total: totals.total,
     },
@@ -194,6 +195,150 @@ export async function createDraftQuotationAction(formData: FormData) {
   revalidateQuotationViews();
 
   return result;
+}
+
+export async function updateDraftQuotationAction(formData: FormData) {
+  const user = await requireUser();
+  const quotationId = formData.get("quotation_id");
+
+  if (typeof quotationId !== "string" || !quotationId.trim()) {
+    throw new Error("No se pudo identificar la cotización a editar.");
+  }
+
+  const values = parseQuotationFormData(formData);
+  const supabase = await createClient();
+  const { data: existingQuotation, error: existingError } = await supabase
+    .from("quotations")
+    .select("id, status")
+    .eq("id", quotationId.trim())
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingError || !existingQuotation) {
+    throw new Error("La cotización no existe o no te pertenece.");
+  }
+
+  if (!isDraftQuotationStatus(existingQuotation.status)) {
+    throw new Error("Solo podés editar cotizaciones en borrador.");
+  }
+
+  const requestedCatalogItemIds = Array.from(
+    new Set(
+      values.items.flatMap((item) =>
+        item.catalogItemId ? [item.catalogItemId] : [],
+      ),
+    ),
+  );
+  const ownedCatalogItemIds = new Set<string>();
+
+  if (requestedCatalogItemIds.length > 0) {
+    const { data, error } = await supabase
+      .from("catalog_items")
+      .select("id")
+      .eq("user_id", user.id)
+      .in("id", requestedCatalogItemIds);
+
+    if (error) {
+      throw new Error("No se pudieron validar los ítems del catálogo de la cotización.");
+    }
+
+    for (const row of (data ?? []) as Array<{ id: string }>) {
+      ownedCatalogItemIds.add(row.id);
+    }
+  }
+
+  const sanitizedValues = {
+    ...values,
+    items: sanitizeDraftQuotationItems(values.items, ownedCatalogItemIds),
+  };
+  const totals = calculateQuotationTotals(sanitizedValues.items, sanitizedValues.taxRate);
+
+  let clientId = sanitizedValues.clientId;
+  let clientName = sanitizedValues.inlineClient?.name ?? null;
+
+  if (sanitizedValues.inlineClient) {
+    const { data, error } = await supabase
+      .from("clients")
+      .insert({
+        user_id: user.id,
+        ...sanitizedValues.inlineClient,
+      })
+      .select("id, name")
+      .single();
+
+    if (error || !data) {
+      throw new Error("No se pudo crear el cliente de la cotización.");
+    }
+
+    clientId = data.id;
+    clientName = data.name;
+  } else if (clientId) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, name")
+      .eq("id", clientId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error || !data) {
+      throw new Error("El cliente seleccionado no existe o no te pertenece.");
+    }
+
+    clientName = data.name;
+  }
+
+  const { error: updateError } = await supabase
+    .from("quotations")
+    .update({
+      client_id: clientId,
+      client_name: clientName,
+      notes: sanitizedValues.notes,
+      subtotal: totals.subtotal,
+      tax_rate: sanitizedValues.taxRate,
+      total: totals.total,
+      valid_until: sanitizedValues.validUntil,
+    })
+    .eq("id", quotationId.trim())
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    throw new Error("No se pudo actualizar la cotización borrador.");
+  }
+
+  const { error: deleteItemsError } = await supabase
+    .from("quotation_items")
+    .delete()
+    .eq("quotation_id", quotationId.trim());
+
+  if (deleteItemsError) {
+    throw new Error("No se pudieron reemplazar los ítems de la cotización.");
+  }
+
+  const { error: insertItemsError } = await supabase
+    .from("quotation_items")
+    .insert(buildQuotationItemInsertRows(quotationId.trim(), sanitizedValues.items));
+
+  if (insertItemsError) {
+    throw new Error("No se pudieron guardar los ítems actualizados.");
+  }
+
+  const { data: updatedQuotation, error: reloadError } = await supabase
+    .from("quotations")
+    .select("id, number")
+    .eq("id", quotationId.trim())
+    .eq("user_id", user.id)
+    .single();
+
+  if (reloadError || !updatedQuotation) {
+    throw new Error("La cotización se actualizó pero no se pudo recargar.");
+  }
+
+  revalidateQuotationViews(quotationId.trim());
+
+  return {
+    quotationId: updatedQuotation.id,
+    number: updatedQuotation.number,
+  };
 }
 
 export async function deleteQuotationAttachmentAction(id: string) {
@@ -390,19 +535,22 @@ export async function updateQuotationStatusAction(
     throw new Error("No se pudo cargar la cotización para actualizar el estado.");
   }
 
+  const nowIso = new Date().toISOString();
   const sentAt =
     normalizedStatus === "draft"
       ? null
-      : quotationData.sent_at ?? new Date().toISOString();
+      : quotationData.sent_at ?? nowIso;
   const { data, error } = await supabase
     .from("quotations")
     .update({
       status: normalizedStatus,
       sent_at: sentAt,
+      accepted_at: normalizedStatus === "accepted" ? nowIso : null,
+      rejected_at: normalizedStatus === "rejected" ? nowIso : null,
     })
     .eq("id", quotationId)
     .eq("user_id", user.id)
-    .select("id, status, sent_at")
+    .select("id, status, sent_at, accepted_at, rejected_at")
     .maybeSingle();
 
   if (error || !data) {
@@ -470,7 +618,7 @@ export async function duplicateQuotationAction(quotationId: string) {
       user_id: user.id,
       client_id: quotationData.client_id,
       client_name: quotationData.client_name,
-      number: buildQuotationNumber(),
+      number: await reserveNextQuotationNumber(),
       status: DRAFT_QUOTATION_STATUS,
       notes: quotationData.notes,
       subtotal: totals.subtotal,

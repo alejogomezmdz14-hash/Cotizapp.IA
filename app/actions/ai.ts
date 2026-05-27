@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import { assertCatalogPriceSuggestionIsCurrent } from "@/lib/ai/catalog-price-updates";
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { requireUser } from "@/lib/profile";
@@ -9,7 +10,6 @@ import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import {
   assertSingleQuotationRollbackMutation,
   buildQuotationItemInsertRows,
-  buildQuotationNumber,
   DRAFT_QUOTATION_STATUS,
   persistDraftQuotation,
 } from "@/lib/quotations";
@@ -412,7 +412,7 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
         validUntil: null,
         items,
       },
-      quotationNumber: buildQuotationNumber(),
+      quotationNumber: await reserveNextQuotationNumber(),
       subtotal: totals.subtotal,
       total: totals.total,
     },

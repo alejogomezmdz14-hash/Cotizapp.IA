@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Building2, CreditCard, Mail, ScrollText, Sparkles } from "lucide-react";
+import { Building2, CreditCard, Hash, Mail, ScrollText, Sparkles } from "lucide-react";
 
 import { saveBusinessProfileAction } from "@/app/actions/profile";
 import { LogoUploader } from "@/components/uploads/logo-uploader";
@@ -34,6 +34,9 @@ export function BusinessProfileForm({
   const [isLogoUploading, setIsLogoUploading] = useState(false);
 
   const savedTaxId = profile?.tax_id?.trim() || null;
+  const numberingMode = profile?.quotation_numbering_mode ?? "auto";
+  const numberingPrefix = profile?.quotation_prefix ?? "COT";
+  const numberingCounter = profile?.quotation_counter ?? 1;
 
   return (
     <form
@@ -167,6 +170,54 @@ export function BusinessProfileForm({
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <Hash className="h-3.5 w-3.5 text-accent-token" />
+          Formato de numeración
+        </div>
+        <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="quotation_numbering_mode">Modo</Label>
+              <select
+                id="quotation_numbering_mode"
+                name="quotation_numbering_mode"
+                defaultValue={numberingMode}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="auto">Automático (COT-fecha-random)</option>
+                <option value="sequential">Correlativo simple (COT-001, COT-002...)</option>
+                <option value="custom">Personalizado (prefijo propio)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quotation_prefix">Prefijo</Label>
+              <Input
+                id="quotation_prefix"
+                name="quotation_prefix"
+                placeholder="Ej. PRES o COTI"
+                defaultValue={numberingPrefix}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quotation_counter">Próximo número</Label>
+              <Input
+                id="quotation_counter"
+                name="quotation_counter"
+                type="number"
+                min={1}
+                step={1}
+                defaultValue={numberingCounter}
+              />
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Las nuevas cotizaciones usarán este formato. El correlativo avanza
+            automáticamente al crear cada cotización.
+          </p>
         </div>
       </div>
 

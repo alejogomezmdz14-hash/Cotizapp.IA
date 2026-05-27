@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
+import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import type { CatalogItem } from "@/types";
 
@@ -190,7 +191,9 @@ export function CatalogTable({
                 <CardHeader className="space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
-                      <CardTitle className="text-xl">{item.name}</CardTitle>
+                      <CardTitle className="text-xl">
+                        {formatDisplayName(item.name)}
+                      </CardTitle>
                       <CardDescription>
                         Agregado el {formatDateTime(item.created_at)}
                       </CardDescription>

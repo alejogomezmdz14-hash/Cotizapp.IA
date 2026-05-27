@@ -5,6 +5,7 @@ import { Check, Search, UserPlus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatDisplayName } from "@/lib/entity-normalization";
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types";
 
@@ -116,7 +117,9 @@ export function ClientPicker({
                 disabled={disabled}
               >
                 <div className="space-y-1">
-                  <p className="font-medium text-foreground">{client.name}</p>
+                  <p className="font-medium text-foreground">
+                    {formatDisplayName(client.name)}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {client.email?.trim() ||
                       client.phone?.trim() ||

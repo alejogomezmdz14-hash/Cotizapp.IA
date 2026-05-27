@@ -195,6 +195,12 @@ export async function saveBusinessProfileAction(formData: FormData) {
         currency,
         taxId: getOptionalValue(formData, "tax_id"),
         pdfFooter: getOptionalValue(formData, "pdf_footer"),
+        quotationNumberingMode: getRequiredValue(formData, "quotation_numbering_mode"),
+        quotationPrefix: getOptionalValue(formData, "quotation_prefix"),
+        quotationCounter: Number.parseInt(
+          getRequiredValue(formData, "quotation_counter"),
+          10,
+        ),
         logoPath: undefined,
       }),
       {

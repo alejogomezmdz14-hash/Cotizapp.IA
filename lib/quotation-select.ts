@@ -51,6 +51,8 @@ export function normalizeQuotationListRow(row: QuotationRow): Quotation {
     pdf_generated_at: row.pdf_generated_at ?? null,
     share_token: row.share_token ?? null,
     sent_at: row.sent_at ?? null,
+    accepted_at: row.accepted_at ?? null,
+    rejected_at: row.rejected_at ?? null,
   };
 }
 
@@ -65,7 +67,9 @@ export async function fetchUserQuotations(userId: string): Promise<Quotation[]> 
       .order("created_at", { ascending: false });
 
     if (!error) {
-      return ((data ?? []) as QuotationRow[]).map((row) => normalizeQuotationListRow(row));
+      return ((data ?? []) as unknown as QuotationRow[]).map((row) =>
+        normalizeQuotationListRow(row),
+      );
     }
   }
 
@@ -87,7 +91,7 @@ export async function fetchUserQuotationById(
       .maybeSingle();
 
     if (!error) {
-      return (data as QuotationRow | null) ?? null;
+      return (data as unknown as QuotationRow | null) ?? null;
     }
   }
 

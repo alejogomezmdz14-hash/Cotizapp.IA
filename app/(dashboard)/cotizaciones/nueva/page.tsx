@@ -14,6 +14,7 @@ import {
 import { getCatalogItems } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { getPersistedInvoiceScanReview } from "@/lib/invoice-scan/load";
+import { getQuotationEditorState } from "@/lib/quotation-editor";
 import {
   getQuotationAttachments,
   getQuotationDraft,
@@ -29,6 +30,7 @@ type NewQuotationPageProps = {
   searchParams?: {
     quotationId?: string;
     scanId?: string;
+    edit?: string;
   };
 };
 
@@ -42,7 +44,8 @@ export default async function NewQuotationPage({
       : null;
   const scanId =
     typeof searchParams?.scanId === "string" ? searchParams.scanId : null;
-  const [clients, catalogItems, profile, draftHydration, invoiceScanReview] =
+  const isEditMode = searchParams?.edit === "1";
+  const [clients, catalogItems, profile, draftHydration, editorState, invoiceScanReview] =
     await Promise.all([
       getClients(user.id),
       getCatalogItems(user.id, { orderBy: "name", ascending: true }),
@@ -56,11 +59,15 @@ export default async function NewQuotationPage({
             draftQuotation: null,
             attachments: [],
           }),
+      quotationId && isEditMode
+        ? getQuotationEditorState(user.id, quotationId)
+        : Promise.resolve(null),
       quotationId
         ? Promise.resolve(null)
         : getPersistedInvoiceScanReview(user.id, scanId),
     ]);
-  const draftAlreadyCreated = Boolean(draftHydration.draftQuotation);
+  const draftAlreadyCreated =
+    Boolean(draftHydration.draftQuotation) && !editorState;
   const summaryCardClassName =
     "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
 
@@ -167,7 +174,7 @@ export default async function NewQuotationPage({
         catalogItems={catalogItems}
         currency={profile?.currency ?? null}
         initialDraft={
-          draftHydration.draftQuotation
+          draftHydration.draftQuotation && !editorState
             ? {
                 quotationId: draftHydration.draftQuotation.id,
                 number: draftHydration.draftQuotation.number,
@@ -178,6 +185,7 @@ export default async function NewQuotationPage({
               }
             : null
         }
+        initialEditorState={editorState}
         initialAttachments={draftHydration.attachments}
         initialInvoiceScan={invoiceScanReview}
       />

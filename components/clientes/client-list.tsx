@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
+import { formatDisplayName } from "@/lib/entity-normalization";
 import type { Client } from "@/types";
 
 type ClientListProps = {
@@ -199,7 +200,9 @@ export function ClientList({ clients, search }: ClientListProps) {
                 <CardHeader className="space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
-                      <CardTitle className="text-xl">{client.name}</CardTitle>
+                      <CardTitle className="text-xl">
+                        {formatDisplayName(client.name)}
+                      </CardTitle>
                       <CardDescription>
                         Agregado el {formatDate(client.created_at)}
                       </CardDescription>

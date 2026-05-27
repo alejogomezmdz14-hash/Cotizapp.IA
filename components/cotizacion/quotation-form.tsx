@@ -11,7 +11,15 @@ import {
   Users2,
 } from "lucide-react";
 
-import { createDraftQuotationAction } from "@/app/actions/quotations";
+import {
+  createDraftQuotationAction,
+  updateDraftQuotationAction,
+} from "@/app/actions/quotations";
+import type { QuotationEditorInitialState } from "@/lib/quotation-editor";
+import {
+  getDefaultQuotationValidityDate,
+  isQuotationPastValidity,
+} from "@/lib/quotation-expiry";
 import { ClientPicker } from "@/components/clientes/client-picker";
 import { QuotationAttachments } from "@/components/cotizacion/quotation-attachments";
 import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
@@ -53,6 +61,7 @@ type QuotationFormProps = {
   catalogItems: CatalogItem[];
   currency: string | null;
   initialDraft?: SavedDraftState | null;
+  initialEditorState?: QuotationEditorInitialState | null;
   initialAttachments?: HydratedQuotationAttachment[];
   initialInvoiceScan?: HydratedInvoiceScanReview | null;
 };
@@ -139,6 +148,7 @@ export function QuotationForm({
   catalogItems,
   currency,
   initialDraft = null,
+  initialEditorState = null,
   initialAttachments = [],
   initialInvoiceScan = null,
 }: QuotationFormProps) {
@@ -159,7 +169,7 @@ export function QuotationForm({
   const [items, setItems] = useState<QuotationEditorItem[]>([]);
   const nextItemIdRef = useRef(1);
   const [taxRate, setTaxRate] = useState(0);
-  const [validUntil, setValidUntil] = useState("");
+  const [validUntil, setValidUntil] = useState(() => getDefaultQuotationValidityDate());
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -199,7 +209,7 @@ export function QuotationForm({
     setItems([]);
     nextItemIdRef.current = 1;
     setTaxRate(0);
-    setValidUntil("");
+    setValidUntil(getDefaultQuotationValidityDate());
     setNotes("");
     setError(null);
     setIsSubmitting(false);
@@ -209,6 +219,38 @@ export function QuotationForm({
     markUnsavedDraft(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, initialDraft?.quotationId]);
+
+  useEffect(() => {
+    if (!initialEditorState) {
+      return;
+    }
+
+    setSavedDraft({
+      quotationId: initialEditorState.quotationId,
+      number: initialEditorState.number,
+      status: initialEditorState.status,
+      pdfGeneratedAt: initialEditorState.pdfGeneratedAt,
+      shareToken: initialEditorState.shareToken,
+      sentAt: initialEditorState.sentAt,
+    });
+    setClientMode(initialEditorState.clientId ? "existing" : "inline");
+    setSelectedClientId(initialEditorState.clientId);
+    setInlineClient({
+      name: initialEditorState.clientName ?? "",
+      email: "",
+      phone: "",
+      address: "",
+    });
+    setItems(initialEditorState.items);
+    nextItemIdRef.current = initialEditorState.items.length + 1;
+    setTaxRate(initialEditorState.taxRate);
+    setValidUntil(
+      initialEditorState.validUntil || getDefaultQuotationValidityDate(),
+    );
+    setNotes(initialEditorState.notes);
+    setError(null);
+    markUnsavedDraft(false);
+  }, [initialEditorState]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (savedDraft) {
@@ -261,8 +303,10 @@ export function QuotationForm({
     );
   }
 
-  const isFormLocked = isSubmitting || Boolean(savedDraft);
+  const isEditingDraft = Boolean(initialEditorState);
+  const isFormLocked = isSubmitting || (Boolean(savedDraft) && !isEditingDraft);
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
+  const isValidityInPast = Boolean(validUntil.trim()) && isQuotationPastValidity(validUntil);
   const selectedExistingClientName =
     clients.find((client) => client.id === selectedClientId)?.name ?? null;
   const clientSnapshotLabel =
@@ -457,7 +501,7 @@ export function QuotationForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (savedDraft) {
+    if (savedDraft && !isEditingDraft) {
       return;
     }
 
@@ -483,12 +527,16 @@ export function QuotationForm({
 
     try {
       const formData = new FormData(event.currentTarget);
-      const result = await createDraftQuotationAction(formData);
+      const result = isEditingDraft
+        ? await updateDraftQuotationAction(formData)
+        : await createDraftQuotationAction(formData);
       setSavedDraft(result);
       markUnsavedDraft(false);
       toast({
-        title: "Cotización guardada",
-        description: `El borrador ${result.number} ya está listo para seguir con PDF y WhatsApp.`,
+        title: isEditingDraft ? "Cotización actualizada" : "Cotización guardada",
+        description: isEditingDraft
+          ? `El borrador ${result.number} quedó actualizado.`
+          : `El borrador ${result.number} ya está listo para seguir con PDF y WhatsApp.`,
       });
       router.replace(
         buildNewQuotationPageHref({
@@ -502,7 +550,7 @@ export function QuotationForm({
     }
   }
 
-  if (initialDraft) {
+  if (initialDraft && !initialEditorState) {
     return (
       <div className="space-y-5 lg:space-y-6">
         <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
@@ -569,6 +617,13 @@ export function QuotationForm({
 
   return (
     <form className="space-y-5 lg:space-y-6" onSubmit={handleSubmit}>
+      {isEditingDraft ? (
+        <input
+          type="hidden"
+          name="quotation_id"
+          value={initialEditorState?.quotationId ?? ""}
+        />
+      ) : null}
       <input type="hidden" name="client_mode" value={clientMode} />
       <input
         type="hidden"
@@ -952,8 +1007,14 @@ export function QuotationForm({
                     </div>
                     <p className="text-xs leading-5 text-muted-foreground">
                       Elige una fecha entre {formatDateInputHint(validityBounds.minDate)} y{" "}
-                      {formatDateInputHint(validityBounds.maxDate)}.
+                      {formatDateInputHint(validityBounds.maxDate)}. Si no elegís fecha, se
+                      usan 30 días por defecto.
                     </p>
+                    {isValidityInPast ? (
+                      <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                        La fecha de validez no puede estar en el pasado.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 

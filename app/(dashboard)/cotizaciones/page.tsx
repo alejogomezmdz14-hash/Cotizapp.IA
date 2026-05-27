@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
 
-import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
-import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
+import { QuotationsList } from "@/components/cotizacion/quotations-list";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,20 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  formatCurrencyAmount,
-  formatDateOnly,
-  formatDateTime,
-} from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
-import { isQuotationPastValidity } from "@/lib/quotation-expiry";
-import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
-import { cn } from "@/lib/utils";
-import {
-  getDraftQuotationEditorHref,
-  getQuotations,
-  isDraftQuotationStatus,
-} from "@/lib/quotations";
+import { getQuotations, isDraftQuotationStatus } from "@/lib/quotations";
 
 export const metadata: Metadata = {
   title: "Cotizaciones | Cotizapp",
@@ -43,27 +30,10 @@ function formatStatusLabel(value: string | null) {
       return "Aceptada";
     case "rejected":
       return "Rechazada";
-    case "expired":
-      return "Vencida";
     default:
       return normalizedValue
         ? normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1)
         : "Sin estado";
-  }
-}
-
-function getStatusBadgeClassName(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "accepted":
-      return "border-primary/40 bg-primary/10 text-primary";
-    case "rejected":
-      return "border-destructive/40 bg-destructive/10 text-destructive";
-    case "pending":
-      return "border-token bg-surface-2 text-foreground";
-    case "expired":
-      return "border-token bg-background text-muted-foreground";
-    default:
-      return "border-token bg-background text-foreground";
   }
 }
 
@@ -251,8 +221,8 @@ export default async function QuotationsPage() {
               Tus cotizaciones recientes
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Cada tarjeta resume importes, validez y siguientes acciones para que
-              no tengas que abrir más pantallas de las necesarias.
+              Filtrá por estado, buscá por cliente o número y elegí entre vista de
+              tarjetas o tabla compacta.
             </p>
           </div>
 
@@ -264,162 +234,10 @@ export default async function QuotationsPage() {
           </Button>
         </div>
 
-        {quotations.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
-            <p className="text-lg font-semibold text-foreground">
-              Todavía no creaste cotizaciones
-            </p>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Empezá con tu primera cotización para abrir el flujo completo de
-              cliente, ítems, resumen y seguimiento desde una sola pantalla.
-            </p>
-            <div className="mt-5 flex justify-center">
-              <Button asChild>
-                <Link href="/cotizaciones/nueva">Ir a nueva cotización</Link>
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {quotations.map((quotation) => {
-              const reopenDraftHref = getDraftQuotationEditorHref(quotation);
-              const canShareQuotation =
-                isDraftQuotationStatus(quotation.status) ||
-                quotation.status === "pending";
-              const isExpired = isQuotationPastValidity(quotation.valid_until);
-
-              return (
-                <Card
-                  key={quotation.id}
-                  className={cn(
-                    summaryCardClassName,
-                    isExpired && "!border-destructive/50 !bg-destructive/5",
-                  )}
-                >
-                  <CardHeader className="space-y-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {quotation.number}
-                          </span>
-                          <span
-                            className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(quotation.status)}`}
-                          >
-                            {formatStatusLabel(quotation.status)}
-                          </span>
-                          {isExpired ? (
-                            <span className="w-fit rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
-                              Vencida
-                            </span>
-                          ) : null}
-                          {quotation.paid_at ? (
-                            <span className="w-fit rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                              Pagada
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <div className="space-y-1">
-                          <CardTitle className="text-2xl">
-                            <Link
-                              href={`/cotizaciones/${quotation.id}`}
-                              className="hover:text-primary"
-                            >
-                              {quotation.client_name?.trim() || "Cliente sin asignar"}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription className="max-w-2xl leading-6">
-                            {quotation.notes?.trim() ||
-                              "Sin notas adicionales para esta cotización."}
-                          </CardDescription>
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-token/80 bg-background/70 px-4 py-3 text-sm">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Creada
-                        </p>
-                        <p className="mt-2 font-medium text-foreground">
-                          {formatDateTime(quotation.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Subtotal
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">
-                          {formatCurrencyAmount(
-                            quotation.subtotal,
-                            profile?.currency ?? null,
-                          )}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Total estimado
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">
-                          {formatCurrencyAmount(
-                            quotation.total,
-                            profile?.currency ?? null,
-                          )}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Impuesto
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">
-                          {quotation.tax_rate ?? 0}%
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Válida hasta
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">
-                          {formatDateOnly(
-                            sanitizeQuotationValidityDate(quotation.valid_until),
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    {canShareQuotation ? (
-                      <QuotationShareActions
-                        quotationId={quotation.id}
-                        quotationNumber={quotation.number}
-                        initialPdfGeneratedAt={quotation.pdf_generated_at}
-                        initialShareToken={quotation.share_token}
-                        initialSentAt={quotation.sent_at}
-                        initialStatus={quotation.status}
-                      />
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button asChild variant="outline" className="bg-background/75">
-                        <Link href={`/cotizaciones/${quotation.id}`}>Ver detalle</Link>
-                      </Button>
-                      <QuotationMoreMenu
-                        quotationId={quotation.id}
-                        quotationNumber={quotation.number}
-                        initialStatus={quotation.status}
-                        paidAt={quotation.paid_at ?? null}
-                        reopenHref={reopenDraftHref}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+        <QuotationsList
+          quotations={quotations}
+          currency={profile?.currency ?? null}
+        />
       </section>
     </div>
   );

@@ -18,6 +18,9 @@ export type Profile = {
   pdf_footer?: string | null;
   pdf_accent_color?: string | null;
   pdf_template?: string | null;
+  quotation_numbering_mode?: string | null;
+  quotation_prefix?: string | null;
+  quotation_counter?: number | null;
   theme: string | null;
   created_at: string | null;
 };
@@ -66,6 +69,8 @@ export type Quotation = {
   pdf_generated_at: string | null;
   share_token: string | null;
   sent_at: string | null;
+  accepted_at?: string | null;
+  rejected_at?: string | null;
   paid_at?: string | null;
   signature_url?: string | null;
   created_at: string | null;

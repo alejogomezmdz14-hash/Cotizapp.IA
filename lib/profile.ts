@@ -21,6 +21,9 @@ type OnboardingProfileUpsertInput = {
 type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
   taxId?: string | null;
   pdfFooter?: string | null;
+  quotationNumberingMode?: string | null;
+  quotationPrefix?: string | null;
+  quotationCounter?: number | null;
   logoPath?: string | null;
   logoOnboardingCompleted?: boolean;
 };
@@ -86,11 +89,13 @@ const PROFILE_LEGACY_COLUMNS =
 const PROFILE_TAX_COLUMNS = `${PROFILE_LEGACY_COLUMNS}, tax_id`;
 const PROFILE_PDF_ACCENT_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color`;
 const PROFILE_PDF_COLUMNS = `${PROFILE_PDF_ACCENT_COLUMNS}, pdf_template`;
-const PROFILE_PERSONAL_COLUMNS = `${PROFILE_PDF_COLUMNS}, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed`;
+const PROFILE_NUMBERING_COLUMNS = `${PROFILE_PDF_COLUMNS}, quotation_numbering_mode, quotation_prefix, quotation_counter`;
+const PROFILE_PERSONAL_COLUMNS = `${PROFILE_NUMBERING_COLUMNS}, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed`;
 const PROFILE_EXTENDED_COLUMNS = PROFILE_PERSONAL_COLUMNS;
 
 const PROFILE_SELECT_FALLBACKS = [
   PROFILE_EXTENDED_COLUMNS,
+  PROFILE_NUMBERING_COLUMNS,
   PROFILE_PDF_COLUMNS,
   PROFILE_PDF_ACCENT_COLUMNS,
   PROFILE_TAX_COLUMNS,
@@ -234,6 +239,9 @@ export function buildBusinessProfileUpsertInput({
   currency,
   taxId,
   pdfFooter,
+  quotationNumberingMode,
+  quotationPrefix,
+  quotationCounter,
   logoPath,
   logoOnboardingCompleted,
 }: BusinessProfileUpsertInput) {
@@ -242,6 +250,11 @@ export function buildBusinessProfileUpsertInput({
     business_name: normalizeEntityName(businessName),
     industry: normalizeEntityName(industry),
     ...(taxId !== undefined ? { tax_id: taxId } : {}),
+    ...(quotationNumberingMode !== undefined
+      ? { quotation_numbering_mode: quotationNumberingMode }
+      : {}),
+    ...(quotationPrefix !== undefined ? { quotation_prefix: quotationPrefix } : {}),
+    ...(quotationCounter !== undefined ? { quotation_counter: quotationCounter } : {}),
     ...(logoPath !== undefined ? { logo_url: logoPath } : {}),
     phone,
     email: email ?? fallbackEmail ?? null,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { getDraftQuotationEditorHref } from "../lib/quotation-editor-links";
 import {
   assertDraftQuotationMutationAllowed,
   assertSingleQuotationRollbackMutation,
@@ -12,7 +13,6 @@ import {
   confirmQuotationWhatsappShare,
   deleteQuotationAttachmentWithCleanup,
   formatCleanupFailureMessage,
-  getDraftQuotationEditorHref,
   getWhatsAppSharePhoneState,
   hydrateCompleteQuotation,
   hydrateQuotationAttachments,
@@ -131,7 +131,7 @@ test("parseQuotationFormData accepts inline client payload and trims optional fi
     ]),
   );
 
-  assert.deepEqual(parseQuotationFormData(formData), {
+  assert.deepEqual(parseQuotationFormData(formData, { now: new Date("2026-05-27T12:00:00.000Z") }), {
     clientId: null,
     inlineClient: {
       name: "Obra Norte",
@@ -141,7 +141,7 @@ test("parseQuotationFormData accepts inline client payload and trims optional fi
     },
     taxRate: 10.5,
     notes: null,
-    validUntil: null,
+    validUntil: "2026-06-26",
     items: [
       {
         catalogItemId: null,
@@ -967,7 +967,7 @@ test("getDraftQuotationEditorHref returns the normal reopen path only for drafts
       id: "quotation-1",
       status: "draft",
     }),
-    "/cotizaciones/nueva?quotationId=quotation-1",
+    "/cotizaciones/nueva?quotationId=quotation-1&edit=1",
   );
   assert.equal(
     getDraftQuotationEditorHref({

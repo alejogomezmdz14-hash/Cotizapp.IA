@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationPaidToggle } from "@/components/cotizacion/quotation-paid-toggle";
@@ -20,8 +20,14 @@ import {
   formatDateOnly,
   formatDateTime,
 } from "@/lib/formatting";
+import { formatDisplayName } from "@/lib/entity-normalization";
 import { getProfile, requireUser } from "@/lib/profile";
+import { isQuotationPastValidity } from "@/lib/quotation-expiry";
 import { getQuotationSignaturePreviewUrl } from "@/lib/quotation-signatures";
+import {
+  buildQuotationStatusHistory,
+  formatQuotationStatusHistoryLine,
+} from "@/lib/quotation-status-history";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import {
   getDraftQuotationEditorHref,
@@ -92,6 +98,17 @@ export default async function QuotationDetailPage({
     quotation.signature_url,
   );
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
+  const canEditDraft = Boolean(reopenDraftHref);
+  const isExpired = isQuotationPastValidity(quotation.valid_until);
+  const statusHistoryLine = formatQuotationStatusHistoryLine(
+    buildQuotationStatusHistory({
+      status: quotation.status,
+      created_at: quotation.created_at ?? new Date().toISOString(),
+      sent_at: quotation.sent_at,
+      accepted_at: quotation.accepted_at,
+      rejected_at: quotation.rejected_at,
+    }),
+  );
   const canShareQuotation =
     isDraftQuotationStatus(quotation.status) || quotation.status === "pending";
   const cardClassName =
@@ -121,15 +138,29 @@ export default async function QuotationDetailPage({
             >
               {formatStatusLabel(quotation.status)}
             </span>
+            {isExpired ? (
+              <span className="w-fit rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
+                Vencida
+              </span>
+            ) : null}
             {quotation.paid_at ? (
               <span className="w-fit rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                 Pagada
               </span>
             ) : null}
           </div>
+          <p className="text-sm text-muted-foreground">{statusHistoryLine}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {canEditDraft && reopenDraftHref ? (
+            <Button asChild>
+              <Link href={reopenDraftHref}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Link>
+            </Button>
+          ) : null}
           <QuotationMoreMenu
             quotationId={quotation.id}
             quotationNumber={quotation.number}
@@ -145,7 +176,9 @@ export default async function QuotationDetailPage({
           <Card className={cardClassName}>
             <CardHeader>
               <CardTitle className="text-xl">
-                {hydrated.customer.name ?? quotation.client_name ?? "Cliente sin asignar"}
+                {formatDisplayName(
+                  hydrated.customer.name ?? quotation.client_name,
+                ) || "Cliente sin asignar"}
               </CardTitle>
               <CardDescription>
                 {quotation.notes?.trim() ||

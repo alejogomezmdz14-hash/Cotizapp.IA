@@ -20,6 +20,7 @@ import {
 import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
 import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
+import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
@@ -290,7 +291,7 @@ export default async function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-lg font-semibold text-foreground">
-                        {quotation.client_name?.trim() || "Cliente sin asignar"}
+                        {formatDisplayName(quotation.client_name) || "Cliente sin asignar"}
                       </p>
                       <p className="text-sm leading-6 text-muted-foreground">
                         Creada el {formatDateTime(quotation.created_at)}

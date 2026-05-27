@@ -19,6 +19,8 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
       expensesThisMonth: 320,
       acceptedQuotedThisMonth: 1800,
       netProfitThisMonth: 1480,
+      invoicedThisMonth: 0,
+      monthlyComparison: [],
     },
     "ARS",
   );
@@ -54,6 +56,8 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
       expensesThisMonth: 0,
       acceptedQuotedThisMonth: 1800,
       netProfitThisMonth: 1800,
+      invoicedThisMonth: 0,
+      monthlyComparison: [],
     },
     "ARS",
   );

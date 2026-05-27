@@ -1,3 +1,11 @@
+export function formatDisplayName(value: string | null | undefined) {
+  if (!value?.trim()) {
+    return value ?? "";
+  }
+
+  return normalizeEntityName(value);
+}
+
 export function normalizeEntityName(value: string) {
   return value
     .trim()

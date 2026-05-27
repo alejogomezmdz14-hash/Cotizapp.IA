@@ -9,6 +9,7 @@ import { normalizeCatalogUnit } from "@/lib/catalog";
 import { normalizeEntityName } from "@/lib/entity-normalization";
 import { buildProfileLogoDataUrl, resolveProfileBranding } from "@/lib/profile";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
+import { getDefaultQuotationValidityDate } from "@/lib/quotation-expiry";
 import {
   sanitizeQuotationValidityDate,
   validateQuotationValidityDate,
@@ -450,7 +451,7 @@ function parseValidUntil(
   const value = getStringValue(formData, "valid_until");
 
   if (!value) {
-    return null;
+    return getDefaultQuotationValidityDate(options?.now);
   }
 
   const validityState = validateQuotationValidityDate(
@@ -808,13 +809,7 @@ export async function hydrateQuotationAttachments(
   );
 }
 
-export function getDraftQuotationEditorHref(
-  quotation: Pick<Quotation, "id" | "status">,
-) {
-  return isDraftQuotationStatus(quotation.status)
-    ? `/cotizaciones/nueva?quotationId=${quotation.id}`
-    : null;
-}
+export { getDraftQuotationEditorHref } from "@/lib/quotation-editor-links";
 
 export async function confirmQuotationWhatsappShare(
   dependencies: ConfirmQuotationWhatsappShareDependencies,
