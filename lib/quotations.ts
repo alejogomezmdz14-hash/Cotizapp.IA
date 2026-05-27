@@ -23,7 +23,6 @@ import {
 import {
   canHydrateQuotationEditorStatus,
   DRAFT_QUOTATION_STATUS,
-  isDraftQuotationStatus,
   normalizeQuotationStatus,
 } from "@/lib/quotation-status";
 import {
@@ -35,7 +34,6 @@ import {
 import {
   fetchUserQuotationById,
   fetchUserQuotations,
-  normalizeQuotationListRow,
 } from "@/lib/quotation-select";
 import { createClient } from "@/lib/supabase/server";
 import {
