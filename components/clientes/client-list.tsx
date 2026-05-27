@@ -9,6 +9,7 @@ import {
   updateClientAction,
 } from "@/app/actions/clients";
 import { ClientForm } from "@/components/clientes/client-form";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,6 +57,10 @@ export function ClientList({ clients, search }: ClientListProps) {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    quotationCount: number;
+  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const normalizedSearch = search.trim();
@@ -67,31 +72,24 @@ export function ClientList({ clients, search }: ClientListProps) {
     return `${clients.length} clientes`;
   }, [clients.length]);
 
-  async function handleDelete(id: string) {
-    let quotationCount = 0;
-
+  async function requestDelete(id: string) {
     try {
       const impact = await getClientQuotationCountAction(id);
-      quotationCount = impact.quotationCount;
+      setPendingDelete({
+        id,
+        quotationCount: impact.quotationCount,
+      });
     } catch (error) {
       setActionError(getErrorMessage(error));
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) {
       return;
     }
 
-    const confirmed = window.confirm(
-      quotationCount > 0
-        ? `Este cliente tiene ${quotationCount} cotización${
-            quotationCount === 1 ? "" : "es"
-          } asociada${
-            quotationCount === 1 ? "" : "s"
-          }. Si lo eliminás, el historial puede quedar inconsistente. ¿Querés continuar igualmente?`
-        : "Esta acción eliminará el cliente de forma permanente. ¿Querés continuar?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    const { id } = pendingDelete;
     setActionError(null);
     setDeletingId(id);
 
@@ -105,6 +103,7 @@ export function ClientList({ clients, search }: ClientListProps) {
         title: "Cliente eliminado",
         description: "El cliente ya no figura en el listado.",
       });
+      setPendingDelete(null);
     } catch (error) {
       setActionError(getErrorMessage(error));
     } finally {
@@ -224,7 +223,7 @@ export function ClientList({ clients, search }: ClientListProps) {
                           type="button"
                           variant="destructive"
                           onClick={() => {
-                            void handleDelete(client.id);
+                            void requestDelete(client.id);
                           }}
                           disabled={isDeleting}
                         >
@@ -289,6 +288,26 @@ export function ClientList({ clients, search }: ClientListProps) {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Eliminar cliente"
+        description={
+          pendingDelete && pendingDelete.quotationCount > 0
+            ? `Este cliente tiene ${pendingDelete.quotationCount} cotización${
+                pendingDelete.quotationCount === 1 ? "" : "es"
+              } asociada${
+                pendingDelete.quotationCount === 1 ? "" : "s"
+              }. Si lo eliminás, el historial puede quedar inconsistente.`
+            : "Esta acción eliminará el cliente de forma permanente."
+        }
+        confirmLabel="Eliminar cliente"
+        isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          void confirmDelete();
+        }}
+      />
     </section>
   );
 }

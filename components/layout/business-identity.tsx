@@ -68,7 +68,12 @@ export function BusinessIdentity({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {avatarHref ? (
-        <Link href={avatarHref} aria-label="Abrir perfil de empresa">
+        <Link
+          href={avatarHref}
+          aria-label="Mi perfil"
+          title="Mi perfil"
+          className="rounded-full ring-offset-background transition hover:ring-2 hover:ring-accent-token/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-token"
+        >
           {avatarNode}
         </Link>
       ) : (

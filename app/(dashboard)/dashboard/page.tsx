@@ -76,33 +76,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
-      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
-        <div className="space-y-5">
-          <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Dashboard
-          </span>
-          <div className="space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Mira el estado comercial del mes en una sola vista
-            </h2>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-              Los cuatro KPI principales quedan arriba y debajo tienes tus
-              cotizaciones recientes para entrar rápido a seguimiento, duplicación o
-              edición.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/cotizaciones/nueva">Crear cotización</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/cotizaciones">Ver historial</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
