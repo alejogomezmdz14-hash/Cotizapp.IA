@@ -13,6 +13,8 @@ import {
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
+const SIDEBAR_NAV_INACTIVE = "#8B8FA8";
+
 const baseNavItemClassName =
   "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition";
 
@@ -31,27 +33,35 @@ function SidebarNavLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         baseNavItemClassName,
+        "group",
         active
-          ? "border-sidebar-active/35 bg-sidebar-active/12 text-sidebar shadow-[0_18px_40px_-26px_rgba(0,229,160,0.45)]"
-          : "border-transparent text-sidebar/75 hover:border-white/10 hover:bg-white/8 hover:text-sidebar",
+          ? "border-sidebar-active/35 bg-sidebar-active/12 text-white shadow-[0_18px_40px_-26px_rgba(0,229,160,0.45)]"
+          : "border-transparent text-[#8B8FA8] hover:border-white/10 hover:bg-white/8 hover:text-white",
       )}
     >
       <span
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-2xl border transition",
           active
-            ? "border-sidebar-active/40 bg-sidebar-active/15 text-sidebar-active"
-            : "border-white/10 bg-white/5 text-sidebar/70",
+            ? "border-sidebar-active/40 bg-sidebar-active/15 text-white"
+            : "border-white/15 bg-white/8 text-[#8B8FA8] group-hover:text-white",
         )}
       >
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{item.label}</span>
+        <span
+          className={cn(
+            "block truncate font-medium",
+            active ? "text-white" : "text-[#8B8FA8]",
+          )}
+        >
+          {item.label}
+        </span>
         <span
           className={cn(
             "block truncate text-xs",
-            active ? "text-sidebar/80" : "text-sidebar/55",
+            active ? "text-white/70" : "text-[#8B8FA8]/90",
           )}
         >
           {active ? "Sección actual" : "Acceso directo"}
@@ -78,7 +88,10 @@ export function Sidebar() {
         </Link>
 
         <div className="app-chrome-surface flex min-h-0 flex-1 flex-col p-3">
-          <p className="shrink-0 px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-sidebar/55">
+          <p
+            className="shrink-0 px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em]"
+            style={{ color: SIDEBAR_NAV_INACTIVE }}
+          >
             Navegación
           </p>
 
@@ -101,7 +114,7 @@ export function Sidebar() {
                   active={item.href === activeHref}
                 />
               ))}
-              <SignOutButton className="w-full justify-center border-white/15 bg-white/5 text-sidebar hover:bg-white/10 hover:text-sidebar" />
+              <SignOutButton className="w-full justify-center border-white/15 bg-white/5 text-[#8B8FA8] hover:bg-white/10 hover:text-white" />
             </div>
           </div>
         </div>
