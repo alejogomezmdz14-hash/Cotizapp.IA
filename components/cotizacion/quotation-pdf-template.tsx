@@ -21,7 +21,7 @@ import {
 import type { HydratedQuotation } from "@/types";
 
 const NAVY = "#1A2A4A";
-const ACCENT_LINE = "#00E5A0";
+const ACCENT_LINE = "#3B82F6";
 const MUTED = "#64748B";
 const ROW_ALT = "#F5F5F5";
 const CLIENT_BG = "#F5F5F5";

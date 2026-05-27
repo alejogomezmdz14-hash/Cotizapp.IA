@@ -55,7 +55,7 @@ export function Sidebar({ businessName, logoUrl }: SidebarProps) {
                   className={cn(
                     baseNavItemClassName,
                     active
-                      ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(0,229,160,0.6)]"
+                      ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(59,130,246,0.6)]"
                       : "border-transparent text-muted-foreground hover:border-token hover:bg-background/80 hover:text-foreground",
                   )}
                 >

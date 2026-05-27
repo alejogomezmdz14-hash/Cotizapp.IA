@@ -30,7 +30,7 @@ export function BottomNav() {
                   className={cn(
                     "flex w-full flex-col items-center justify-center gap-1 rounded-[1.5rem] border text-xs transition",
                     isPrimary
-                      ? "relative -top-5 h-[4.5rem] max-w-[4.5rem] rounded-[1.6rem] border-transparent bg-primary text-primary-foreground shadow-[0_20px_40px_-24px_rgba(0,229,160,0.8)]"
+                      ? "relative -top-5 h-[4.5rem] max-w-[4.5rem] rounded-[1.6rem] border-transparent bg-primary text-primary-foreground shadow-[0_20px_40px_-24px_rgba(59,130,246,0.8)]"
                       : active
                         ? "min-h-[4.25rem] border-[rgb(var(--accent-rgb)/0.28)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground"
                         : "min-h-[4.25rem] border-transparent text-muted-foreground",

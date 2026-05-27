@@ -19,7 +19,7 @@ const config: Config = {
         foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         primary: {
           DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
-          foreground: "rgb(7 19 15 / <alpha-value>)",
+          foreground: "rgb(255 255 255 / <alpha-value>)",
         },
         secondary: {
           DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
