@@ -1,16 +1,23 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
   type KeyboardEvent,
-  type PointerEvent,
 } from "react";
 import { Loader2, Mic, SendHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type BrowserSpeechRecognition,
+  type SpeechRecognitionEventLike,
+  createBrowserSpeechRecognition,
+  isBrowserSpeechRecognitionSupported,
+  parseSpeechRecognitionResults,
+} from "@/lib/chat/browser-speech-recognition";
 import { cn } from "@/lib/utils";
 
 type ChatInputProps = {
@@ -20,12 +27,10 @@ type ChatInputProps = {
   onSubmit: () => void;
 };
 
-type VoiceState = "idle" | "recording" | "processing";
+type VoiceState = "idle" | "listening" | "processing";
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
-const AUTO_SEND_DELAY_MS = 2000;
 
 const PERMISSION_DENIED_MESSAGE =
   "Habilitá el micrófono en tu navegador para usar esta función";
@@ -60,66 +65,72 @@ function buildRecordingFileName(mimeType: string) {
   return "chat-voice.webm";
 }
 
+function joinTranscriptParts(...parts: string[]) {
+  return parts
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function ChatInput({
   value,
   isLoading,
   onChange,
   onSubmit,
 }: ChatInputProps) {
+  const supportsLiveSpeechRef = useRef(isBrowserSpeechRecognitionSupported());
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const transcriptBaselineRef = useRef<string | null>(null);
-  const isRecordingRef = useRef(false);
+  const dictationBaseRef = useRef("");
+  const dictationFinalRef = useRef("");
+  const interimTranscriptRef = useRef("");
+  const shouldRestartRecognitionRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [dictationFinal, setDictationFinal] = useState("");
 
+  const isListening = voiceState === "listening";
   const isVoiceBusy = voiceState !== "idle";
   const isInputDisabled = isLoading || voiceState === "processing";
+  const usesWhisperFallback = !supportsLiveSpeechRef.current;
 
-  function clearAutoSendTimer() {
-    if (autoSendTimerRef.current) {
-      clearTimeout(autoSendTimerRef.current);
-      autoSendTimerRef.current = null;
-    }
-  }
+  const committedDictation = joinTranscriptParts(
+    dictationBaseRef.current,
+    dictationFinal,
+  );
 
-  function scheduleAutoSend(transcript: string) {
-    clearAutoSendTimer();
-    transcriptBaselineRef.current = transcript;
+  const stopRecognition = useCallback(() => {
+    shouldRestartRecognitionRef.current = false;
+    isListeningRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+  }, []);
 
-    autoSendTimerRef.current = setTimeout(() => {
-      if (transcriptBaselineRef.current === transcript && transcript.trim()) {
-        onSubmit();
-      }
-    }, AUTO_SEND_DELAY_MS);
-  }
+  const commitDictation = useCallback(() => {
+    const nextValue = joinTranscriptParts(
+      dictationBaseRef.current,
+      dictationFinalRef.current,
+      interimTranscriptRef.current,
+    );
 
-  function handleValueChange(nextValue: string) {
-    if (
-      transcriptBaselineRef.current !== null &&
-      nextValue !== transcriptBaselineRef.current
-    ) {
-      clearAutoSendTimer();
-      transcriptBaselineRef.current = null;
+    if (nextValue) {
+      onChange(nextValue);
     }
 
-    onChange(nextValue);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key !== "Enter" || event.shiftKey) {
-      return;
-    }
-
-    event.preventDefault();
-    clearAutoSendTimer();
-    transcriptBaselineRef.current = null;
-    onSubmit();
-  }
+    dictationBaseRef.current = "";
+    dictationFinalRef.current = "";
+    interimTranscriptRef.current = "";
+    setDictationFinal("");
+    setInterimTranscript("");
+  }, [onChange]);
 
   async function stopMediaStream() {
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -148,11 +159,10 @@ export function ChatInput({
     return payload.text.trim();
   }
 
-  async function finishRecording() {
+  async function finishWhisperRecording() {
     const recorder = mediaRecorderRef.current;
 
     if (!recorder || recorder.state === "inactive") {
-      isRecordingRef.current = false;
       setVoiceState("idle");
       return;
     }
@@ -160,13 +170,7 @@ export function ChatInput({
     setVoiceState("processing");
 
     await new Promise<void>((resolve) => {
-      recorder.addEventListener(
-        "stop",
-        () => {
-          resolve();
-        },
-        { once: true },
-      );
+      recorder.addEventListener("stop", () => resolve(), { once: true });
       recorder.stop();
     });
 
@@ -174,7 +178,6 @@ export function ChatInput({
     const blob = new Blob(audioChunksRef.current, { type: mimeType });
 
     mediaRecorderRef.current = null;
-    isRecordingRef.current = false;
     audioChunksRef.current = [];
     await stopMediaStream();
 
@@ -186,8 +189,7 @@ export function ChatInput({
 
     try {
       const transcript = await transcribeRecording(blob, mimeType);
-      handleValueChange(transcript);
-      scheduleAutoSend(transcript);
+      onChange(joinTranscriptParts(value, transcript));
       setVoiceError(null);
     } catch (error) {
       setVoiceError(
@@ -200,8 +202,8 @@ export function ChatInput({
     }
   }
 
-  async function startRecording() {
-    if (isLoading || isVoiceBusy || isRecordingRef.current) {
+  async function startWhisperRecording() {
+    if (isLoading || isVoiceBusy) {
       return;
     }
 
@@ -212,7 +214,7 @@ export function ChatInput({
       !navigator.mediaDevices?.getUserMedia ||
       typeof MediaRecorder === "undefined"
     ) {
-      setVoiceError("Tu navegador no soporta grabación de voz.");
+      setVoiceError("Tu navegador no soporta dictado por voz.");
       return;
     }
 
@@ -234,9 +236,8 @@ export function ChatInput({
 
       mediaStreamRef.current = stream;
       mediaRecorderRef.current = recorder;
-      isRecordingRef.current = true;
       recorder.start();
-      setVoiceState("recording");
+      setVoiceState("listening");
     } catch (error) {
       await stopMediaStream();
 
@@ -254,37 +255,143 @@ export function ChatInput({
     }
   }
 
-  function handleMicPointerDown(event: PointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    void startRecording();
+  const handleRecognitionResult = useCallback((event: SpeechRecognitionEventLike) => {
+      const { interimTranscript: nextInterim, newFinalSegments } =
+        parseSpeechRecognitionResults(event);
+
+      if (newFinalSegments.length > 0) {
+        dictationFinalRef.current = joinTranscriptParts(
+          dictationFinalRef.current,
+          ...newFinalSegments,
+        );
+        setDictationFinal(dictationFinalRef.current);
+      }
+
+      interimTranscriptRef.current = nextInterim;
+      setInterimTranscript(nextInterim);
+  }, []);
+
+  const startLiveDictation = useCallback(() => {
+    const recognition = createBrowserSpeechRecognition();
+
+    if (!recognition) {
+      setVoiceError("Tu navegador no soporta dictado en tiempo real.");
+      return;
+    }
+
+    dictationBaseRef.current = value.trim();
+    dictationFinalRef.current = "";
+    interimTranscriptRef.current = "";
+    setDictationFinal("");
+    setInterimTranscript("");
+    setVoiceError(null);
+    setPermissionDenied(false);
+
+    recognition.onresult = handleRecognitionResult;
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setPermissionDenied(true);
+        setVoiceError(PERMISSION_DENIED_MESSAGE);
+      } else if (event.error !== "aborted" && event.error !== "no-speech") {
+        setVoiceError(TRANSCRIPTION_ERROR_MESSAGE);
+      }
+
+      shouldRestartRecognitionRef.current = false;
+      isListeningRef.current = false;
+      setVoiceState("idle");
+      setInterimTranscript("");
+    };
+    recognition.onend = () => {
+      if (!shouldRestartRecognitionRef.current) {
+        isListeningRef.current = false;
+        setVoiceState("idle");
+        commitDictation();
+        recognitionRef.current = null;
+        return;
+      }
+
+      if (!isListeningRef.current) {
+        recognitionRef.current = null;
+        return;
+      }
+
+      try {
+        recognition.start();
+      } catch {
+        shouldRestartRecognitionRef.current = false;
+        isListeningRef.current = false;
+        setVoiceState("idle");
+        commitDictation();
+        recognitionRef.current = null;
+      }
+    };
+
+    recognitionRef.current = recognition;
+    shouldRestartRecognitionRef.current = true;
+    isListeningRef.current = true;
+
+    try {
+      recognition.start();
+      setVoiceState("listening");
+    } catch {
+      recognitionRef.current = null;
+      shouldRestartRecognitionRef.current = false;
+      isListeningRef.current = false;
+      setVoiceError(TRANSCRIPTION_ERROR_MESSAGE);
+    }
+  }, [commitDictation, handleRecognitionResult, value]);
+
+  const stopLiveDictation = useCallback(() => {
+    shouldRestartRecognitionRef.current = false;
+    isListeningRef.current = false;
+    setVoiceState("idle");
+    stopRecognition();
+  }, [stopRecognition]);
+
+  function handleMicToggle() {
+    if (isLoading || voiceState === "processing") {
+      return;
+    }
+
+    if (voiceState === "listening") {
+      if (usesWhisperFallback) {
+        void finishWhisperRecording();
+      } else {
+        stopLiveDictation();
+      }
+      return;
+    }
+
+    if (usesWhisperFallback) {
+      void startWhisperRecording();
+      return;
+    }
+
+    startLiveDictation();
   }
 
-  function handleMicPointerUp(event: PointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+  function handleValueChange(nextValue: string) {
+    if (isListening) {
+      return;
     }
 
-    if (isRecordingRef.current) {
-      void finishRecording();
-    }
+    onChange(nextValue);
   }
 
-  function handleMicPointerCancel(event: PointerEvent<HTMLButtonElement>) {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
     }
 
-    if (isRecordingRef.current) {
-      void finishRecording();
-    }
+    event.preventDefault();
+    onSubmit();
   }
 
   useEffect(() => {
     return () => {
-      clearAutoSendTimer();
+      shouldRestartRecognitionRef.current = false;
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
 
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
@@ -302,7 +409,7 @@ export function ChatInput({
             <CardTitle className="text-xl">Escribí tu consulta</CardTitle>
             <CardDescription className="leading-6">
               Puedes pedir contexto del negocio, ayuda para armar una cotización o
-              mantener presionado el micrófono para dictar.
+              dictar con el micrófono en tiempo real.
             </CardDescription>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -313,14 +420,33 @@ export function ChatInput({
 
       <CardContent className="space-y-4">
         <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4">
-          <textarea
-            value={value}
-            onChange={(event) => handleValueChange(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envío en 48 horas."
-            disabled={isInputDisabled}
-            className={textareaClassName}
-          />
+          {isListening && !usesWhisperFallback ? (
+            <div
+              role="textbox"
+              aria-label="Dictado en tiempo real"
+              aria-live="polite"
+              className={cn(textareaClassName, "whitespace-pre-wrap")}
+            >
+              {committedDictation ? <span>{committedDictation}</span> : null}
+              {committedDictation && interimTranscript ? <span> </span> : null}
+              {interimTranscript ? (
+                <span className="italic text-muted-foreground">{interimTranscript}</span>
+              ) : !committedDictation ? (
+                <span className="italic text-muted-foreground/70">
+                  Empezá a hablar…
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <textarea
+              value={value}
+              onChange={(event) => handleValueChange(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envío en 48 horas."
+              disabled={isInputDisabled}
+              className={textareaClassName}
+            />
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -341,8 +467,8 @@ export function ChatInput({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              Enter para enviar, Shift + Enter para salto de línea, o mantené el
-              micrófono para dictar.
+              Enter para enviar, Shift + Enter para salto de línea, o el micrófono
+              para dictar en tiempo real.
             </p>
 
             <div className="flex items-center justify-end gap-2">
@@ -350,20 +476,18 @@ export function ChatInput({
                 type="button"
                 variant="outline"
                 aria-label={
-                  voiceState === "recording"
-                    ? "Grabando audio"
+                  voiceState === "listening"
+                    ? "Detener dictado"
                     : voiceState === "processing"
                       ? "Transcribiendo audio"
-                      : "Mantener presionado para dictar"
+                      : "Iniciar dictado por voz"
                 }
+                aria-pressed={voiceState === "listening"}
                 disabled={isLoading || voiceState === "processing"}
-                onPointerDown={handleMicPointerDown}
-                onPointerUp={handleMicPointerUp}
-                onPointerCancel={handleMicPointerCancel}
-                onContextMenu={(event) => event.preventDefault()}
+                onClick={handleMicToggle}
                 className={cn(
-                  "h-12 min-h-12 w-12 min-w-12 shrink-0 touch-none select-none rounded-full p-0 sm:h-11 sm:w-11",
-                  voiceState === "recording" &&
+                  "h-12 min-h-12 w-12 min-w-12 shrink-0 rounded-full p-0 sm:h-11 sm:w-11",
+                  voiceState === "listening" &&
                     "animate-pulse border-red-500/50 bg-red-500/15 text-red-600 hover:bg-red-500/20 dark:text-red-300",
                   permissionDenied && voiceState === "idle" && "border-destructive/40",
                 )}
@@ -377,11 +501,7 @@ export function ChatInput({
 
               <Button
                 type="button"
-                onClick={() => {
-                  clearAutoSendTimer();
-                  transcriptBaselineRef.current = null;
-                  onSubmit();
-                }}
+                onClick={onSubmit}
                 disabled={isLoading || isVoiceBusy || !value.trim()}
                 className="min-h-12 sm:min-h-10"
               >
@@ -391,9 +511,11 @@ export function ChatInput({
             </div>
           </div>
 
-          {voiceState === "recording" ? (
+          {voiceState === "listening" ? (
             <p className="text-sm font-medium text-red-600 dark:text-red-300">
-              Grabando… soltá para transcribir
+              {usesWhisperFallback
+                ? "Grabando… tocá el micrófono de nuevo para transcribir"
+                : "Escuchando…"}
             </p>
           ) : null}
 
