@@ -32,23 +32,28 @@ function SidebarNavLink({
       className={cn(
         baseNavItemClassName,
         active
-          ? "border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground shadow-[0_18px_40px_-26px_rgba(59,130,246,0.6)]"
-          : "border-transparent text-muted-foreground hover:border-token hover:bg-background/80 hover:text-foreground",
+          ? "border-sidebar-active/35 bg-sidebar-active/12 text-sidebar shadow-[0_18px_40px_-26px_rgba(0,229,160,0.45)]"
+          : "border-transparent text-sidebar/75 hover:border-white/10 hover:bg-white/8 hover:text-sidebar",
       )}
     >
       <span
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-2xl border transition",
           active
-            ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.15)] text-accent-token"
-            : "border-token bg-background/70 text-muted-foreground",
+            ? "border-sidebar-active/40 bg-sidebar-active/15 text-sidebar-active"
+            : "border-white/10 bg-white/5 text-sidebar/70",
         )}
       >
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
         <span className="block truncate font-medium">{item.label}</span>
-        <span className="block truncate text-xs text-muted-foreground">
+        <span
+          className={cn(
+            "block truncate text-xs",
+            active ? "text-sidebar/80" : "text-sidebar/55",
+          )}
+        >
           {active ? "Sección actual" : "Acceso directo"}
         </span>
       </div>
@@ -62,8 +67,8 @@ export function Sidebar() {
   const activeHref = getActiveNavHref(pathname, allNavItems);
 
   return (
-    <aside className="hidden w-[18.5rem] shrink-0 border-r border-token bg-background/80 lg:block">
-      <div className="shell-backdrop sticky top-0 flex h-screen flex-col gap-4 px-4 py-6">
+    <aside className="hidden w-[18.5rem] shrink-0 border-r border-white/10 bg-sidebar lg:block">
+      <div className="sticky top-0 flex h-screen flex-col gap-4 px-4 py-6">
         <Link
           href="/dashboard"
           className="flex shrink-0 justify-center bg-transparent px-4 py-5"
@@ -79,8 +84,8 @@ export function Sidebar() {
           />
         </Link>
 
-        <div className="shell-panel flex min-h-0 flex-1 flex-col p-3">
-          <p className="shrink-0 px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="app-chrome-surface flex min-h-0 flex-1 flex-col p-3">
+          <p className="shrink-0 px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-sidebar/55">
             Navegación
           </p>
 
@@ -95,7 +100,7 @@ export function Sidebar() {
               ))}
             </nav>
 
-            <div className="shrink-0 space-y-2 border-t border-token/80 pt-3">
+            <div className="shrink-0 space-y-2 border-t border-white/10 pt-3">
               {sidebarFooterNavItems.map((item) => (
                 <SidebarNavLink
                   key={item.href}
@@ -103,7 +108,7 @@ export function Sidebar() {
                   active={item.href === activeHref}
                 />
               ))}
-              <SignOutButton className="w-full justify-center" />
+              <SignOutButton className="w-full justify-center border-white/15 bg-white/5 text-sidebar hover:bg-white/10 hover:text-sidebar" />
             </div>
           </div>
         </div>

@@ -3,47 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sidebar-bg: #1a2332;
+    --sidebar-bg-rgb: 26 35 50;
+    --sidebar-text: #ffffff;
+    --sidebar-text-rgb: 255 255 255;
+    --sidebar-text-muted-rgb: 148 163 184;
+    --sidebar-active: #00e5a0;
+    --sidebar-active-rgb: 0 229 160;
+    --header-bg: #1a2332;
+    --header-bg-rgb: 26 35 50;
+    --header-text: #ffffff;
+    --header-text-rgb: 255 255 255;
+    --radius: 1rem;
+  }
+
   :root,
   .light {
     color-scheme: light;
-    --background: #F4F6FB;
-    --background-rgb: 244 246 251;
-    --surface: #FFFFFF;
+    --background: #f0f4f8;
+    --background-rgb: 240 244 248;
+    --surface: #ffffff;
     --surface-rgb: 255 255 255;
-    --surface-2: #E9EDF5;
-    --surface-2-rgb: 233 237 245;
-    --accent: #3B82F6;
-    --accent-rgb: 59 130 246;
-    --accent-soft: #DBEAFE;
-    --accent-soft-rgb: 219 234 254;
-    --accent-hover: #2563EB;
-    --text-primary: #0F1117;
+    --surface-2: #e8edf5;
+    --surface-2-rgb: 232 237 245;
+    --accent: #00c984;
+    --accent-rgb: 0 201 132;
+    --accent-soft: #d9f7ec;
+    --accent-soft-rgb: 217 247 236;
+    --accent-hover: #00a870;
+    --text-primary: #0f1117;
     --text-primary-rgb: 15 17 23;
-    --text-secondary: #5B6178;
-    --text-secondary-rgb: 91 97 120;
-    --border: #D5DAE6;
-    --border-rgb: 213 218 230;
-    --radius: 1rem;
+    --text-secondary: #4a5568;
+    --text-secondary-rgb: 74 85 104;
+    --border: #cbd5e0;
+    --border-rgb: 203 213 224;
   }
 
   .dark {
     color-scheme: dark;
-    --background: #0F1117;
+    --background: #0f1117;
     --background-rgb: 15 17 23;
-    --surface: #1A1D27;
+    --surface: #1a1d27;
     --surface-rgb: 26 29 39;
     --surface-2: #222536;
     --surface-2-rgb: 34 37 54;
-    --accent: #3B82F6;
+    --accent: #3b82f6;
     --accent-rgb: 59 130 246;
-    --accent-soft: #1E3A8A;
+    --accent-soft: #1e3a8a;
     --accent-soft-rgb: 30 58 138;
-    --accent-hover: #2563EB;
-    --text-primary: #FFFFFF;
+    --accent-hover: #2563eb;
+    --text-primary: #ffffff;
     --text-primary-rgb: 255 255 255;
-    --text-secondary: #8B8FA8;
+    --text-secondary: #8b8fa8;
     --text-secondary-rgb: 139 143 168;
-    --border: #2A2D3E;
+    --border: #2a2d3e;
     --border-rgb: 42 45 62;
   }
 
@@ -63,9 +77,10 @@
   .shell-backdrop {
     position: relative;
     isolation: isolate;
+    background-color: rgb(var(--background-rgb) / 1);
     background-image:
-      radial-gradient(circle at top, rgb(var(--accent-rgb) / 0.16), transparent 28%),
-      radial-gradient(circle at bottom left, rgb(var(--accent-rgb) / 0.1), transparent 34%);
+      radial-gradient(circle at top, rgb(var(--accent-rgb) / 0.1), transparent 32%),
+      radial-gradient(circle at bottom left, rgb(var(--accent-rgb) / 0.06), transparent 36%);
   }
 
   .shell-backdrop::before {
@@ -75,11 +90,15 @@
     z-index: -1;
     pointer-events: none;
     background-image:
-      linear-gradient(rgb(var(--border-rgb) / 0.18) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(var(--border-rgb) / 0.18) 1px, transparent 1px);
+      linear-gradient(rgb(var(--border-rgb) / 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--border-rgb) / 0.22) 1px, transparent 1px);
     background-position: center;
     background-size: 80px 80px;
-    mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.25));
+    mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.2));
+  }
+
+  .light .shell-backdrop::before {
+    mask-image: linear-gradient(to bottom, white, rgb(255 255 255 / 0.35));
   }
 
   .shell-panel {
@@ -89,6 +108,15 @@
       linear-gradient(180deg, rgb(var(--surface-rgb) / 0.96), rgb(var(--surface-rgb) / 0.88));
     box-shadow: 0 24px 60px -34px rgb(15 17 23 / 0.35);
     backdrop-filter: blur(18px);
+  }
+
+  .light .shell-panel {
+    background: rgb(var(--surface-rgb) / 1);
+    border-color: rgb(var(--border-rgb) / 0.95);
+    box-shadow:
+      0 1px 2px rgb(15 17 23 / 0.04),
+      0 12px 32px -20px rgb(15 17 23 / 0.14);
+    backdrop-filter: none;
   }
 
   .dark .shell-panel {
@@ -106,6 +134,15 @@
     backdrop-filter: blur(20px);
   }
 
+  .light .shell-panel-strong {
+    background: rgb(var(--surface-rgb) / 1);
+    border-color: rgb(var(--border-rgb) / 0.95);
+    box-shadow:
+      0 1px 2px rgb(15 17 23 / 0.05),
+      0 18px 42px -24px rgb(15 17 23 / 0.16);
+    backdrop-filter: none;
+  }
+
   .dark .shell-panel-strong {
     box-shadow:
       0 36px 90px -44px rgb(0 0 0 / 0.78),
@@ -118,6 +155,26 @@
       linear-gradient(135deg, rgb(var(--accent-rgb) / 0.16), transparent 68%),
       linear-gradient(180deg, rgb(var(--surface-rgb) / 0.98), rgb(var(--surface-rgb) / 0.9));
   }
+
+  .light .shell-highlight {
+    background:
+      linear-gradient(135deg, rgb(var(--accent-rgb) / 0.12), transparent 68%),
+      linear-gradient(180deg, rgb(var(--surface-rgb) / 1), rgb(var(--surface-2-rgb) / 0.65));
+  }
+
+  .app-chrome-surface {
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: calc(var(--radius) + 0.75rem);
+    background: rgb(255 255 255 / 0.05);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+
+  .app-chrome-header-bar {
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: calc(var(--radius) + 0.75rem);
+    background: rgb(255 255 255 / 0.05);
+    box-shadow: 0 12px 32px -24px rgb(0 0 0 / 0.45);
+  }
 }
 
 @layer utilities {
@@ -129,6 +186,14 @@
     background-color: var(--surface-2);
   }
 
+  .bg-sidebar {
+    background-color: var(--sidebar-bg);
+  }
+
+  .bg-header {
+    background-color: var(--header-bg);
+  }
+
   .text-token-primary {
     color: var(--text-primary);
   }
@@ -137,8 +202,24 @@
     color: var(--text-secondary);
   }
 
+  .text-sidebar {
+    color: var(--sidebar-text);
+  }
+
+  .text-header {
+    color: var(--header-text);
+  }
+
+  .text-sidebar-active {
+    color: var(--sidebar-active);
+  }
+
   .border-token {
     border-color: var(--border);
+  }
+
+  .border-sidebar-active {
+    border-color: var(--sidebar-active);
   }
 
   .bg-accent-token {

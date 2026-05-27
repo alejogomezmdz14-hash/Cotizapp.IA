@@ -35,10 +35,11 @@ test("global tokens keep the approved accent across both theme roots", async () 
     "utf8",
   );
 
-  assert.match(source, /:root[\s\S]*--accent:\s*#3B82F6;/);
-  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#F4F6FB;/);
-  assert.match(source, /\.dark\s*\{[\s\S]*--background:\s*#0F1117;/);
-  assert.match(source, /\.dark\s*\{[\s\S]*--surface:\s*#1A1D27;/);
+  assert.match(source, /--sidebar-bg:\s*#1a2332;/i);
+  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#f0f4f8;/i);
+  assert.match(source, /\.light\s*\{[\s\S]*--accent:\s*#00c984;/i);
+  assert.match(source, /\.dark\s*\{[\s\S]*--background:\s*#0f1117;/i);
+  assert.match(source, /\.dark\s*\{[\s\S]*--surface:\s*#1a1d27;/i);
 });
 
 test("shell backdrop keeps sticky ancestors vertically unclipped", async () => {

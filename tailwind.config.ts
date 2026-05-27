@@ -45,6 +45,16 @@ const config: Config = {
           DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
           foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         },
+        sidebar: {
+          DEFAULT: "rgb(var(--sidebar-bg-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--sidebar-text-rgb) / <alpha-value>)",
+          active: "rgb(var(--sidebar-active-rgb) / <alpha-value>)",
+          muted: "rgb(var(--sidebar-text-muted-rgb) / <alpha-value>)",
+        },
+        header: {
+          DEFAULT: "rgb(var(--header-bg-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--header-text-rgb) / <alpha-value>)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
