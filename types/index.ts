@@ -17,6 +17,7 @@ export type Profile = {
   logo_onboarding_completed?: boolean | null;
   pdf_footer?: string | null;
   pdf_accent_color?: string | null;
+  pdf_template?: string | null;
   theme: string | null;
   created_at: string | null;
 };
@@ -128,6 +129,7 @@ export type HydratedQuotationBranding = {
   currency: string | null;
   pdfFooter: string | null;
   pdfAccentColor: string | null;
+  pdfTemplate: string;
 };
 
 export type HydratedQuotationCustomer = {
@@ -173,6 +175,12 @@ export type DashboardQuotationMetrics = {
   pendingQuotations: number;
 };
 
+export type DashboardMonthlyPoint = {
+  monthLabel: string;
+  quoted: number;
+  expenses: number;
+};
+
 export type DashboardStats = {
   quotations: number;
   clients: number;
@@ -180,7 +188,9 @@ export type DashboardStats = {
   quotationMetrics: DashboardQuotationMetrics;
   expensesThisMonth: number;
   acceptedQuotedThisMonth: number;
+  invoicedThisMonth: number;
   netProfitThisMonth: number;
+  monthlyComparison: DashboardMonthlyPoint[];
 };
 
 export type Expense = {

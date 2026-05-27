@@ -15,6 +15,7 @@ import {
   formatPercentage,
 } from "@/lib/formatting";
 import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
+import { normalizePdfTemplate, type PdfTemplateId } from "@/lib/pdf-template";
 import {
   normalizeDateOnlyString,
   sanitizeQuotationValidityDate,
@@ -38,6 +39,7 @@ export type QuotationPdfTemplateData = {
   notes: string | null;
   footerNote: string | null;
   pdfAccentColor: string;
+  pdfTemplate: PdfTemplateId;
   logoDataUrl: string | null;
   signatureDataUrl: string | null;
   taxRateLabel: string;
@@ -131,6 +133,7 @@ export function buildQuotationPdfTemplateData({
     notes: normalizeOptionalText(quotation.quotation.notes),
     footerNote: normalizeOptionalText(quotation.branding.pdfFooter),
     pdfAccentColor: normalizePdfAccentColor(quotation.branding.pdfAccentColor),
+    pdfTemplate: normalizePdfTemplate(quotation.branding.pdfTemplate),
     logoDataUrl,
     signatureDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
@@ -148,7 +151,17 @@ export function buildQuotationPdfTemplateData({
   };
 }
 
-function createPdfStyles(accentColor: string) {
+function createPdfStyles(accentColor: string, pdfTemplate: PdfTemplateId) {
+  const isModern = pdfTemplate === "modern";
+  const isMinimal = pdfTemplate === "minimal";
+  const tableHeaderBg = isMinimal ? "#F9FAFB" : isModern ? accentColor : NAVY;
+  const tableHeaderText = isMinimal ? "#111827" : "#FFFFFF";
+  const separatorColor = isMinimal ? "#D1D5DB" : accentColor;
+  const clientBackground = isMinimal ? "#FFFFFF" : CLIENT_BG;
+  const totalHighlightBackground = isMinimal ? "#F3F4F6" : isModern ? accentColor : NAVY;
+  const totalHighlightText = isMinimal ? "#111827" : "#FFFFFF";
+  const quotationNumberColor = isMinimal ? "#111827" : NAVY;
+
   return StyleSheet.create({
   page: {
     paddingTop: 36,
@@ -209,7 +222,7 @@ function createPdfStyles(accentColor: string) {
   quotationNumber: {
     fontSize: 28,
     fontWeight: 700,
-    color: NAVY,
+    color: quotationNumberColor,
     marginBottom: 10,
   },
   metaRow: {
@@ -233,12 +246,14 @@ function createPdfStyles(accentColor: string) {
     textAlign: "right",
   },
   separator: {
-    height: 2,
-    backgroundColor: accentColor,
+    height: isMinimal ? 1 : 2,
+    backgroundColor: separatorColor,
     marginBottom: 18,
   },
   clientSection: {
-    backgroundColor: CLIENT_BG,
+    backgroundColor: clientBackground,
+    borderWidth: isMinimal ? 1 : 0,
+    borderColor: isMinimal ? "#E5E7EB" : "transparent",
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -267,14 +282,14 @@ function createPdfStyles(accentColor: string) {
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: NAVY,
+    backgroundColor: tableHeaderBg,
     paddingVertical: 9,
     paddingHorizontal: 12,
   },
   tableHeaderCell: {
     fontSize: 8.5,
     fontWeight: 700,
-    color: "#FFFFFF",
+    color: tableHeaderText,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
@@ -333,7 +348,7 @@ function createPdfStyles(accentColor: string) {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: NAVY,
+    backgroundColor: totalHighlightBackground,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginTop: 6,
@@ -341,14 +356,14 @@ function createPdfStyles(accentColor: string) {
   totalHighlightLabel: {
     fontSize: 9,
     fontWeight: 700,
-    color: "#FFFFFF",
+    color: totalHighlightText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   totalHighlightValue: {
     fontSize: 16,
     fontWeight: 700,
-    color: "#FFFFFF",
+    color: totalHighlightText,
   },
   notesSection: {
     marginBottom: 16,
@@ -401,7 +416,8 @@ function createPdfStyles(accentColor: string) {
 }
 
 export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
-  const styles = createPdfStyles(data.pdfAccentColor);
+  const styles = createPdfStyles(data.pdfAccentColor, data.pdfTemplate);
+  const useAlternatingRows = data.pdfTemplate !== "minimal";
 
   return (
     <Document
@@ -477,7 +493,7 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
             <View
               key={item.id}
               style={
-                index % 2 === 1
+                useAlternatingRows && index % 2 === 1
                   ? [styles.tableRow, styles.tableRowAlt]
                   : styles.tableRow
               }

@@ -827,6 +827,7 @@ test("hydrateCompleteQuotation returns a full business object with branding, cus
       currency: "ARS",
       pdfFooter: null,
       pdfAccentColor: "#3B82F6",
+      pdfTemplate: "classic",
     },
     customer: {
       id: "client-1",

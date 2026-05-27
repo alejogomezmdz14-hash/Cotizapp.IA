@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
+import { normalizePdfTemplate } from "@/lib/pdf-template";
 import {
   buildBusinessProfileUpsertInput,
   buildOnboardingProfileUpsertInput,
@@ -254,6 +255,40 @@ export async function saveAppearanceSettingsAction(formData: FormData) {
   revalidatePath("/perfil-empresa");
   revalidatePath("/dashboard");
   redirect("/ajustes?saved=appearance");
+}
+
+export async function savePdfTemplateSettingsAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const pdfTemplate = normalizePdfTemplate(getRequiredValue(formData, "pdf_template"));
+  const pdfAccentColor = normalizePdfAccentColor(
+    getRequiredValue(formData, "pdf_accent_color"),
+  );
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        pdf_template: pdfTemplate,
+        pdf_accent_color: pdfAccentColor,
+      },
+      { onConflict: "id" },
+    );
+
+  if (error) {
+    throw new Error("No se pudo guardar la plantilla del PDF.");
+  }
+
+  revalidatePath("/perfil-empresa");
+  revalidatePath("/dashboard");
+  revalidatePath("/cotizaciones");
+  redirect("/perfil-empresa?saved=pdf");
 }
 
 export async function deleteAccountAction() {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEntityName } from "@/lib/entity-normalization";
 import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
+import { normalizePdfTemplate } from "@/lib/pdf-template";
 import type { HydratedQuotationBranding, Profile } from "@/types";
 
 type OnboardingProfileUpsertInput = {
@@ -83,7 +84,7 @@ export async function requireUser() {
 const PROFILE_LEGACY_COLUMNS =
   "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
 const PROFILE_TAX_COLUMNS = `${PROFILE_LEGACY_COLUMNS}, tax_id`;
-const PROFILE_PDF_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color`;
+const PROFILE_PDF_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color, pdf_template`;
 const PROFILE_PERSONAL_COLUMNS = `${PROFILE_PDF_COLUMNS}, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed`;
 const PROFILE_EXTENDED_COLUMNS = PROFILE_PERSONAL_COLUMNS;
 
@@ -151,6 +152,7 @@ export function resolveProfileBranding(
     | "currency"
     | "pdf_footer"
     | "pdf_accent_color"
+    | "pdf_template"
   > | null,
 ): HydratedQuotationBranding {
   const pdfAccentColor = normalizePdfAccentColor(profile?.pdf_accent_color);
@@ -165,6 +167,7 @@ export function resolveProfileBranding(
     currency: normalizeOptionalText(profile?.currency),
     pdfFooter: normalizeOptionalText(profile?.pdf_footer),
     pdfAccentColor,
+    pdfTemplate: normalizePdfTemplate(profile?.pdf_template),
   };
 }
 

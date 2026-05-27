@@ -2,6 +2,7 @@ import { Building2, ImageIcon, ScrollText } from "lucide-react";
 
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
 import { BusinessProfileForm } from "@/components/profile/business-profile-form";
+import { PdfTemplateSettings } from "@/components/profile/pdf-template-settings";
 import { getProfile, requireUser } from "@/lib/profile";
 
 type BusinessProfilePageProps = {
@@ -10,13 +11,18 @@ type BusinessProfilePageProps = {
   };
 };
 
+function isTruthyFlag(value: string | undefined) {
+  return value === "1" || value === "pdf";
+}
+
 export default async function BusinessProfilePage({
   searchParams,
 }: BusinessProfilePageProps) {
   const user = await requireUser();
   const profile = await getProfile(user.id);
   const logoState = await getProfileLogoUploadState(profile?.logo_url ?? null);
-  const saved = searchParams?.saved === "1";
+  const saved = isTruthyFlag(searchParams?.saved);
+  const savedPdf = searchParams?.saved === "pdf";
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
@@ -79,8 +85,17 @@ export default async function BusinessProfilePage({
             fallbackEmail={user.email ?? null}
             currentLogoUrl={logoState?.previewUrl ?? null}
             currentLogoPath={logoState?.logoPath ?? profile?.logo_url ?? null}
-            saved={saved}
+            saved={saved && !savedPdf}
           />
+
+          <div className="border-t border-token/80 pt-6">
+            <PdfTemplateSettings
+              initialTemplate={profile?.pdf_template ?? null}
+              initialAccentColor={profile?.pdf_accent_color ?? null}
+              businessName={profile?.business_name ?? null}
+              saved={savedPdf}
+            />
+          </div>
         </div>
       </section>
     </div>

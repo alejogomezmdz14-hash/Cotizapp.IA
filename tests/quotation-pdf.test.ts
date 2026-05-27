@@ -38,6 +38,7 @@ function createHydratedQuotation(): HydratedQuotation {
       currency: "ARS",
       pdfFooter: "Precios sujetos a cambios sin previo aviso.",
       pdfAccentColor: "#3B82F6",
+      pdfTemplate: "classic",
     },
     customer: {
       id: "client-1",
@@ -112,6 +113,7 @@ test("resolveProfileBranding trims profile values for PDF generation", () => {
       currency: "ars",
       pdfFooter: null,
       pdfAccentColor: "#3B82F6",
+      pdfTemplate: "classic",
     },
   );
 });
@@ -138,6 +140,7 @@ test("buildQuotationPdfTemplateData provides safe fallbacks and formatted line i
     currency: "ARS",
     pdfFooter: null,
     pdfAccentColor: "#3B82F6",
+    pdfTemplate: "classic",
   };
   quotation.customer.name = null;
   quotation.quotation.notes = "   ";
