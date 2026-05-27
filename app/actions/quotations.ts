@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
+import { buildPublicAppPath } from "@/lib/app-url";
+import { formatCurrencyAmount, formatDateOnly } from "@/lib/formatting";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
-import { requireUser } from "@/lib/profile";
+import { getProfile, requireUser } from "@/lib/profile";
+import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
+import { buildQuotationWhatsAppShareMessage } from "@/lib/whatsapp";
 import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import {
   assertDraftQuotationMutationAllowed,
@@ -783,13 +787,20 @@ export async function deleteQuotationAction(quotationId: string) {
 export async function confirmQuotationWhatsappShareAction(quotationId: string) {
   const user = await requireUser();
   const supabase = await createClient();
+  let shareMessageContext: {
+    clientName: string | null;
+    total: number;
+    validUntil: string | null;
+  } | null = null;
 
   const result = await confirmQuotationWhatsappShare(
     {
       getQuotation: async (targetQuotationId) => {
         const { data, error } = await supabase
           .from("quotations")
-          .select("id, number, status, pdf_path, share_token, sent_at, client_id")
+          .select(
+            "id, number, status, pdf_path, share_token, sent_at, client_id, client_name, total, valid_until",
+          )
           .eq("id", targetQuotationId)
           .eq("user_id", user.id)
           .maybeSingle();
@@ -803,11 +814,12 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
         }
 
         let clientPhone: string | null = null;
+        let linkedClientName: string | null = null;
 
         if (data.client_id) {
           const { data: clientData, error: clientError } = await supabase
             .from("clients")
-            .select("phone")
+            .select("phone, name")
             .eq("id", data.client_id)
             .eq("user_id", user.id)
             .maybeSingle();
@@ -817,7 +829,24 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
           }
 
           clientPhone = clientData?.phone ?? null;
+          linkedClientName = clientData?.name ?? null;
         }
+
+        const clientName =
+          typeof data.client_name === "string" && data.client_name.trim()
+            ? data.client_name.trim()
+            : linkedClientName?.trim() || null;
+        const total =
+          typeof data.total === "number"
+            ? data.total
+            : Number(data.total ?? 0) || 0;
+
+        shareMessageContext = {
+          clientName,
+          total,
+          validUntil:
+            typeof data.valid_until === "string" ? data.valid_until : null,
+        };
 
         return {
           id: data.id,
@@ -860,5 +889,30 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
 
   revalidateQuotationViews();
 
-  return result;
+  const profile = await getProfile(user.id);
+  const shareUrl = buildPublicAppPath(result.sharePath);
+  const messageContext = shareMessageContext ?? {
+    clientName: null,
+    total: 0,
+    validUntil: null,
+  };
+  const whatsappText = buildQuotationWhatsAppShareMessage({
+    clientName: messageContext.clientName,
+    businessName: profile?.business_name?.trim() || "Cotizapp",
+    quotationNumber: result.quotationNumber,
+    totalLabel: formatCurrencyAmount(
+      messageContext.total,
+      profile?.currency ?? "ARS",
+    ),
+    validUntilLabel: formatDateOnly(
+      sanitizeQuotationValidityDate(messageContext.validUntil),
+    ),
+    shareUrl,
+  });
+
+  return {
+    ...result,
+    shareUrl,
+    whatsappText,
+  };
 }

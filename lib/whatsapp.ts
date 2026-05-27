@@ -69,3 +69,50 @@ export function buildWhatsAppShareHref(input: {
     ? `https://wa.me/${normalizedPhone}?text=${encodedText}`
     : `https://wa.me/?text=${encodedText}`;
 }
+
+export function formatShortQuotationNumber(quotationNumber: string) {
+  const trimmedNumber = quotationNumber.trim();
+
+  if (!trimmedNumber) {
+    return "COT-#000";
+  }
+
+  const segments = trimmedNumber.split("-").filter(Boolean);
+
+  if (segments.length >= 2) {
+    const prefix = segments[0]?.toUpperCase() ?? "COT";
+    const suffix = segments[segments.length - 1]?.toUpperCase() ?? "000";
+    return `${prefix}-#${suffix}`;
+  }
+
+  return trimmedNumber.toUpperCase();
+}
+
+export type QuotationWhatsAppShareMessageInput = {
+  clientName: string | null;
+  businessName: string;
+  quotationNumber: string;
+  totalLabel: string;
+  validUntilLabel: string;
+  shareUrl: string;
+};
+
+export function buildQuotationWhatsAppShareMessage(
+  input: QuotationWhatsAppShareMessageInput,
+) {
+  const trimmedClientName = input.clientName?.trim();
+  const trimmedBusinessName = input.businessName.trim() || "Cotizapp";
+  const shortNumber = formatShortQuotationNumber(input.quotationNumber);
+  const greeting = trimmedClientName ? `Hola ${trimmedClientName}! 👋\n\n` : "";
+
+  return `${greeting}Te comparto la cotización de ${trimmedBusinessName}:
+
+📄 *${shortNumber}*
+💰 Total: *${input.totalLabel}*
+📅 Válida hasta: *${input.validUntilLabel}*
+
+👉 Ver y descargar: ${input.shareUrl}
+
+Cualquier consulta estoy disponible.
+_${trimmedBusinessName}_`;
+}

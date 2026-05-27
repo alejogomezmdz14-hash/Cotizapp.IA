@@ -128,10 +128,9 @@ export function QuotationShareActions({
 
     try {
       const result = await confirmQuotationWhatsappShareAction(quotationId);
-      const shareUrl = buildPublicAppPath(result.sharePath);
       const whatsappHref = buildWhatsAppShareHref({
         phone: normalizedPhone,
-        text: `Hola, te comparto la cotización ${result.quotationNumber}. Podés verla aquí: ${shareUrl}`,
+        text: result.whatsappText,
       });
 
       setShareToken(result.shareToken);
