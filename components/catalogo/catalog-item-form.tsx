@@ -106,7 +106,7 @@ export function CatalogItemForm({
             id={`${fieldId}-category`}
             name="category"
             list={`${fieldId}-category-suggestions`}
-            placeholder="Ej. Materiales"
+            placeholder="Elegí o escribí una categoría"
             defaultValue={initialValues?.category ?? ""}
             disabled={isSubmitting}
           />
@@ -123,7 +123,7 @@ export function CatalogItemForm({
             id={`${fieldId}-unit`}
             name="unit"
             list={`${fieldId}-unit-suggestions`}
-            placeholder="Ej. bolsa, m2, unidad"
+            placeholder="Elegí o escribí una unidad"
             defaultValue={initialValues?.unit ?? ""}
             disabled={isSubmitting}
           />

@@ -1,14 +1,10 @@
+import {
+  PREDEFINED_CATALOG_CATEGORIES,
+  PREDEFINED_CATALOG_UNITS,
+} from "@/lib/catalog-presets";
 import type { CatalogItem } from "@/types";
 
-export const DEFAULT_CATALOG_UNITS = [
-  "hora",
-  "kg",
-  "m²",
-  "unidad",
-  "caja",
-  "litro",
-  "metro",
-] as const;
+export const DEFAULT_CATALOG_UNITS = PREDEFINED_CATALOG_UNITS;
 
 function getUniqueSortedValues(values: Array<string | null | undefined>) {
   return Array.from(
@@ -21,7 +17,10 @@ function getUniqueSortedValues(values: Array<string | null | undefined>) {
 }
 
 export function getCatalogCategorySuggestions(items: CatalogItem[]) {
-  return getUniqueSortedValues(items.map((item) => item.category));
+  return getUniqueSortedValues([
+    ...PREDEFINED_CATALOG_CATEGORIES,
+    ...items.map((item) => item.category),
+  ]);
 }
 
 export function getCatalogUnitSuggestions(items: CatalogItem[]) {

@@ -7,18 +7,21 @@ import { Plus } from "lucide-react";
 import { ExpenseFormSheet } from "@/components/gastos/expense-form-sheet";
 import { ExpenseKpis } from "@/components/gastos/expense-kpis";
 import { ExpenseList } from "@/components/gastos/expense-list";
+import { ExpensePeriodSelector } from "@/components/gastos/expense-period-selector";
 import { Button } from "@/components/ui/button";
 import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import type { ExpenseMonthGroup, ExpenseMonthStats } from "@/types";
 
 type GastosPageClientProps = {
   monthGroups: ExpenseMonthGroup[];
+  selectedMonthKey: string;
   stats: ExpenseMonthStats;
   defaultCurrency: string;
 };
 
 export function GastosPageClient({
   monthGroups,
+  selectedMonthKey,
   stats,
   defaultCurrency,
 }: GastosPageClientProps) {
@@ -46,9 +49,21 @@ export function GastosPageClient({
         </Button>
       </section>
 
+      <ExpensePeriodSelector
+        monthGroups={
+          monthGroups.length > 0
+            ? monthGroups
+            : [{ monthKey: selectedMonthKey, monthLabel: selectedMonthKey, expenses: [] }]
+        }
+        selectedMonthKey={selectedMonthKey}
+      />
+
       <ExpenseKpis stats={stats} />
 
-      <ExpenseList monthGroups={monthGroups} defaultCurrency={currency} />
+      <ExpenseList
+        monthGroups={monthGroups.filter((group) => group.monthKey === selectedMonthKey)}
+        defaultCurrency={currency}
+      />
 
       <ExpenseFormSheet
         open={isCreateOpen}

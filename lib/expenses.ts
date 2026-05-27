@@ -1,5 +1,6 @@
 import { isExpenseCategory } from "@/lib/expense-categories";
 import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
+import { formatMonthLabel } from "@/lib/formatting";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Expense,
@@ -62,19 +63,20 @@ function getMonthKeyFromDate(dateValue: string) {
   return dateValue.slice(0, 7);
 }
 
-function formatMonthLabel(monthKey: string) {
+function getMonthBoundsFromKey(monthKey: string) {
   const [year, month] = monthKey.split("-").map(Number);
 
   if (!year || !month) {
-    return monthKey;
+    return getMonthBoundsUtc();
   }
 
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  return new Intl.DateTimeFormat("es-AR", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const nextMonthStart = new Date(Date.UTC(year, month, 1));
+
+  return {
+    monthStart: monthStart.toISOString().slice(0, 10),
+    nextMonthStart: nextMonthStart.toISOString().slice(0, 10),
+  };
 }
 
 export function parseExpenseAmountInput(value: string) {
@@ -186,9 +188,14 @@ export async function getExpensesByMonth(userId: string): Promise<ExpenseMonthGr
     }));
 }
 
-export async function getExpenseStats(userId: string): Promise<ExpenseMonthStats> {
+export async function getExpenseStatsForMonth(
+  userId: string,
+  monthKey?: string,
+): Promise<ExpenseMonthStats> {
   const supabase = await createClient();
-  const { monthStart, nextMonthStart } = getMonthBoundsUtc();
+  const { monthStart, nextMonthStart } = monthKey
+    ? getMonthBoundsFromKey(monthKey)
+    : getMonthBoundsUtc();
 
   const { data, error } = await supabase
     .from("expenses")
@@ -232,7 +239,7 @@ export async function getExpenseStats(userId: string): Promise<ExpenseMonthStats
 export async function getExpenseMonthStats(
   userId: string,
 ): Promise<ExpenseMonthStats> {
-  return getExpenseStats(userId);
+  return getExpenseStatsForMonth(userId);
 }
 
 export async function getAcceptedQuotedThisMonth(): Promise<number> {
