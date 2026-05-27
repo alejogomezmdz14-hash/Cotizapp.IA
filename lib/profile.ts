@@ -35,11 +35,20 @@ const SUPPORTED_PROFILE_CURRENCIES = new Set([
 ]);
 
 export function isProfileComplete(profile: Profile | null) {
-  return Boolean(
-    profile?.business_name?.trim() &&
-      profile?.industry?.trim() &&
-      profile?.logo_onboarding_completed,
+  const hasBusinessBasics = Boolean(
+    profile?.business_name?.trim() && profile?.industry?.trim(),
   );
+
+  if (!hasBusinessBasics) {
+    return false;
+  }
+
+  if (typeof profile?.logo_onboarding_completed === "boolean") {
+    return profile.logo_onboarding_completed;
+  }
+
+  // Esquemas legacy sin la columna: no bloquear usuarios existentes.
+  return true;
 }
 
 function normalizeOptionalText(value: string | null | undefined) {
@@ -70,10 +79,19 @@ export async function requireUser() {
   return user;
 }
 
-const PROFILE_BASE_COLUMNS =
-  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed";
-const PROFILE_TAX_COLUMNS = `${PROFILE_BASE_COLUMNS}, tax_id`;
-const PROFILE_EXTENDED_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer`;
+const PROFILE_LEGACY_COLUMNS =
+  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
+const PROFILE_TAX_COLUMNS = `${PROFILE_LEGACY_COLUMNS}, tax_id`;
+const PROFILE_PDF_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer`;
+const PROFILE_PERSONAL_COLUMNS = `${PROFILE_PDF_COLUMNS}, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed`;
+const PROFILE_EXTENDED_COLUMNS = PROFILE_PERSONAL_COLUMNS;
+
+const PROFILE_SELECT_FALLBACKS = [
+  PROFILE_EXTENDED_COLUMNS,
+  PROFILE_PDF_COLUMNS,
+  PROFILE_TAX_COLUMNS,
+  PROFILE_LEGACY_COLUMNS,
+] as const;
 
 async function fetchProfileRow(
   userId: string,
@@ -93,34 +111,32 @@ async function fetchProfileRow(
   return (data as Profile | null) ?? null;
 }
 
-export async function getProfile(userId: string): Promise<Profile | null> {
-  try {
-    return await fetchProfileRow(userId, PROFILE_EXTENDED_COLUMNS);
-  } catch {
+async function fetchProfileWithFallback(userId: string) {
+  for (const columns of PROFILE_SELECT_FALLBACKS) {
     try {
-      return await fetchProfileRow(userId, PROFILE_TAX_COLUMNS);
+      return await fetchProfileRow(userId, columns);
     } catch {
-      try {
-        return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
-      } catch {
-        throw new Error("No se pudo cargar el perfil.");
-      }
+      continue;
     }
   }
+
+  return null;
+}
+
+export async function getProfile(userId: string): Promise<Profile | null> {
+  const profile = await fetchProfileWithFallback(userId);
+
+  if (!profile) {
+    throw new Error("No se pudo cargar el perfil.");
+  }
+
+  return profile;
 }
 
 export async function getProfileForQuotation(
   userId: string,
 ): Promise<Profile | null> {
-  try {
-    return await fetchProfileRow(userId, PROFILE_EXTENDED_COLUMNS);
-  } catch {
-    try {
-      return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
-    } catch {
-      return null;
-    }
-  }
+  return fetchProfileWithFallback(userId);
 }
 
 export function resolveProfileBranding(
