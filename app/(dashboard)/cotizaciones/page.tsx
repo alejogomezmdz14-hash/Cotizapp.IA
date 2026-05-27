@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
 
+import { QuotationListActions } from "@/components/cotizacion/quotation-list-actions";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +31,7 @@ function formatStatusLabel(value: string | null) {
     case "draft":
       return "Borrador";
     case "pending":
-      return "Pendiente";
+      return "Enviada";
     case "accepted":
       return "Aceptada";
     case "rejected":
@@ -372,13 +373,11 @@ export default async function QuotationsPage() {
                       />
                     ) : null}
 
-                    {reopenDraftHref ? (
-                      <div className="flex flex-wrap gap-3">
-                        <Button asChild variant="outline" className="bg-background/75">
-                          <Link href={reopenDraftHref}>Reabrir borrador</Link>
-                        </Button>
-                      </div>
-                    ) : null}
+                    <QuotationListActions
+                      quotationId={quotation.id}
+                      initialStatus={quotation.status}
+                      reopenHref={reopenDraftHref}
+                    />
                   </CardContent>
                 </Card>
               );

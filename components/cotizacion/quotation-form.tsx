@@ -167,6 +167,34 @@ export function QuotationForm({
     );
   }, [initialInvoiceScan]);
 
+  // This reset should only happen when the routed draft identity changes.
+  // Listening to the hydrated scan prop here would wipe manual edits after each scan refresh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (initialDraft) {
+      setSavedDraft(initialDraft);
+      return;
+    }
+
+    setClientMode(clients.length > 0 ? "existing" : "inline");
+    setSelectedClientId(getDefaultQuotationClientId(clients));
+    setInlineClient({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    });
+    setItems([]);
+    nextItemIdRef.current = 1;
+    setTaxRate(0);
+    setValidUntil("");
+    setNotes("");
+    setError(null);
+    setIsSubmitting(false);
+    setSavedDraft(null);
+    setInvoiceScanReview(initialInvoiceScan);
+  }, [clients, initialDraft?.quotationId]);
+
   function replaceCurrentEditorUrl(scanId: string | null) {
     router.replace(
       buildNewQuotationPageHref({

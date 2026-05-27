@@ -7,6 +7,7 @@ export type Profile = {
   email: string | null;
   address: string | null;
   currency: string | null;
+  pdf_footer?: string | null;
   theme: string | null;
   created_at: string | null;
 };
@@ -79,6 +80,7 @@ export type HydratedQuotationBranding = {
   email: string | null;
   address: string | null;
   currency: string | null;
+  pdfFooter: string | null;
 };
 
 export type HydratedQuotationCustomer = {

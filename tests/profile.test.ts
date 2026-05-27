@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildOnboardingProfileUpsertInput } from "../lib/profile";
+import {
+  buildBusinessProfileUpsertInput,
+  buildOnboardingProfileUpsertInput,
+} from "../lib/profile";
 
 test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not overwrite uploads", () => {
   const payload = buildOnboardingProfileUpsertInput({
@@ -25,4 +28,31 @@ test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not ov
     currency: "ARS",
   });
   assert.equal("logo_url" in payload, false);
+});
+
+test("buildBusinessProfileUpsertInput keeps logo and PDF footer when saving the business profile", () => {
+  const payload = buildBusinessProfileUpsertInput({
+    userId: "user-1",
+    businessName: "Corralon Centro",
+    industry: "Construccion",
+    phone: "2615551234",
+    email: "ventas@corralon.com",
+    fallbackEmail: "owner@corralon.com",
+    address: "Rodriguez Pena 3341",
+    currency: "ARS",
+    pdfFooter: "Precios sujetos a cambios sin previo aviso.",
+    logoPath: "user-1/logo/logo.png",
+  });
+
+  assert.deepEqual(payload, {
+    id: "user-1",
+    business_name: "Corralon Centro",
+    industry: "Construccion",
+    logo_url: "user-1/logo/logo.png",
+    phone: "2615551234",
+    email: "ventas@corralon.com",
+    address: "Rodriguez Pena 3341",
+    currency: "ARS",
+    pdf_footer: "Precios sujetos a cambios sin previo aviso.",
+  });
 });

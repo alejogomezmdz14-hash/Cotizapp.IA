@@ -20,14 +20,23 @@ import {
   publishQuotationSharePdfForUser,
   sanitizeDraftQuotationItems,
 } from "@/lib/quotations";
+import { buildSharedQuotationPdfPath } from "@/lib/storage/paths";
 import { removeFile, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
 import type { QuotationAttachment } from "@/types";
+
+const EDITABLE_QUOTATION_STATUSES = new Set([
+  "draft",
+  "pending",
+  "accepted",
+  "rejected",
+]);
 
 function revalidateQuotationViews() {
   revalidatePath("/cotizaciones");
   revalidatePath("/dashboard");
   revalidatePath("/cotizaciones/nueva");
+  revalidatePath("/perfil-empresa");
 }
 
 export async function createDraftQuotationAction(formData: FormData) {
@@ -351,6 +360,212 @@ export async function saveQuotationClientPhoneAction(
   return {
     clientPhone: clientData.phone ?? normalizedPhoneInput,
   };
+}
+
+export async function updateQuotationStatusAction(
+  quotationId: string,
+  nextStatus: string,
+) {
+  const user = await requireUser();
+  const normalizedStatus = normalizeQuotationStatus(nextStatus);
+
+  if (!normalizedStatus || !EDITABLE_QUOTATION_STATUSES.has(normalizedStatus)) {
+    throw new Error("Selecciona un estado valido para la cotizacion.");
+  }
+
+  const supabase = await createClient();
+  const { data: quotationData, error: quotationError } = await supabase
+    .from("quotations")
+    .select("id, sent_at")
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (quotationError || !quotationData) {
+    throw new Error("No se pudo cargar la cotizacion para actualizar el estado.");
+  }
+
+  const sentAt =
+    normalizedStatus === "draft"
+      ? null
+      : quotationData.sent_at ?? new Date().toISOString();
+  const { data, error } = await supabase
+    .from("quotations")
+    .update({
+      status: normalizedStatus,
+      sent_at: sentAt,
+    })
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .select("id, status, sent_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("No se pudo actualizar el estado de la cotizacion.");
+  }
+
+  revalidateQuotationViews();
+
+  return {
+    status: normalizeQuotationStatus(data.status),
+    sentAt: data.sent_at ?? null,
+  };
+}
+
+export async function duplicateQuotationAction(quotationId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data: quotationData, error: quotationError } = await supabase
+    .from("quotations")
+    .select(
+      "id, client_id, client_name, notes, subtotal, tax_rate, total, valid_until",
+    )
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (quotationError || !quotationData) {
+    throw new Error("No se pudo cargar la cotizacion a duplicar.");
+  }
+
+  const { data: itemRows, error: itemsError } = await supabase
+    .from("quotation_items")
+    .select("catalog_item_id, name, description, quantity, unit, unit_price")
+    .eq("quotation_id", quotationId)
+    .order("position", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (itemsError) {
+    throw new Error("No se pudieron cargar los items para duplicar la cotizacion.");
+  }
+
+  const duplicatedItems = (itemRows ?? []).map((item) => ({
+    catalogItemId: item.catalog_item_id,
+    name: item.name,
+    description: item.description,
+    quantity: Number(item.quantity ?? 0),
+    unit: item.unit,
+    unitPrice: Number(item.unit_price ?? 0),
+  }));
+
+  if (duplicatedItems.length === 0) {
+    throw new Error("La cotizacion no tiene items para duplicar.");
+  }
+
+  const totals = calculateQuotationTotals(
+    duplicatedItems.map((item) => ({
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    })),
+    Number(quotationData.tax_rate ?? 0),
+  );
+  const { data: duplicatedQuotation, error: duplicateError } = await supabase
+    .from("quotations")
+    .insert({
+      user_id: user.id,
+      client_id: quotationData.client_id,
+      client_name: quotationData.client_name,
+      number: buildQuotationNumber(),
+      status: DRAFT_QUOTATION_STATUS,
+      notes: quotationData.notes,
+      subtotal: totals.subtotal,
+      tax_rate: Number(quotationData.tax_rate ?? 0),
+      total: totals.total,
+      valid_until: quotationData.valid_until,
+      pdf_path: null,
+      pdf_generated_at: null,
+      share_token: null,
+      sent_at: null,
+    })
+    .select("id, number")
+    .single();
+
+  if (duplicateError || !duplicatedQuotation) {
+    throw new Error("No se pudo duplicar la cotizacion.");
+  }
+
+  const { error: duplicatedItemsError } = await supabase
+    .from("quotation_items")
+    .insert(buildQuotationItemInsertRows(duplicatedQuotation.id, duplicatedItems));
+
+  if (duplicatedItemsError) {
+    await supabase
+      .from("quotations")
+      .delete()
+      .eq("id", duplicatedQuotation.id)
+      .eq("user_id", user.id);
+    throw new Error("No se pudieron duplicar los items de la cotizacion.");
+  }
+
+  revalidateQuotationViews();
+
+  return {
+    quotationId: duplicatedQuotation.id,
+    number: duplicatedQuotation.number,
+  };
+}
+
+export async function deleteQuotationAction(quotationId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const [quotationResult, attachmentsResult] = await Promise.all([
+    supabase
+      .from("quotations")
+      .select("id, pdf_path, share_token")
+      .eq("id", quotationId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("quotation_attachments")
+      .select("file_path")
+      .eq("quotation_id", quotationId)
+      .eq("user_id", user.id),
+  ]);
+
+  if (quotationResult.error || !quotationResult.data) {
+    throw new Error("No se pudo cargar la cotizacion a eliminar.");
+  }
+
+  if (attachmentsResult.error) {
+    throw new Error("No se pudieron cargar los adjuntos de la cotizacion.");
+  }
+
+  const { data, error } = await supabase
+    .from("quotations")
+    .delete()
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .select("id");
+
+  if (error || (data?.length ?? 0) !== 1) {
+    throw new Error("No se pudo eliminar la cotizacion.");
+  }
+
+  const cleanupTasks = (attachmentsResult.data ?? []).map((attachment) =>
+    removeFile(STORAGE_BUCKETS.quotationAttachments, attachment.file_path).catch(
+      () => undefined,
+    ),
+  );
+
+  if (quotationResult.data.pdf_path) {
+    cleanupTasks.push(
+      removeFile(STORAGE_BUCKETS.quotationPdfs, quotationResult.data.pdf_path).catch(
+        () => undefined,
+      ),
+    );
+  }
+
+  if (quotationResult.data.share_token) {
+    cleanupTasks.push(
+      removeFile(
+        STORAGE_BUCKETS.quotationSharePdfs,
+        buildSharedQuotationPdfPath(user.id, quotationResult.data.share_token),
+      ).catch(() => undefined),
+    );
+  }
+
+  await Promise.allSettled(cleanupTasks);
+  revalidateQuotationViews();
 }
 
 export async function confirmQuotationWhatsappShareAction(quotationId: string) {

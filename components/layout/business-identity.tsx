@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ type BusinessIdentityProps = {
   nameClassName?: string;
   subtitleClassName?: string;
   nameElement?: "p" | "h1" | "h2";
+  avatarHref?: string | null;
 };
 
 export function getBusinessInitials(businessName: string | null) {
@@ -45,23 +47,33 @@ export function BusinessIdentity({
   nameClassName,
   subtitleClassName,
   nameElement = "p",
+  avatarHref = null,
 }: BusinessIdentityProps) {
   const displayName = businessName?.trim() || DEFAULT_BUSINESS_NAME;
   const NameTag = nameElement;
+  const avatarNode = (
+    <Avatar
+      className={cn(
+        "h-11 w-11 border border-token bg-surface-2",
+        avatarClassName,
+      )}
+    >
+      {logoUrl ? <AvatarImage src={logoUrl} alt={`Logo de ${displayName}`} /> : null}
+      <AvatarFallback className="bg-surface-2 text-sm font-semibold text-foreground">
+        {getBusinessInitials(displayName)}
+      </AvatarFallback>
+    </Avatar>
+  );
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <Avatar
-        className={cn(
-          "h-11 w-11 border border-token bg-surface-2",
-          avatarClassName,
-        )}
-      >
-        {logoUrl ? <AvatarImage src={logoUrl} alt={`Logo de ${displayName}`} /> : null}
-        <AvatarFallback className="bg-surface-2 text-sm font-semibold text-foreground">
-          {getBusinessInitials(displayName)}
-        </AvatarFallback>
-      </Avatar>
+      {avatarHref ? (
+        <Link href={avatarHref} aria-label="Abrir perfil de empresa">
+          {avatarNode}
+        </Link>
+      ) : (
+        avatarNode
+      )}
 
       <div className="min-w-0 flex-1">
         {subtitle ? (

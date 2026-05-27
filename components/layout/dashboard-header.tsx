@@ -25,6 +25,7 @@ export function DashboardHeader({
           nameClassName="text-lg"
           subtitleClassName="text-xs font-medium uppercase tracking-[0.18em]"
           nameElement="h1"
+          avatarHref="/perfil-empresa"
         />
 
         <div className="flex shrink-0 items-center gap-2 rounded-[1.4rem] border border-token bg-background/70 p-1.5 shadow-sm">

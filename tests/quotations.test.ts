@@ -825,6 +825,7 @@ test("hydrateCompleteQuotation returns a full business object with branding, cus
       email: "ventas@promat.com",
       address: "Rodriguez Pena 3341",
       currency: "ARS",
+      pdfFooter: null,
     },
     customer: {
       id: "client-1",

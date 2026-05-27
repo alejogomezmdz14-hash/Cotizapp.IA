@@ -28,6 +28,7 @@ export type QuotationPdfTemplateData = {
   generatedAtLabel: string;
   validUntilLabel: string;
   notes: string | null;
+  footerNote: string | null;
   logoDataUrl: string | null;
   taxRateLabel: string;
   subtotalLabel: string;
@@ -100,6 +101,7 @@ export function buildQuotationPdfTemplateData({
       sanitizeQuotationValidityDate(quotation.quotation.valid_until),
     ),
     notes: normalizeOptionalText(quotation.quotation.notes),
+    footerNote: normalizeOptionalText(quotation.branding.pdfFooter),
     logoDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
     subtotalLabel: formatCurrencyAmount(
@@ -350,6 +352,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  footerLeft: {
+    maxWidth: "70%",
+    gap: 2,
+  },
 });
 
 export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
@@ -482,7 +488,10 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
         </View>
 
         <View style={styles.footer}>
-          <Text>{data.businessName}</Text>
+          <View style={styles.footerLeft}>
+            <Text>{data.businessName}</Text>
+            {data.footerNote ? <Text>{data.footerNote}</Text> : null}
+          </View>
           <Text>Generado con Cotizapp</Text>
         </View>
       </Page>

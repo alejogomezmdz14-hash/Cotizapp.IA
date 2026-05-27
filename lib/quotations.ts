@@ -1332,7 +1332,9 @@ export async function getHydratedQuotation(
     getProfile: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at")
+        .select(
+          "id, business_name, industry, logo_url, phone, email, address, currency, pdf_footer, theme, created_at",
+        )
         .eq("id", userId)
         .maybeSingle();
 

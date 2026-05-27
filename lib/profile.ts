@@ -15,6 +15,11 @@ type OnboardingProfileUpsertInput = {
   currency: string;
 };
 
+type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
+  pdfFooter?: string | null;
+  logoPath?: string | null;
+};
+
 export function isProfileComplete(profile: Profile | null) {
   return Boolean(
     profile?.business_name?.trim() && profile?.industry?.trim(),
@@ -67,7 +72,13 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 export function resolveProfileBranding(
   profile: Pick<
     Profile,
-    "business_name" | "logo_url" | "phone" | "email" | "address" | "currency"
+    | "business_name"
+    | "logo_url"
+    | "phone"
+    | "email"
+    | "address"
+    | "currency"
+    | "pdf_footer"
   > | null,
 ): HydratedQuotationBranding {
   return {
@@ -78,6 +89,7 @@ export function resolveProfileBranding(
     email: normalizeOptionalText(profile?.email),
     address: normalizeOptionalText(profile?.address),
     currency: normalizeOptionalText(profile?.currency),
+    pdfFooter: normalizeOptionalText(profile?.pdf_footer),
   };
 }
 
@@ -110,13 +122,41 @@ export function buildOnboardingProfileUpsertInput({
   address,
   currency,
 }: OnboardingProfileUpsertInput) {
+  return buildBusinessProfileUpsertInput({
+    userId,
+    businessName,
+    industry,
+    phone,
+    email,
+    fallbackEmail,
+    address,
+    currency,
+    pdfFooter: undefined,
+    logoPath: undefined,
+  });
+}
+
+export function buildBusinessProfileUpsertInput({
+  userId,
+  businessName,
+  industry,
+  phone,
+  email,
+  fallbackEmail,
+  address,
+  currency,
+  pdfFooter,
+  logoPath,
+}: BusinessProfileUpsertInput) {
   return {
     id: userId,
     business_name: businessName,
     industry,
+    ...(logoPath !== undefined ? { logo_url: logoPath } : {}),
     phone,
     email: email ?? fallbackEmail ?? null,
     address,
     currency,
+    ...(pdfFooter !== undefined ? { pdf_footer: pdfFooter } : {}),
   };
 }

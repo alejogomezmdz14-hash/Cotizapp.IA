@@ -36,6 +36,7 @@ function createHydratedQuotation(): HydratedQuotation {
       email: "ventas@promat.com",
       address: "Rodriguez Pena 3341",
       currency: "ARS",
+      pdfFooter: "Precios sujetos a cambios sin previo aviso.",
     },
     customer: {
       id: "client-1",
@@ -108,6 +109,7 @@ test("resolveProfileBranding trims profile values for PDF generation", () => {
       email: "ventas@promat.com",
       address: "Rodriguez Pena 3341",
       currency: "ars",
+      pdfFooter: null,
     },
   );
 });
@@ -132,6 +134,7 @@ test("buildQuotationPdfTemplateData provides safe fallbacks and formatted line i
     email: null,
     address: null,
     currency: "ARS",
+    pdfFooter: null,
   };
   quotation.customer.name = null;
   quotation.quotation.notes = "   ";
