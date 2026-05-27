@@ -23,6 +23,7 @@ type QuotationSummaryProps = {
   validUntil: string;
   isSubmitting?: boolean;
   isSaved?: boolean;
+  saveDisabled?: boolean;
   quotationId?: string | null;
   draftNumber?: string | null;
   pdfGeneratedAt?: string | null;
@@ -44,6 +45,7 @@ export function QuotationSummary({
   validUntil,
   isSubmitting = false,
   isSaved = false,
+  saveDisabled = false,
   quotationId = null,
   draftNumber = null,
   pdfGeneratedAt = null,
@@ -165,8 +167,9 @@ export function QuotationSummary({
 
         <Button
           type="submit"
-          className="w-full bg-accent-token text-black hover:bg-accent-hover"
-          disabled={isSubmitting || isSaved || items.length === 0}
+          className="w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+          disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
+          aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
         >
           {isSubmitting
             ? "Guardando borrador..."

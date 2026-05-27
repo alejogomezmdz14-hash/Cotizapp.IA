@@ -31,6 +31,8 @@ import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
 import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
 import { markUnsavedDraft } from "@/lib/pending-tasks";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
+import { calculateQuotationTotals } from "@/lib/quotation-calculations";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import {
   getQuotationValidityBounds,
   getQuotationValidityPresetDate,
@@ -307,6 +309,15 @@ export function QuotationForm({
   const isFormLocked = isSubmitting || (Boolean(savedDraft) && !isEditingDraft);
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
   const isValidityInPast = Boolean(validUntil.trim()) && isQuotationPastValidity(validUntil);
+  const summaryTotals = useMemo(
+    () => calculateQuotationTotals(items, taxRate),
+    [items, taxRate],
+  );
+  const canSaveQuotation =
+    items.length > 0 &&
+    !isValidityInPast &&
+    !isFormLocked &&
+    !(Boolean(savedDraft) && !isEditingDraft);
   const selectedExistingClientName =
     clients.find((client) => client.id === selectedClientId)?.name ?? null;
   const clientSnapshotLabel =
@@ -517,8 +528,12 @@ export function QuotationForm({
       return;
     }
 
-    if (items.length === 0) {
-      setError("Agrega al menos un ítem a la cotización antes de guardarla.");
+    if (!canSaveQuotation) {
+      if (items.length === 0) {
+        setError("Agrega al menos un ítem a la cotización antes de guardarla.");
+      } else if (isValidityInPast) {
+        setError("La fecha de validez no puede estar en el pasado.");
+      }
       return;
     }
 
@@ -616,7 +631,23 @@ export function QuotationForm({
   }
 
   return (
-    <form className="space-y-5 lg:space-y-6" onSubmit={handleSubmit}>
+    <form className="relative space-y-5 pb-24 lg:space-y-6 lg:pb-0" onSubmit={handleSubmit}>
+      <div className="fixed inset-x-0 top-0 z-30 border-b border-token/80 bg-background/95 px-4 py-3 backdrop-blur xl:hidden">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Total estimado
+            </p>
+            <p className="text-lg font-semibold text-foreground">
+              {formatCurrencyAmount(summaryTotals.total, currency)}
+            </p>
+          </div>
+          <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground">
+            {items.length} ítem{items.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
+      <div className="h-14 xl:hidden" aria-hidden />
       {isEditingDraft ? (
         <input
           type="hidden"
@@ -1079,7 +1110,8 @@ export function QuotationForm({
             taxRate={taxRate}
             validUntil={validUntil}
             isSubmitting={isSubmitting}
-            isSaved={Boolean(currentDraft)}
+            isSaved={Boolean(savedDraft) && !isEditingDraft}
+            saveDisabled={!canSaveQuotation}
             quotationId={currentDraft?.quotationId ?? null}
             draftNumber={currentDraft?.number ?? null}
             pdfGeneratedAt={currentDraft?.pdfGeneratedAt ?? null}

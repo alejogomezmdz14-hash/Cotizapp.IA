@@ -16,7 +16,9 @@ import {
   updateCatalogItemAction,
 } from "@/app/actions/catalog";
 import { CatalogItemForm } from "@/components/catalogo/catalog-item-form";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { useDebouncedSearchParam } from "@/hooks/use-debounced-search-param";
 import {
   Card,
   CardContent,
@@ -56,9 +58,15 @@ export function CatalogTable({
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { value: searchValue, setValue: setSearchValue, clearValue, normalizedValue } =
+    useDebouncedSearchParam();
 
-  const normalizedSearch = search.trim();
+  const normalizedSearch = normalizedValue || search.trim();
   const resultLabel = useMemo(() => {
     if (items.length === 1) {
       return "1 ítem";
@@ -67,15 +75,19 @@ export function CatalogTable({
     return `${items.length} ítems`;
   }, [items.length]);
 
-  async function handleDelete(id: string) {
-    const confirmed = window.confirm(
-      "Esta acción eliminará el ítem del catálogo de forma permanente. ¿Querés continuar?",
-    );
+  function requestDelete(item: CatalogItem) {
+    setPendingDelete({
+      id: item.id,
+      name: formatDisplayName(item.name),
+    });
+  }
 
-    if (!confirmed) {
+  async function confirmDelete() {
+    if (!pendingDelete) {
       return;
     }
 
+    const { id } = pendingDelete;
     setActionError(null);
     setDeletingId(id);
 
@@ -89,6 +101,7 @@ export function CatalogTable({
         title: "Ítem eliminado",
         description: "El ítem ya no figura en el catálogo.",
       });
+      setPendingDelete(null);
     } catch (error) {
       setActionError(getErrorMessage(error));
     } finally {
@@ -120,32 +133,28 @@ export function CatalogTable({
             </div>
           </div>
 
-          <form action="/catalogo" method="get" className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                name="search"
-                defaultValue={search}
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Buscar por nombre, descripción, categoría o unidad"
                 className="pl-9"
+                aria-label="Buscar en catálogo"
               />
             </div>
-            <Button type="submit" variant="outline" className="border-token bg-background">
-              Buscar
-            </Button>
             {normalizedSearch ? (
               <Button
                 type="button"
                 variant="ghost"
                 className="text-muted-foreground"
-                onClick={() => {
-                  window.location.href = "/catalogo";
-                }}
+                onClick={clearValue}
               >
                 Limpiar
               </Button>
             ) : null}
-          </form>
+          </div>
         </CardHeader>
       </Card>
 
@@ -217,7 +226,7 @@ export function CatalogTable({
                           type="button"
                           variant="destructive"
                           onClick={() => {
-                            void handleDelete(item.id);
+                            requestDelete(item);
                           }}
                           disabled={isDeleting}
                         >
@@ -293,6 +302,22 @@ export function CatalogTable({
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Eliminar ítem del catálogo"
+        description={
+          pendingDelete
+            ? `¿Eliminar "${pendingDelete.name}"? Esta acción no se puede deshacer.`
+            : ""
+        }
+        confirmLabel="Eliminar ítem"
+        isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          void confirmDelete();
+        }}
+      />
     </section>
   );
 }

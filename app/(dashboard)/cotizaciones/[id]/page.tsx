@@ -22,7 +22,7 @@ import {
 } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { getProfile, requireUser } from "@/lib/profile";
-import { isQuotationPastValidity } from "@/lib/quotation-expiry";
+import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { getQuotationSignaturePreviewUrl } from "@/lib/quotation-signatures";
 import {
   buildQuotationStatusHistory,
@@ -99,7 +99,10 @@ export default async function QuotationDetailPage({
   );
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
   const canEditDraft = Boolean(reopenDraftHref);
-  const isExpired = isQuotationPastValidity(quotation.valid_until);
+  const isExpired = shouldDisplayQuotationAsExpired(
+    quotation.valid_until,
+    quotation.status,
+  );
   const statusHistoryLine = formatQuotationStatusHistoryLine(
     buildQuotationStatusHistory({
       status: quotation.status,

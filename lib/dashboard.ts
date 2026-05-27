@@ -1,6 +1,6 @@
 import {
+  getCollectedThisMonth,
   getDashboardMonthlyComparison,
-  getInvoicedThisMonth,
 } from "@/lib/dashboard-monthly";
 import {
   getAcceptedQuotedThisMonth,
@@ -37,7 +37,7 @@ export const EMPTY_DASHBOARD_STATS: DashboardStats = {
   expensesThisMonth: 0,
   expensesByCurrency: [],
   acceptedQuotedThisMonth: 0,
-  invoicedThisMonth: 0,
+  collectedThisMonth: 0,
   netProfitThisMonth: 0,
   canCalculateNetProfit: false,
   monthlyComparison: [],
@@ -115,15 +115,33 @@ async function getDashboardQuotationMetricsFallback(userId: string) {
     const status = row.status?.trim().toLowerCase() ?? "";
     const createdAt = row.created_at ? Date.parse(row.created_at) : Number.NaN;
 
-    if (row.sent_at) {
+    const sentAt = row.sent_at ? Date.parse(row.sent_at) : Number.NaN;
+    const isSentThisMonth =
+      Number.isFinite(sentAt) &&
+      sentAt >= monthStartMs &&
+      sentAt < nextMonthStartMs &&
+      (status === "pending" || status === "sent");
+
+    if (isSentThisMonth) {
       sentQuotations += 1;
     }
 
-    if (status === "accepted" || status === "approved") {
+    if (
+      (status === "accepted" || status === "approved") &&
+      Number.isFinite(createdAt) &&
+      createdAt >= monthStartMs &&
+      createdAt < nextMonthStartMs
+    ) {
       acceptedQuotations += 1;
     }
 
-    if (status === "pending" || status === "sent") {
+    if (
+      (status === "pending" || status === "sent") &&
+      Number.isFinite(createdAt) &&
+      createdAt >= monthStartMs &&
+      createdAt < nextMonthStartMs &&
+      !row.sent_at
+    ) {
       pendingQuotations += 1;
     }
 
@@ -158,7 +176,7 @@ export async function getDashboardStats(
     catalogItemsResult,
     expenseMonthStats,
     acceptedQuotedThisMonth,
-    invoicedThisMonth,
+    collectedThisMonth,
     monthlyComparison,
   ] = await Promise.all([
     supabase.rpc("get_dashboard_quotation_metrics").single(),
@@ -177,7 +195,7 @@ export async function getDashboardStats(
       topCategoryAmount: 0,
     })),
     getAcceptedQuotedThisMonth().catch(() => 0),
-    getInvoicedThisMonth(userId).catch(() => 0),
+    getCollectedThisMonth(userId).catch(() => 0),
     getDashboardMonthlyComparison(userId).catch(() => []),
   ]);
 
@@ -227,7 +245,7 @@ export async function getDashboardStats(
     expensesThisMonth,
     expensesByCurrency,
     acceptedQuotedThisMonth,
-    invoicedThisMonth,
+    collectedThisMonth,
     netProfitThisMonth,
     canCalculateNetProfit,
     monthlyComparison,

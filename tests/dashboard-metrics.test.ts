@@ -96,7 +96,7 @@ test("parseDashboardQuotationMetricsRow falls back to zero for invalid rpc value
 test("dashboard metrics migration derives tenant scope from auth.uid and preserves legacy aliases", async () => {
   const source = await readFile(
     new URL(
-      "../supabase/migrations/20260526_add_dashboard_quotation_metrics_rpc.sql",
+      "../supabase/migrations/20260531_fix_dashboard_sent_metrics.sql",
       import.meta.url,
     ),
     "utf8",
@@ -109,4 +109,5 @@ test("dashboard metrics migration derives tenant scope from auth.uid and preserv
   assert.match(source, /auth\.uid\(\)/i);
   assert.match(source, /'accepted'\s*,\s*'approved'/i);
   assert.match(source, /'pending'\s*,\s*'sent'/i);
+  assert.match(source, /quotations\.sent_at >= current_user_context\.month_start/i);
 });

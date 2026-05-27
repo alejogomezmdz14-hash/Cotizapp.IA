@@ -13,6 +13,17 @@ export function isQuotationPastValidity(validUntil: string | null | undefined) {
   return normalizedDate < todayOnly;
 }
 
+export function shouldDisplayQuotationAsExpired(
+  validUntil: string | null | undefined,
+  status: string | null | undefined,
+) {
+  if (isQuotationPastValidity(validUntil)) {
+    return true;
+  }
+
+  return status?.trim().toLowerCase() === "expired";
+}
+
 export function getDefaultQuotationValidityDate(fromDate = new Date()) {
   const validUntil = new Date(fromDate);
   validUntil.setDate(validUntil.getDate() + 30);

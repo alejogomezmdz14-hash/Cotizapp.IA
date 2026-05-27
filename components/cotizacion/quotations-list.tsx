@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrencyAmount, formatDateOnly, formatDateTime } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
-import { isQuotationPastValidity } from "@/lib/quotation-expiry";
+import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import { getDraftQuotationEditorHref } from "@/lib/quotation-editor-links";
 import { isDraftQuotationStatus } from "@/lib/quotation-status";
@@ -181,7 +181,10 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
             </thead>
             <tbody>
               {filteredQuotations.map((quotation) => {
-                const isExpired = isQuotationPastValidity(quotation.valid_until);
+                const isExpired = shouldDisplayQuotationAsExpired(
+                  quotation.valid_until,
+                  quotation.status,
+                );
                 const detailHref = `/cotizaciones/${quotation.id}`;
 
                 return (
@@ -243,7 +246,10 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
             const canShareQuotation =
               isDraftQuotationStatus(quotation.status) ||
               quotation.status === "pending";
-            const isExpired = isQuotationPastValidity(quotation.valid_until);
+            const isExpired = shouldDisplayQuotationAsExpired(
+              quotation.valid_until,
+              quotation.status,
+            );
             const detailHref = `/cotizaciones/${quotation.id}`;
 
             return (

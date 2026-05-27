@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Mail, MapPin, Pencil, Phone, Search, Trash2, Users } from "lucide-react";
 
+import { useDebouncedSearchParam } from "@/hooks/use-debounced-search-param";
+
 import {
   deleteClientAction,
   getClientQuotationCountAction,
@@ -60,11 +62,14 @@ export function ClientList({ clients, search }: ClientListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
+    name: string;
     quotationCount: number;
   } | null>(null);
+  const { value: searchValue, setValue: setSearchValue, clearValue, normalizedValue } =
+    useDebouncedSearchParam();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const normalizedSearch = search.trim();
+  const normalizedSearch = normalizedValue || search.trim();
   const resultLabel = useMemo(() => {
     if (clients.length === 1) {
       return "1 cliente";
@@ -73,11 +78,12 @@ export function ClientList({ clients, search }: ClientListProps) {
     return `${clients.length} clientes`;
   }, [clients.length]);
 
-  async function requestDelete(id: string) {
+  async function requestDelete(client: Client) {
     try {
-      const impact = await getClientQuotationCountAction(id);
+      const impact = await getClientQuotationCountAction(client.id);
       setPendingDelete({
-        id,
+        id: client.id,
+        name: formatDisplayName(client.name),
         quotationCount: impact.quotationCount,
       });
     } catch (error) {
@@ -129,32 +135,28 @@ export function ClientList({ clients, search }: ClientListProps) {
             </span>
           </div>
 
-          <form action="/clientes" method="get" className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                name="search"
-                defaultValue={search}
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Buscar por nombre, email o teléfono"
                 className="pl-9"
+                aria-label="Buscar clientes"
               />
             </div>
-            <Button type="submit" variant="outline" className="border-token bg-background">
-              Buscar
-            </Button>
             {normalizedSearch ? (
               <Button
                 type="button"
                 variant="ghost"
                 className="text-muted-foreground"
-                onClick={() => {
-                  window.location.href = "/clientes";
-                }}
+                onClick={clearValue}
               >
                 Limpiar
               </Button>
             ) : null}
-          </form>
+          </div>
         </CardHeader>
       </Card>
 
@@ -226,7 +228,7 @@ export function ClientList({ clients, search }: ClientListProps) {
                           type="button"
                           variant="destructive"
                           onClick={() => {
-                            void requestDelete(client.id);
+                            void requestDelete(client);
                           }}
                           disabled={isDeleting}
                         >
@@ -296,13 +298,15 @@ export function ClientList({ clients, search }: ClientListProps) {
         open={Boolean(pendingDelete)}
         title="Eliminar cliente"
         description={
-          pendingDelete && pendingDelete.quotationCount > 0
-            ? `Este cliente tiene ${pendingDelete.quotationCount} cotización${
-                pendingDelete.quotationCount === 1 ? "" : "es"
-              } asociada${
-                pendingDelete.quotationCount === 1 ? "" : "s"
-              }. Si lo eliminás, el historial puede quedar inconsistente.`
-            : "Esta acción eliminará el cliente de forma permanente."
+          pendingDelete
+            ? pendingDelete.quotationCount > 0
+              ? `¿Eliminar a ${pendingDelete.name}? Tiene ${pendingDelete.quotationCount} cotización${
+                  pendingDelete.quotationCount === 1 ? "" : "es"
+                } asociada${
+                  pendingDelete.quotationCount === 1 ? "" : "s"
+                }. Si lo eliminás, el historial puede quedar inconsistente.`
+              : `¿Eliminar a ${pendingDelete.name}? Esta acción no se puede deshacer.`
+            : ""
         }
         confirmLabel="Eliminar cliente"
         isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
