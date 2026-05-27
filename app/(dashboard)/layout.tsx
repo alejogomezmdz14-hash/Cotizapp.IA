@@ -18,7 +18,10 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const branding = await resolveDashboardBranding(profile);
+  const branding = await resolveDashboardBranding(profile).catch(() => ({
+    businessName: profile?.business_name ?? null,
+    logoUrl: null,
+  }));
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">

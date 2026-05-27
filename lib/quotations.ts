@@ -31,6 +31,11 @@ import {
   STORAGE_BUCKETS,
   uploadFile,
 } from "@/lib/storage/server";
+import {
+  fetchUserQuotationById,
+  fetchUserQuotations,
+  normalizeQuotationListRow,
+} from "@/lib/quotation-select";
 import { createClient } from "@/lib/supabase/server";
 import {
   normalizePhoneForWhatsApp,
@@ -1345,22 +1350,7 @@ export async function getHydratedQuotation(
   const storageModule = await import("@/lib/storage/server");
 
   return hydrateCompleteQuotation({
-    getQuotation: async () => {
-      const { data, error } = await supabase
-        .from("quotations")
-        .select(
-          "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, paid_at, signature_url, created_at",
-        )
-        .eq("id", quotationId)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error("No se pudo cargar la cotización.");
-      }
-
-      return (data as QuotationRow | null) ?? null;
-    },
+    getQuotation: async () => fetchUserQuotationById(userId, quotationId),
     getProfile: async () => {
       const { getProfileForQuotation } = await import("@/lib/profile");
       return getProfileForQuotation(userId);
@@ -1407,20 +1397,5 @@ export async function getHydratedQuotation(
 }
 
 export async function getQuotations(userId: string): Promise<Quotation[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("quotations")
-    .select(
-      "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, paid_at, signature_url, created_at",
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error("No se pudieron cargar las cotizaciones.");
-  }
-
-  return ((data ?? []) as QuotationRow[]).map((quotation) =>
-    normalizeQuotationRow(quotation),
-  );
+  return fetchUserQuotations(userId);
 }

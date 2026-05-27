@@ -24,6 +24,18 @@ const EMPTY_DASHBOARD_QUOTATION_METRICS: DashboardQuotationMetrics = {
   pendingQuotations: 0,
 };
 
+export const EMPTY_DASHBOARD_STATS: DashboardStats = {
+  quotations: 0,
+  clients: 0,
+  catalogItems: 0,
+  quotationMetrics: EMPTY_DASHBOARD_QUOTATION_METRICS,
+  expensesThisMonth: 0,
+  acceptedQuotedThisMonth: 0,
+  invoicedThisMonth: 0,
+  netProfitThisMonth: 0,
+  monthlyComparison: [],
+};
+
 function parseDashboardMoney(value: number | string | null | undefined) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
@@ -152,7 +164,17 @@ export async function getDashboardStats(
   ]);
 
   if (clientsResult.error || catalogItemsResult.error) {
-    throw new Error("No se pudo cargar el resumen del panel.");
+    return {
+      ...EMPTY_DASHBOARD_STATS,
+      quotationMetrics: quotationMetricsResult.error
+        ? (
+            await getDashboardQuotationMetricsFallback(userId)
+          ).quotationMetrics
+        : parseDashboardQuotationMetricsRow(
+            (quotationMetricsResult.data as DashboardQuotationMetricsRpcRow | null | undefined) ??
+              null,
+          ).quotationMetrics,
+    };
   }
 
   const quotationSummary = quotationMetricsResult.error

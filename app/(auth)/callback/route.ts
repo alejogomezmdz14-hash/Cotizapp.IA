@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isProfileComplete } from "@/lib/profile";
+import { getProfileForQuotation, isProfileComplete } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types";
 
@@ -33,15 +33,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const { data: existingProfile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    return NextResponse.redirect(loginUrl);
-  }
+  const existingProfile = await getProfileForQuotation(user.id);
 
   if (!existingProfile) {
     const { error: insertError } = await supabase.from("profiles").insert({

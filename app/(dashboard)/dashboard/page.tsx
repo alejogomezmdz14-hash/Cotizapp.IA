@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
-import { getDashboardStats } from "@/lib/dashboard";
+import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
@@ -56,9 +56,9 @@ function getStatusBadgeClassName(value: string | null) {
 export default async function DashboardPage() {
   const user = await requireUser();
   const [stats, profile, quotations] = await Promise.all([
-    getDashboardStats(user.id),
+    getDashboardStats(user.id).catch(() => EMPTY_DASHBOARD_STATS),
     getProfile(user.id),
-    getQuotations(user.id),
+    getQuotations(user.id).catch(() => []),
   ]);
   const { quotationMetricCards } = buildDashboardPageCards(
     stats,
