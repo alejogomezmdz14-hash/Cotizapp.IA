@@ -8,6 +8,13 @@ export type Profile = {
   email: string | null;
   address: string | null;
   currency: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  country?: string | null;
+  city?: string | null;
+  birth_date?: string | null;
+  avatar_url?: string | null;
+  logo_onboarding_completed?: boolean | null;
   pdf_footer?: string | null;
   theme: string | null;
   created_at: string | null;

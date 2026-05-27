@@ -4,6 +4,7 @@ import { BadgeCheck, Building2, Palette, PhoneCall } from "lucide-react";
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
 import { OnboardingForm } from "@/components/uploads/onboarding-form";
 import { getProfile, isProfileComplete, requireUser } from "@/lib/profile";
+import { OnboardingLogoStep } from "@/components/uploads/onboarding-logo-step";
 
 const onboardingHighlights = [
   {
@@ -23,13 +24,43 @@ const onboardingHighlights = [
   },
 ] as const;
 
-export default async function OnboardingPage() {
+type OnboardingPageProps = {
+  searchParams?: {
+    step?: string;
+  };
+};
+
+export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
   const user = await requireUser();
   const profile = await getProfile(user.id);
-  const logoState = await getProfileLogoUploadState(profile?.logo_url ?? null);
+
+  let step = searchParams?.step === "logo" ? "logo" : "business";
 
   if (isProfileComplete(profile)) {
     redirect("/dashboard");
+  }
+
+  const needsLogoStep =
+    Boolean(profile?.business_name?.trim() && profile?.industry?.trim()) &&
+    !profile?.logo_onboarding_completed;
+
+  if (step !== "logo" && needsLogoStep) {
+    step = "logo";
+  }
+
+  if (step === "logo") {
+    if (!profile?.business_name?.trim() || !profile?.industry?.trim()) {
+      redirect("/onboarding");
+    }
+
+    const logoState = await getProfileLogoUploadState(profile?.logo_url ?? null);
+
+    return (
+      <OnboardingLogoStep
+        currentLogoUrl={logoState?.previewUrl ?? null}
+        currentLogoPath={logoState?.logoPath ?? profile?.logo_url ?? null}
+      />
+    );
   }
 
   return (
@@ -100,8 +131,6 @@ export default async function OnboardingPage() {
               <OnboardingForm
                 profile={profile}
                 fallbackEmail={user.email ?? null}
-                currentLogoUrl={logoState?.previewUrl ?? null}
-                currentLogoPath={logoState?.logoPath ?? profile?.logo_url ?? null}
               />
             </div>
           </section>

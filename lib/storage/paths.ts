@@ -2,6 +2,10 @@ export function buildBusinessLogoPath(userId: string, fileName: string) {
   return `${userId}/logo/${fileName}`;
 }
 
+export function buildUserAvatarPath(userId: string, fileName: string) {
+  return `${userId}/avatar/${buildUniqueStorageFileName(fileName)}`;
+}
+
 function sanitizeStorageSegment(value: string, fallback: string) {
   const normalizedValue = value.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
 

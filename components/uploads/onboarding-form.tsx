@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Building2, CreditCard, Mail, Sparkles } from "lucide-react";
 
 import { saveOnboarding } from "@/app/actions/profile";
-import { LogoUploader } from "@/components/uploads/logo-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,26 +11,14 @@ import type { Profile } from "@/types";
 type OnboardingFormProps = {
   profile: Profile | null;
   fallbackEmail: string | null;
-  currentLogoUrl: string | null;
-  currentLogoPath: string | null;
 };
 
 export function OnboardingForm({
   profile,
   fallbackEmail,
-  currentLogoUrl,
-  currentLogoPath,
 }: OnboardingFormProps) {
-  const [isLogoUploading, setIsLogoUploading] = useState(false);
-
   return (
     <form action={saveOnboarding} className="space-y-6">
-      <LogoUploader
-        currentLogoUrl={currentLogoUrl}
-        currentLogoPath={currentLogoPath}
-        onUploadStateChange={({ isUploading }) => setIsLogoUploading(isUploading)}
-      />
-
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           <Building2 className="h-3.5 w-3.5 text-accent-token" />
@@ -142,20 +128,12 @@ export function OnboardingForm({
           </div>
         </div>
 
-        {isLogoUploading ? (
-          <p className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-            Espera a que termine la carga del logo antes de guardar el onboarding.
-          </p>
-        ) : null}
-
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4 text-accent-token" />
-            Al guardar vas directo al panel principal.
+            Al guardar vas al siguiente paso para subir tu logo.
           </div>
-          <Button type="submit" disabled={isLogoUploading}>
-            Guardar y continuar
-          </Button>
+          <Button type="submit">Continuar</Button>
         </div>
       </div>
     </form>

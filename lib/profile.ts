@@ -20,6 +20,7 @@ type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
   taxId?: string | null;
   pdfFooter?: string | null;
   logoPath?: string | null;
+  logoOnboardingCompleted?: boolean;
 };
 
 const SUPPORTED_PROFILE_CURRENCIES = new Set([
@@ -35,7 +36,9 @@ const SUPPORTED_PROFILE_CURRENCIES = new Set([
 
 export function isProfileComplete(profile: Profile | null) {
   return Boolean(
-    profile?.business_name?.trim() && profile?.industry?.trim(),
+    profile?.business_name?.trim() &&
+      profile?.industry?.trim() &&
+      profile?.logo_onboarding_completed,
   );
 }
 
@@ -68,7 +71,7 @@ export async function requireUser() {
 }
 
 const PROFILE_BASE_COLUMNS =
-  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
+  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at, first_name, last_name, country, city, birth_date, avatar_url, logo_onboarding_completed";
 const PROFILE_TAX_COLUMNS = `${PROFILE_BASE_COLUMNS}, tax_id`;
 const PROFILE_EXTENDED_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer`;
 
@@ -184,6 +187,7 @@ export function buildOnboardingProfileUpsertInput({
     currency,
     pdfFooter: undefined,
     logoPath: undefined,
+    logoOnboardingCompleted: false,
   });
 }
 
@@ -209,6 +213,7 @@ export function buildBusinessProfileUpsertInput({
   taxId,
   pdfFooter,
   logoPath,
+  logoOnboardingCompleted,
 }: BusinessProfileUpsertInput) {
   return {
     id: userId,
@@ -221,5 +226,8 @@ export function buildBusinessProfileUpsertInput({
     address,
     currency: normalizeProfileCurrency(currency),
     ...(pdfFooter !== undefined ? { pdf_footer: pdfFooter } : {}),
+    ...(logoOnboardingCompleted !== undefined
+      ? { logo_onboarding_completed: logoOnboardingCompleted }
+      : {}),
   };
 }

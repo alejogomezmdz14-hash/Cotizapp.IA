@@ -25,6 +25,12 @@ type UploadedLogoResult = {
   previewUrl: string | null;
 };
 
+type UploadedAvatarResult = {
+  fileName: string;
+  avatarPath: string;
+  previewUrl: string | null;
+};
+
 type UploadedQuotationAttachmentResult = {
   id: string;
   quotationId: string;
@@ -192,6 +198,114 @@ export async function uploadLogoFromFormData(
     previewUrl: await buildSignedUrl(
       storageModule.STORAGE_BUCKETS.businessAssets,
       logoPath,
+    ),
+  };
+}
+
+export async function getProfileAvatarUploadState(
+  avatarPath: string | null,
+) {
+  if (!avatarPath) {
+    return null;
+  }
+
+  const { STORAGE_BUCKETS } = await import("@/lib/storage/server");
+  const previewUrl = await buildSignedUrl(STORAGE_BUCKETS.businessAssets, avatarPath);
+
+  if (!previewUrl) {
+    return null;
+  }
+
+  return {
+    avatarPath,
+    previewUrl,
+  };
+}
+
+export async function uploadAvatarFromFormData(
+  formData: FormData,
+): Promise<UploadedAvatarResult> {
+  const { file } = parseLogoUploadFormData(formData);
+  const [{ getCurrentUser }, { createClient }, storageModule, pathsModule] =
+    await Promise.all([
+      import("@/lib/profile"),
+      import("@/lib/supabase/server"),
+      import("@/lib/storage/server"),
+      import("@/lib/storage/paths"),
+    ]);
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new UploadActionError("Debes iniciar sesión para subir una foto.", 401);
+  }
+
+  const supabase = await createClient();
+
+  const { data: currentProfile, error: currentProfileError } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (currentProfileError) {
+    throw new UploadActionError(
+      "No se pudo preparar la carga de la foto.",
+      500,
+    );
+  }
+
+  const avatarPath = pathsModule.buildUserAvatarPath(user.id, file.name);
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: uploadError } = await supabase.storage
+    .from(storageModule.STORAGE_BUCKETS.businessAssets)
+    .upload(avatarPath, fileBuffer, {
+      contentType: file.type || undefined,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new UploadActionError("No se pudo subir la foto.", 500);
+  }
+
+  const previousAvatarPath = currentProfile?.avatar_url ?? null;
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        avatar_url: avatarPath,
+      },
+      {
+        onConflict: "id",
+      },
+    );
+
+  if (profileError) {
+    if (previousAvatarPath !== avatarPath) {
+      await storageModule.removeFile(
+        storageModule.STORAGE_BUCKETS.businessAssets,
+        avatarPath,
+      ).catch(() => undefined);
+    }
+
+    throw new UploadActionError("No se pudo asociar la foto al perfil.", 500);
+  }
+
+  if (previousAvatarPath && previousAvatarPath !== avatarPath) {
+    await storageModule.removeFile(
+      storageModule.STORAGE_BUCKETS.businessAssets,
+      previousAvatarPath,
+    ).catch(() => undefined);
+  }
+
+  return {
+    fileName: file.name,
+    avatarPath,
+    previewUrl: await buildSignedUrl(
+      storageModule.STORAGE_BUCKETS.businessAssets,
+      avatarPath,
     ),
   };
 }
