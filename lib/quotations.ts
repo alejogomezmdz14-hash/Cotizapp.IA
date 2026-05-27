@@ -12,6 +12,7 @@ import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import {
   sanitizeQuotationValidityDate,
   validateQuotationValidityDate,
+  normalizeDateOnlyString,
 } from "@/lib/quotation-validity";
 import {
   buildSharedQuotationPdfPath,
@@ -354,7 +355,7 @@ function parseNonNegativeDecimal(value: unknown) {
 
 function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
   if (typeof rawValue !== "string" || !rawValue.trim()) {
-    throw new Error("Completa los datos del cliente antes de guardar la cotizacion.");
+    throw new Error("Completa los datos del cliente antes de guardar la cotización.");
   }
 
   try {
@@ -362,7 +363,7 @@ function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
     const name = getOptionalStringValue(parsedValue.name);
 
     if (!name) {
-      throw new Error("Completa los datos del cliente antes de guardar la cotizacion.");
+      throw new Error("Completa los datos del cliente antes de guardar la cotización.");
     }
 
     return {
@@ -372,25 +373,25 @@ function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
       address: getOptionalStringValue(parsedValue.address),
     };
   } catch {
-    throw new Error("Completa los datos del cliente antes de guardar la cotizacion.");
+    throw new Error("Completa los datos del cliente antes de guardar la cotización.");
   }
 }
 
 function parseItemsPayload(rawValue: FormDataEntryValue | null) {
   const validationMessages = new Set([
-    "Agrega al menos un item a la cotizacion antes de guardarla.",
-    "Cada item necesita un concepto, una cantidad valida y un precio valido.",
+    "Agrega al menos un ítem a la cotización antes de guardarla.",
+    "Cada ítem necesita un concepto, una cantidad válida y un precio válido.",
   ]);
 
   if (typeof rawValue !== "string" || !rawValue.trim()) {
-    throw new Error("Agrega al menos un item a la cotizacion antes de guardarla.");
+    throw new Error("Agrega al menos un ítem a la cotización antes de guardarla.");
   }
 
   try {
     const parsedValue = JSON.parse(rawValue) as Array<Record<string, unknown>>;
 
     if (!Array.isArray(parsedValue) || parsedValue.length === 0) {
-      throw new Error("Agrega al menos un item a la cotizacion antes de guardarla.");
+      throw new Error("Agrega al menos un ítem a la cotización antes de guardarla.");
     }
 
     return parsedValue.map((item) => {
@@ -400,7 +401,7 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
 
       if (!name || quantity === null || unitPrice === null) {
         throw new Error(
-          "Cada item necesita un concepto, una cantidad valida y un precio valido.",
+          "Cada ítem necesita un concepto, una cantidad válida y un precio válido.",
         );
       }
 
@@ -418,7 +419,7 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
       throw error;
     }
 
-    throw new Error("No se pudieron leer los items de la cotizacion.");
+    throw new Error("No se pudieron leer los ítems de la cotización.");
   }
 }
 
@@ -426,7 +427,7 @@ function parseTaxRate(formData: FormData) {
   const parsedValue = parseNonNegativeDecimal(getStringValue(formData, "tax_rate"));
 
   if (parsedValue === null) {
-    throw new Error("Ingresa una tasa de impuesto valida.");
+    throw new Error("Ingresa una tasa de impuesto válida.");
   }
 
   return parsedValue;
@@ -444,7 +445,10 @@ function parseValidUntil(
     return null;
   }
 
-  const validityState = validateQuotationValidityDate(value, options);
+  const validityState = validateQuotationValidityDate(
+    value,
+    options,
+  );
 
   if (!validityState.valid) {
     if (validityState.reason === "past") {
@@ -452,13 +456,13 @@ function parseValidUntil(
     }
 
     if (validityState.reason === "too_far") {
-      throw new Error("La fecha de validez no puede superar 5 anos desde hoy.");
+      throw new Error("La fecha de validez no puede superar 5 años desde hoy.");
     }
 
-    throw new Error("Ingresa una fecha de validez valida.");
+    throw new Error("Ingresa una fecha de validez válida.");
   }
 
-  return value;
+  return normalizeDateOnlyString(value);
 }
 
 export function buildQuotationNumber(
@@ -568,7 +572,7 @@ export function parseQuotationFormData(
 
   if (!clientId) {
     throw new Error(
-      "Selecciona un cliente existente o crea uno nuevo dentro de la cotizacion.",
+      "Selecciona un cliente existente o crea uno nuevo dentro de la cotización.",
     );
   }
 
@@ -601,11 +605,11 @@ export function assertSingleQuotationRollbackMutation(
   }
 
   if (entity === "quotation") {
-    throw new Error("No se pudo revertir la cotizacion borrador.");
+    throw new Error("No se pudo revertir la cotización borrador.");
   }
 
   throw new Error(
-    "No se pudo eliminar el cliente temporal creado para la cotizacion.",
+    "No se pudo eliminar el cliente temporal creado para la cotización.",
   );
 }
 
@@ -619,7 +623,7 @@ export async function assertDraftQuotationMutationAllowed(
     return quotation;
   }
 
-  throw new Error("La cotizacion no existe, no te pertenece o ya no se puede modificar.");
+  throw new Error("La cotización no existe, no te pertenece o ya no se puede modificar.");
 }
 
 export async function persistDraftQuotation(
@@ -691,7 +695,7 @@ export async function persistDraftQuotation(
 
     const baseMessage = getErrorMessage(
       error,
-      "No se pudo guardar la cotizacion borrador.",
+      "No se pudo guardar la cotización borrador.",
     );
 
     if (cleanupErrors.length === 0) {
@@ -814,11 +818,11 @@ export async function confirmQuotationWhatsappShare(
   const quotation = await dependencies.getQuotation(input.quotationId);
 
   if (!quotation) {
-    throw new Error("La cotizacion no existe o no te pertenece.");
+    throw new Error("La cotización no existe o no te pertenece.");
   }
 
   if (!quotation.pdfPath) {
-    throw new Error("Genera el PDF antes de compartir la cotizacion.");
+    throw new Error("Genera el PDF antes de compartir la cotización.");
   }
 
   const shareToken =
@@ -872,7 +876,7 @@ export async function getQuotationDraft(
     .maybeSingle();
 
   if (error) {
-    throw new Error("No se pudo cargar la cotizacion.");
+    throw new Error("No se pudo cargar la cotización.");
   }
 
   if (!data || !canHydrateQuotationEditorStatus(data.status)) {
@@ -982,7 +986,7 @@ export async function generateAndStoreQuotationPdf(
   const quotation = await dependencies.getHydratedQuotation();
 
   if (!quotation) {
-    throw new Error("La cotizacion no existe o no te pertenece.");
+    throw new Error("La cotización no existe o no te pertenece.");
   }
 
   const generatedAt = (input.now ?? new Date()).toISOString();
@@ -1107,13 +1111,13 @@ export async function getStoredQuotationPdf(
   const quotation = await dependencies.getHydratedQuotation();
 
   if (!quotation) {
-    throw new Error("La cotizacion no existe o no te pertenece.");
+    throw new Error("La cotización no existe o no te pertenece.");
   }
 
   const pdfPath = quotation.output.pdfPath;
 
   if (!pdfPath) {
-    throw new Error("El PDF de la cotizacion aun no fue generado.");
+    throw new Error("El PDF de la cotización aún no fue generado.");
   }
 
   const fileName =
@@ -1133,17 +1137,17 @@ export async function getSharedQuotationPdf(
   const normalizedToken = shareToken.trim();
 
   if (!normalizedToken) {
-    throw new Error("Falta indicar que cotizacion compartida quieres abrir.");
+    throw new Error("Falta indicar qué cotización compartida quieres abrir.");
   }
 
   const quotation = await dependencies.getSharedQuotation(normalizedToken);
 
   if (!quotation) {
-    throw new Error("La cotizacion compartida no existe o ya no esta disponible.");
+    throw new Error("La cotización compartida no existe o ya no está disponible.");
   }
 
   if (!quotation.pdfPath) {
-    throw new Error("El PDF de la cotizacion aun no fue generado.");
+    throw new Error("El PDF de la cotización aún no fue generado.");
   }
 
   return {
@@ -1163,7 +1167,7 @@ export async function publishQuotationSharePdf(
   const normalizedShareToken = input.shareToken.trim();
 
   if (!normalizedShareToken) {
-    throw new Error("No se pudo preparar el PDF publico de la cotizacion.");
+    throw new Error("No se pudo preparar el PDF público de la cotización.");
   }
 
   const storedPdf = await dependencies.getStoredPdf();
@@ -1242,7 +1246,7 @@ export async function getSharedQuotationPdfForToken(shareToken: string) {
           .maybeSingle();
 
         if (error) {
-          throw new Error("No se pudo cargar la cotizacion compartida.");
+          throw new Error("No se pudo cargar la cotización compartida.");
         }
 
         const reference =
@@ -1263,7 +1267,7 @@ export async function getSharedQuotationPdfForToken(shareToken: string) {
           const file = await downloadFile(STORAGE_BUCKETS.quotationSharePdfs, path);
           return file.bytes;
         } catch {
-          throw new Error("La cotizacion compartida no existe o ya no esta disponible.");
+          throw new Error("La cotización compartida no existe o ya no está disponible.");
         }
       },
     },
@@ -1288,7 +1292,7 @@ export async function getQuotationAttachments(
         .order("created_at", { ascending: true });
 
       if (error) {
-        throw new Error("No se pudieron cargar los adjuntos de la cotizacion.");
+        throw new Error("No se pudieron cargar los adjuntos de la cotización.");
       }
 
       return (data as QuotationAttachment[] | null) ?? [];
@@ -1325,25 +1329,14 @@ export async function getHydratedQuotation(
         .maybeSingle();
 
       if (error) {
-        throw new Error("No se pudo cargar la cotizacion.");
+        throw new Error("No se pudo cargar la cotización.");
       }
 
       return (data as QuotationRow | null) ?? null;
     },
     getProfile: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          "id, business_name, industry, logo_url, phone, email, address, currency, pdf_footer, theme, created_at",
-        )
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error("No se pudo cargar el perfil para la cotizacion.");
-      }
-
-      return (data as Profile | null) ?? null;
+      const { getProfileForQuotation } = await import("@/lib/profile");
+      return getProfileForQuotation(userId);
     },
     getClient: async (clientId) => {
       const { data, error } = await supabase
@@ -1354,7 +1347,7 @@ export async function getHydratedQuotation(
         .maybeSingle();
 
       if (error) {
-        throw new Error("No se pudo cargar el cliente de la cotizacion.");
+        throw new Error("No se pudo cargar el cliente de la cotización.");
       }
 
       return (data as Client | null) ?? null;
@@ -1368,7 +1361,7 @@ export async function getHydratedQuotation(
         .order("id", { ascending: true });
 
       if (error) {
-        throw new Error("No se pudieron cargar los items de la cotizacion.");
+        throw new Error("No se pudieron cargar los ítems de la cotización.");
       }
 
       return (data as QuotationItemRow[] | null) ?? [];

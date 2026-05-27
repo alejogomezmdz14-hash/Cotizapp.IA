@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast-provider";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignOutButton() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,8 +36,7 @@ export function SignOutButton() {
         return;
       }
 
-      router.replace("/login");
-      router.refresh();
+      window.location.assign("/login");
     } catch {
       setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
       toast({

@@ -54,19 +54,52 @@ export async function requireUser() {
   return user;
 }
 
-export async function getProfile(userId: string): Promise<Profile | null> {
+const PROFILE_BASE_COLUMNS =
+  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
+const PROFILE_EXTENDED_COLUMNS = `${PROFILE_BASE_COLUMNS}, pdf_footer`;
+
+async function fetchProfileRow(
+  userId: string,
+  columns: string,
+): Promise<Profile | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(columns)
     .eq("id", userId)
     .maybeSingle();
 
   if (error) {
-    throw new Error("No se pudo cargar el perfil.");
+    throw error;
   }
 
   return (data as Profile | null) ?? null;
+}
+
+export async function getProfile(userId: string): Promise<Profile | null> {
+  try {
+    return await fetchProfileRow(userId, PROFILE_EXTENDED_COLUMNS);
+  } catch {
+    try {
+      return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
+    } catch {
+      throw new Error("No se pudo cargar el perfil.");
+    }
+  }
+}
+
+export async function getProfileForQuotation(
+  userId: string,
+): Promise<Profile | null> {
+  try {
+    return await fetchProfileRow(userId, PROFILE_EXTENDED_COLUMNS);
+  } catch {
+    try {
+      return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
+    } catch {
+      return null;
+    }
+  }
 }
 
 export function resolveProfileBranding(
@@ -156,7 +189,7 @@ export function buildBusinessProfileUpsertInput({
     phone,
     email: email ?? fallbackEmail ?? null,
     address,
-    currency,
+    currency: currency.trim().toUpperCase(),
     ...(pdfFooter !== undefined ? { pdf_footer: pdfFooter } : {}),
   };
 }

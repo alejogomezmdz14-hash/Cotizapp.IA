@@ -1,3 +1,5 @@
+import { normalizeDateOnlyString } from "@/lib/quotation-validity";
+
 const DEFAULT_CURRENCY = "MXN";
 
 function getCurrencyCode(currency: string | null) {
@@ -48,27 +50,16 @@ export function formatPercentage(value: number | null | undefined) {
 }
 
 export function formatDateOnly(value: string | null) {
-  if (!value) {
+  const normalizedValue = normalizeDateOnlyString(value);
+
+  if (!normalizedValue) {
     return "Sin fecha";
   }
 
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-  if (!match) {
-    return "Sin fecha";
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
+  const [year, month, day] = normalizedValue.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "Sin fecha";
   }
 

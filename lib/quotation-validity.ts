@@ -1,4 +1,6 @@
 const QUOTATION_VALIDITY_MAX_YEARS_AHEAD = 5;
+const MIN_VALID_YEAR = 2000;
+const MAX_VALID_YEAR = 2100;
 
 type QuotationValidityReason = "invalid" | "past" | "too_far";
 
@@ -12,6 +14,11 @@ function parseDateOnlyValue(value: string) {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
+
+  if (year < MIN_VALID_YEAR || year > MAX_VALID_YEAR) {
+    return null;
+  }
+
   const date = new Date(Date.UTC(year, month - 1, day));
 
   if (
@@ -32,12 +39,80 @@ function getUtcDayStart(date: Date) {
   );
 }
 
-function formatDateInputValue(date: Date) {
+export function formatDateInputValue(date: Date) {
   const year = date.getUTCFullYear();
   const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
   const day = `${date.getUTCDate()}`.padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+export function formatDateInputHint(value: string) {
+  const normalizedValue = normalizeDateOnlyString(value);
+
+  if (!normalizedValue) {
+    return value;
+  }
+
+  const [year, month, day] = normalizedValue.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+export function normalizeDateOnlyString(
+  value: string | null | undefined,
+): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const trimmedValue = String(value).trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const isoDatePrefixMatch = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/.exec(
+    trimmedValue,
+  );
+
+  if (isoDatePrefixMatch) {
+    const candidate = `${isoDatePrefixMatch[1]}-${isoDatePrefixMatch[2]}-${isoDatePrefixMatch[3]}`;
+    return parseDateOnlyValue(candidate) ? candidate : null;
+  }
+
+  const compactDateMatch = /^(\d{4})(\d{2})(\d{2})$/.exec(trimmedValue);
+
+  if (compactDateMatch) {
+    const candidate = `${compactDateMatch[1]}-${compactDateMatch[2]}-${compactDateMatch[3]}`;
+    return parseDateOnlyValue(candidate) ? candidate : null;
+  }
+
+  if (/^\d+$/.test(trimmedValue)) {
+    const numericValue = Number(trimmedValue);
+
+    if (!Number.isFinite(numericValue)) {
+      return null;
+    }
+
+    const timestamp =
+      trimmedValue.length <= 10 ? numericValue * 1000 : numericValue;
+    const parsedDate = new Date(timestamp);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    return formatDateInputValue(getUtcDayStart(parsedDate));
+  }
+
+  const parsedDate = new Date(trimmedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  const candidate = formatDateInputValue(getUtcDayStart(parsedDate));
+  return parseDateOnlyValue(candidate) ? candidate : null;
 }
 
 function addUtcDays(date: Date, days: number) {
@@ -58,7 +133,16 @@ export function validateQuotationValidityDate(
     now?: Date;
   },
 ): { valid: true } | { valid: false; reason: QuotationValidityReason } {
-  const parsedDate = parseDateOnlyValue(value);
+  const normalizedValue = normalizeDateOnlyString(value);
+
+  if (!normalizedValue) {
+    return {
+      valid: false,
+      reason: "invalid",
+    };
+  }
+
+  const parsedDate = parseDateOnlyValue(normalizedValue);
 
   if (!parsedDate) {
     return {
@@ -95,11 +179,13 @@ export function sanitizeQuotationValidityDate(
     now?: Date;
   },
 ) {
-  if (!value) {
+  const normalizedValue = normalizeDateOnlyString(value);
+
+  if (!normalizedValue) {
     return null;
   }
 
-  const parsedDate = parseDateOnlyValue(value);
+  const parsedDate = parseDateOnlyValue(normalizedValue);
 
   if (!parsedDate) {
     return null;
@@ -110,7 +196,7 @@ export function sanitizeQuotationValidityDate(
     QUOTATION_VALIDITY_MAX_YEARS_AHEAD,
   );
 
-  return parsedDate <= maxAllowedDate ? value : null;
+  return parsedDate <= maxAllowedDate ? normalizedValue : null;
 }
 
 export function getQuotationValidityBounds(options?: {
