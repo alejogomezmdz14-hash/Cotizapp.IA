@@ -5,14 +5,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast-provider";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignOutButton() {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSignOut = async () => {
+    const confirmed = window.confirm("Vas a cerrar sesión. ¿Querés continuar?");
+
+    if (!confirmed) {
+      return;
+    }
+
     setErrorMessage(null);
     setIsPending(true);
 
@@ -22,6 +30,11 @@ export function SignOutButton() {
 
       if (error) {
         setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
+        toast({
+          title: "No se pudo cerrar sesión",
+          description: "Intentá nuevamente en unos segundos.",
+          variant: "error",
+        });
         setIsPending(false);
         return;
       }
@@ -30,6 +43,11 @@ export function SignOutButton() {
       router.refresh();
     } catch {
       setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
+      toast({
+        title: "No se pudo cerrar sesión",
+        description: "Intentá nuevamente en unos segundos.",
+        variant: "error",
+      });
       setIsPending(false);
     }
   };

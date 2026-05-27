@@ -11,7 +11,7 @@ import {
 
 test("parseClientFormData trims values and converts empty optionals to null", () => {
   const formData = new FormData();
-  formData.set("name", "  Ferreteria Central  ");
+  formData.set("name", "  ferreteria central  ");
   formData.set("email", "  ventas@ferre.com ");
   formData.set("phone", "   ");
   formData.set("address", "  San Martin 123  ");
@@ -22,6 +22,17 @@ test("parseClientFormData trims values and converts empty optionals to null", ()
     phone: null,
     address: "San Martin 123",
   });
+});
+
+test("parseClientFormData rejects phones that do not meet the minimum format", () => {
+  const formData = new FormData();
+  formData.set("name", "Ferreteria Central");
+  formData.set("phone", "1234567");
+
+  assert.throws(
+    () => parseClientFormData(formData),
+    /Ingresa un telefono valido con al menos 8 digitos\./,
+  );
 });
 
 test("parseClientFormData rejects missing names", () => {

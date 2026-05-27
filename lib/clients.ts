@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  hasMinimumPhoneDigits,
+  normalizeEntityName,
+} from "@/lib/entity-normalization";
 import type { Client } from "@/types";
 export { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 
@@ -32,15 +36,20 @@ function getOptionalClientValue(formData: FormData, field: string) {
 
 export function parseClientFormData(formData: FormData): ClientFormValues {
   const name = getRequiredClientValue(formData, "name");
+  const phone = getOptionalClientValue(formData, "phone");
 
   if (!name) {
     throw new Error("El nombre del cliente es obligatorio.");
   }
 
+  if (!hasMinimumPhoneDigits(phone)) {
+    throw new Error("Ingresa un telefono valido con al menos 8 digitos.");
+  }
+
   return {
-    name,
+    name: normalizeEntityName(name),
     email: getOptionalClientValue(formData, "email"),
-    phone: getOptionalClientValue(formData, "phone"),
+    phone,
     address: getOptionalClientValue(formData, "address"),
   };
 }

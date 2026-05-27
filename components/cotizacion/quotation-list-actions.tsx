@@ -9,6 +9,7 @@ import {
   updateQuotationStatusAction,
 } from "@/app/actions/quotations";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast-provider";
 
 type QuotationListActionsProps = {
   quotationId: string;
@@ -40,7 +41,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo completar la accion sobre la cotizacion.";
+  return "No se pudo completar la acción sobre la cotización.";
 }
 
 export function QuotationListActions({
@@ -49,6 +50,7 @@ export function QuotationListActions({
   reopenHref = null,
 }: QuotationListActionsProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [status, setStatus] = useState(initialStatus ?? "draft");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -62,6 +64,10 @@ export function QuotationListActions({
     try {
       const result = await updateQuotationStatusAction(quotationId, nextStatus);
       setStatus(result.status ?? nextStatus);
+      toast({
+        title: "Estado actualizado",
+        description: "La cotización ya refleja el nuevo estado.",
+      });
       router.refresh();
     } catch (statusError) {
       setError(getErrorMessage(statusError));
@@ -77,6 +83,10 @@ export function QuotationListActions({
 
     try {
       const result = await duplicateQuotationAction(quotationId);
+      toast({
+        title: "Cotización duplicada",
+        description: `Se creó el borrador ${result.number}.`,
+      });
       router.push(`/cotizaciones/nueva?quotationId=${result.quotationId}`);
       router.refresh();
     } catch (duplicateError) {
@@ -88,7 +98,7 @@ export function QuotationListActions({
 
   async function handleDelete() {
     const confirmed = window.confirm(
-      "Esta cotizacion se eliminara con sus adjuntos y PDFs asociados. Queres continuar?",
+      "Esta cotización se eliminará con sus adjuntos y PDFs asociados. ¿Querés continuar?",
     );
 
     if (!confirmed) {
@@ -100,6 +110,10 @@ export function QuotationListActions({
 
     try {
       await deleteQuotationAction(quotationId);
+      toast({
+        title: "Cotización eliminada",
+        description: "La cotización y sus archivos asociados ya no figuran en el panel.",
+      });
       router.refresh();
     } catch (deleteError) {
       setError(getErrorMessage(deleteError));

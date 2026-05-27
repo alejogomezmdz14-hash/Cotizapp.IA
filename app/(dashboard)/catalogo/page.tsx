@@ -28,17 +28,17 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <section className="space-y-3">
         <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Catalogo
+          Catálogo
         </span>
         <div className="space-y-2">
           <h2 className="text-3xl font-semibold tracking-tight">
             Productos y servicios disponibles
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Gestiona tu catalogo real para reutilizar productos y servicios en
+            Gestiona tu catálogo real para reutilizar productos y servicios en
             futuras cotizaciones sin volver a cargarlos cada vez.
           </p>
         </div>
@@ -47,10 +47,10 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <Card className="border-token bg-surface shadow-sm">
           <CardHeader className="space-y-3">
-            <CardTitle className="text-xl">Nuevo item</CardTitle>
+            <CardTitle className="text-xl">Nuevo ítem</CardTitle>
             <CardDescription>
-              Carga nombre, categoria, unidad, descripcion y precio para dejar
-              este item listo para reutilizarlo en cotizaciones.
+              Carga nombre, categoría, unidad, descripción y precio para dejar
+              este ítem listo para reutilizarlo en cotizaciones.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -59,7 +59,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 Precio de referencia
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Los importes se guardan como valores numericos y luego se
+                Los importes se guardan como valores numéricos y luego se
                 muestran con tu moneda configurada, por ejemplo{" "}
                 <span className="font-semibold text-foreground">
                   {formatCurrencyAmount(1250, profile?.currency ?? null)}
@@ -69,7 +69,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             </div>
 
             <CatalogItemForm
-              submitLabel="Guardar item"
+              submitLabel="Guardar ítem"
               onSubmit={createCatalogItemAction}
             />
           </CardContent>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeEntityName } from "@/lib/entity-normalization";
 import type { CatalogItem } from "@/types";
 
 export type CatalogFormValues = {
@@ -83,7 +84,7 @@ function normalizePriceInput(value: string) {
   }
 
   if (!/^\d+(?:[.,]\d+)?$/.test(compactValue)) {
-    throw new Error("Ingresa un precio valido mayor o igual a cero.");
+    throw new Error("Ingresa un precio valido mayor a cero.");
   }
 
   return compactValue.replace(",", ".");
@@ -100,8 +101,8 @@ function parseCatalogPrice(formData: FormData) {
 
   const price = Number.parseFloat(normalizedValue);
 
-  if (!Number.isFinite(price) || price < 0) {
-    throw new Error("Ingresa un precio valido mayor o igual a cero.");
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Ingresa un precio valido mayor a cero.");
   }
 
   return price;
@@ -115,7 +116,7 @@ export function parseCatalogFormData(formData: FormData): CatalogFormValues {
   }
 
   return {
-    name,
+    name: normalizeEntityName(name),
     description: getOptionalCatalogValue(formData, "description"),
     unit: normalizeCatalogUnit(getOptionalCatalogValue(formData, "unit")),
     price: parseCatalogPrice(formData),

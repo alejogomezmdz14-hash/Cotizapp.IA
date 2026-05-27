@@ -5,6 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "@/types";
 
@@ -28,7 +29,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo guardar el item del catalogo.";
+  return "No se pudo guardar el ítem del catálogo.";
 }
 
 export function CatalogItemForm({
@@ -43,9 +44,10 @@ export function CatalogItemForm({
   const fieldId = useId();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const defaultSubmitLabel =
-    mode === "edit" ? "Guardar cambios" : "Guardar item";
+    mode === "edit" ? "Guardar cambios" : "Guardar ítem";
   const pendingLabel = mode === "edit" ? "Guardando..." : "Creando...";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -64,6 +66,13 @@ export function CatalogItemForm({
         form.reset();
       }
 
+      toast({
+        title: mode === "edit" ? "Ítem actualizado" : "Ítem guardado",
+        description:
+          mode === "edit"
+            ? "Los cambios del catálogo ya quedaron guardados."
+            : "El ítem ya está disponible para futuras cotizaciones.",
+      });
       onSuccess?.();
     } catch (submissionError) {
       setError(getErrorMessage(submissionError));
@@ -88,7 +97,7 @@ export function CatalogItemForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-category`}>Categoria</Label>
+          <Label htmlFor={`${fieldId}-category`}>Categoría</Label>
           <Input
             id={`${fieldId}-category`}
             name="category"
@@ -116,7 +125,7 @@ export function CatalogItemForm({
           id={`${fieldId}-price`}
           name="price"
           type="number"
-          min="0"
+          min="0.01"
           step="0.01"
           inputMode="decimal"
           placeholder="0.00"
@@ -131,12 +140,12 @@ export function CatalogItemForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-description`}>Descripcion</Label>
+        <Label htmlFor={`${fieldId}-description`}>Descripción</Label>
         <textarea
           id={`${fieldId}-description`}
           name="description"
           rows={4}
-          placeholder="Detalle breve para reutilizar este item en futuras cotizaciones"
+          placeholder="Detalle breve para reutilizar este ítem en futuras cotizaciones"
           defaultValue={initialValues?.description ?? ""}
           disabled={isSubmitting}
           className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

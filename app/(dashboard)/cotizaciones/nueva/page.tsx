@@ -60,24 +60,24 @@ export default async function NewQuotationPage({
     "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">
             <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Nueva cotizacion
+              Nueva cotización
             </span>
 
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                 {draftAlreadyCreated
                   ? "Revisa el borrador y termina el material de salida"
-                  : "Crear cotizacion borrador con un flujo mas claro"}
+                  : "Crear cotización borrador con un flujo más claro"}
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                 {draftAlreadyCreated
-                  ? "El contenido principal ya esta bloqueado, pero sigues teniendo a mano adjuntos, PDF y acciones de compartir desde una superficie mas ordenada."
-                  : "Elige o crea un cliente, suma items manuales, del catalogo o desde factura escaneada y revisa el total antes de guardar."}
+                  ? "El contenido principal ya está bloqueado, pero sigues teniendo a mano adjuntos, PDF y acciones de compartir desde una superficie más ordenada."
+                  : "Elige o crea un cliente, suma ítems manuales, del catálogo o desde factura escaneada y revisa el total antes de guardar."}
               </p>
             </div>
 
@@ -124,7 +124,7 @@ export default async function NewQuotationPage({
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="space-y-1">
-                  <CardDescription>Items de catalogo</CardDescription>
+                  <CardDescription>Ítems de catálogo</CardDescription>
                   <CardTitle className="text-4xl">{catalogItems.length}</CardTitle>
                 </div>
               </CardHeader>
@@ -141,7 +141,7 @@ export default async function NewQuotationPage({
                 <div className="space-y-1">
                   <CardDescription>Escaneo listo</CardDescription>
                   <CardTitle className="text-4xl">
-                    {invoiceScanReview?.result ? "Si" : "No"}
+                    {invoiceScanReview?.result ? "Sí" : "No"}
                   </CardTitle>
                 </div>
               </CardHeader>

@@ -111,12 +111,12 @@ export function InvoiceItemsReview({
 
   async function handleApplyToQuotation() {
     if (quotationSelection.length === 0) {
-      setError("Selecciona al menos un item para agregar a la cotizacion.");
+      setError("Selecciona al menos un ítem para agregar a la cotización.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Se agregaran ${quotationSelection.length} item(s) editados a la cotizacion actual. Puedes seguir ajustandolos despues. Deseas continuar?`,
+      `Se agregarán ${quotationSelection.length} ítem(s) editados a la cotización actual. Puedes seguir ajustándolos después. ¿Deseas continuar?`,
     );
 
     if (!confirmed) {
@@ -130,7 +130,7 @@ export function InvoiceItemsReview({
     try {
       onAddToQuotation(quotationSelection.map(toInvoiceDraft));
       setRows((currentRows) => removeAppliedQuotationRows(currentRows));
-      setStatus("Items agregados a la cotizacion actual.");
+      setStatus("Ítems agregados a la cotización actual.");
     } finally {
       setIsApplyingQuotation(false);
     }
@@ -138,12 +138,12 @@ export function InvoiceItemsReview({
 
   async function handleSaveToCatalog() {
     if (catalogSelection.length === 0) {
-      setError("Selecciona al menos un item para guardar en el catalogo.");
+      setError("Selecciona al menos un ítem para guardar en el catálogo.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Esto guardara ${catalogSelection.length} item(s) en tu catalogo. Esta accion persiste los datos detectados por AI y solo deberia hacerse despues de revisarlos. Deseas continuar?`,
+      `Esto guardará ${catalogSelection.length} ítem(s) en tu catálogo. Esta acción persiste los datos detectados por AI y solo debería hacerse después de revisarlos. ¿Deseas continuar?`,
     );
 
     if (!confirmed) {
@@ -164,17 +164,17 @@ export function InvoiceItemsReview({
       setRows((currentRows) => markSavedCatalogRows(currentRows, result.savedRowIds));
       setStatus(
         result.skippedCount > 0
-          ? `Se guardaron ${result.createdCount} item(s) en el catalogo. Se omitieron ${result.skippedCount} fila(s) invalida(s).`
+          ? `Se guardaron ${result.createdCount} ítem(s) en el catálogo. Se omitieron ${result.skippedCount} fila(s) inválida(s).`
           : result.createdCount === 1
-            ? "1 item guardado en el catalogo."
-            : `${result.createdCount} items guardados en el catalogo.`,
+            ? "1 ítem guardado en el catálogo."
+            : `${result.createdCount} ítems guardados en el catálogo.`,
       );
       router.refresh();
     } catch (catalogError) {
       setError(
         catalogError instanceof Error && catalogError.message.trim()
           ? catalogError.message
-          : "No se pudieron guardar los items seleccionados.",
+          : "No se pudieron guardar los ítems seleccionados.",
       );
     } finally {
       setIsSavingCatalog(false);

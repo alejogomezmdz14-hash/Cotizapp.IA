@@ -12,14 +12,14 @@ import {
 
 test("parseCatalogFormData trims values and converts empty optionals to null", () => {
   const formData = new FormData();
-  formData.set("name", "  Arena fina  ");
+  formData.set("name", "  arena fina  ");
   formData.set("description", "  Bolsa de 25 kg  ");
   formData.set("unit", "  bolsa ");
   formData.set("price", " 1299,50 ");
   formData.set("category", "  Agregados ");
 
   assert.deepEqual(parseCatalogFormData(formData), {
-    name: "Arena fina",
+    name: "Arena Fina",
     description: "Bolsa de 25 kg",
     unit: "bolsa",
     price: 1299.5,
@@ -41,11 +41,11 @@ test("parseCatalogFormData rejects missing names", () => {
 test("parseCatalogFormData rejects invalid prices", () => {
   const formData = new FormData();
   formData.set("name", "Cemento");
-  formData.set("price", "-10");
+  formData.set("price", "0");
 
   assert.throws(
     () => parseCatalogFormData(formData),
-    /Ingresa un precio valido mayor o igual a cero\./,
+    /Ingresa un precio valido mayor a cero\./,
   );
 });
 
@@ -57,7 +57,7 @@ test("parseCatalogFormData rejects malformed numeric strings", () => {
 
     assert.throws(
       () => parseCatalogFormData(formData),
-      /Ingresa un precio valido mayor o igual a cero\./,
+      /Ingresa un precio valido mayor a cero\./,
     );
   }
 });

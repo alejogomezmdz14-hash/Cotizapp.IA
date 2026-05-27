@@ -55,7 +55,7 @@ test("parseQuotationFormData accepts an existing client selection and normalizes
     items: [
       {
         catalogItemId: "cat-1",
-        name: "Cemento portland",
+        name: "Cemento Portland",
         description: "Bolsa de 50 kg",
         quantity: 2,
         unit: "bolsa",
@@ -145,7 +145,7 @@ test("parseQuotationFormData accepts inline client payload and trims optional fi
     items: [
       {
         catalogItemId: null,
-        name: "Mano de obra",
+        name: "Mano De Obra",
         description: "Instalacion completa",
         quantity: 1,
         unit: "servicio",

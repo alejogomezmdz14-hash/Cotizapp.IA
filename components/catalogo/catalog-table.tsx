@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import type { CatalogItem } from "@/types";
 
@@ -39,10 +40,11 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo completar la accion.";
+  return "No se pudo completar la acción.";
 }
 
 export function CatalogTable({ items, search, currency }: CatalogTableProps) {
+  const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
 
   async function handleDelete(id: string) {
     const confirmed = window.confirm(
-      "Esta accion eliminara el item del catalogo de forma permanente. Queres continuar?",
+      "Esta acción eliminará el ítem del catálogo de forma permanente. ¿Querés continuar?",
     );
 
     if (!confirmed) {
@@ -74,6 +76,10 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
       if (editingId === id) {
         setEditingId(null);
       }
+      toast({
+        title: "Ítem eliminado",
+        description: "El ítem ya no figura en el catálogo.",
+      });
     } catch (error) {
       setActionError(getErrorMessage(error));
     } finally {
@@ -87,10 +93,10 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl">Listado real del catalogo</CardTitle>
+              <CardTitle className="text-xl">Listado real del catálogo</CardTitle>
               <CardDescription>
-                Busca por nombre, descripcion, categoria o unidad y edita cada
-                item sin salir del panel.
+                Busca por nombre, descripción, categoría o unidad y edita cada
+                ítem sin salir del panel.
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +117,7 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
               <Input
                 name="search"
                 defaultValue={search}
-                placeholder="Buscar por nombre, descripcion, categoria o unidad"
+                placeholder="Buscar por nombre, descripción, categoría o unidad"
                 className="pl-9"
               />
             </div>
@@ -145,13 +151,13 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
           <CardHeader>
             <CardTitle className="text-xl">
               {normalizedSearch
-                ? "No encontramos items para esa busqueda"
-                : "Todavia no hay items en tu catalogo"}
+                ? "No encontramos ítems para esa búsqueda"
+                : "Todavía no hay ítems en tu catálogo"}
             </CardTitle>
             <CardDescription>
               {normalizedSearch
                 ? `Proba con otro termino. Filtro actual: "${normalizedSearch}".`
-                : "Cuando cargues tu primer producto o servicio, aparecera aca listo para reutilizarlo en nuevas cotizaciones."}
+                : "Cuando cargues tu primer producto o servicio, aparecerá acá listo para reutilizarlo en nuevas cotizaciones."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -160,7 +166,7 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
               <span>
                 {normalizedSearch
                   ? "No hubo coincidencias en los resultados actuales."
-                  : "Empieza cargando un item desde el formulario de esta pantalla."}
+                  : "Empieza cargando un ítem desde el formulario de esta pantalla."}
               </span>
             </div>
           </CardContent>

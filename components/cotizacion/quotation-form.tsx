@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import type {
   CatalogItem,
   Client,
@@ -134,6 +135,7 @@ export function QuotationForm({
   initialInvoiceScan = null,
 }: QuotationFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [clientMode, setClientMode] = useState<"existing" | "inline">(
     clients.length > 0 ? "existing" : "inline",
   );
@@ -169,7 +171,6 @@ export function QuotationForm({
 
   // This reset should only happen when the routed draft identity changes.
   // Listening to the hydrated scan prop here would wipe manual edits after each scan refresh.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (initialDraft) {
       setSavedDraft(initialDraft);
@@ -193,6 +194,7 @@ export function QuotationForm({
     setIsSubmitting(false);
     setSavedDraft(null);
     setInvoiceScanReview(initialInvoiceScan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, initialDraft?.quotationId]);
 
   function replaceCurrentEditorUrl(scanId: string | null) {
@@ -251,6 +253,26 @@ export function QuotationForm({
       }),
     [inlineClient],
   );
+
+  function activateExistingClientMode() {
+    if (isFormLocked) {
+      return;
+    }
+
+    setError(null);
+    setClientMode("existing");
+    setSelectedClientId((currentValue) => currentValue ?? getDefaultQuotationClientId(clients));
+  }
+
+  function activateInlineClientMode() {
+    if (isFormLocked) {
+      return;
+    }
+
+    setError(null);
+    setSelectedClientId(null);
+    setClientMode("inline");
+  }
 
   function handleAddManualItem() {
     const nextItemId = nextItemIdRef.current;
@@ -411,6 +433,10 @@ export function QuotationForm({
       const formData = new FormData(event.currentTarget);
       const result = await createDraftQuotationAction(formData);
       setSavedDraft(result);
+      toast({
+        title: "Cotizacion guardada",
+        description: `El borrador ${result.number} ya esta listo para seguir con PDF y WhatsApp.`,
+      });
       router.replace(
         buildNewQuotationPageHref({
           quotationId: result.quotationId,
@@ -603,12 +629,7 @@ export function QuotationForm({
                       type="button"
                       variant={clientMode === "existing" ? "default" : "outline"}
                       className={clientMode === "existing" ? undefined : "bg-background/75"}
-                      onClick={() => {
-                        setClientMode("existing");
-                        setSelectedClientId((currentValue) =>
-                          currentValue ?? getDefaultQuotationClientId(clients),
-                        );
-                      }}
+                      onClick={activateExistingClientMode}
                       disabled={isFormLocked || clients.length === 0}
                     >
                       Cliente existente
@@ -617,10 +638,8 @@ export function QuotationForm({
                       type="button"
                       variant={clientMode === "inline" ? "default" : "outline"}
                       className={clientMode === "inline" ? undefined : "bg-background/75"}
-                      onClick={() => {
-                        setClientMode("inline");
-                        setSelectedClientId(null);
-                      }}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={activateInlineClientMode}
                       disabled={isFormLocked}
                     >
                       Crear inline
@@ -631,8 +650,8 @@ export function QuotationForm({
 
               <CardContent className="space-y-4">
                 <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                  El cliente seleccionado aparece tambien en el resumen lateral para
-                  mantener el contexto del borrador mientras cargas items.
+                  El cliente seleccionado aparece también en el resumen lateral para
+                  mantener el contexto del borrador mientras cargas ítems.
                 </div>
 
                 {clientMode === "existing" ? (
@@ -640,14 +659,11 @@ export function QuotationForm({
                     clients={clients}
                     selectedClientId={selectedClientId}
                     onSelectClient={(client) => setSelectedClientId(client?.id ?? null)}
-                    onCreateClient={() => {
-                      setClientMode("inline");
-                      setSelectedClientId(null);
-                    }}
+                    onCreateClient={activateInlineClientMode}
                     allowClear
                     disabled={isFormLocked}
-                    description="Selecciona un cliente guardado para reutilizar sus datos en esta cotizacion."
-                    emptyMessage="Todavia no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
+                    description="Selecciona un cliente guardado para reutilizar sus datos en esta cotización."
+                    emptyMessage="Todavía no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
                   />
                 ) : (
                   <div className="space-y-4">
@@ -685,10 +701,11 @@ export function QuotationForm({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="inline-client-phone">Telefono</Label>
+                        <Label htmlFor="inline-client-phone">Teléfono</Label>
                         <Input
                           id="inline-client-phone"
                           type="tel"
+                          minLength={8}
                           value={inlineClient.phone}
                           onChange={(event) =>
                             setInlineClient((currentValue) => ({
@@ -703,7 +720,7 @@ export function QuotationForm({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="inline-client-address">Direccion</Label>
+                      <Label htmlFor="inline-client-address">Dirección</Label>
                       <textarea
                         id="inline-client-address"
                         rows={3}
@@ -714,7 +731,7 @@ export function QuotationForm({
                             address: event.target.value,
                           }))
                         }
-                        placeholder="Direccion o referencia de entrega"
+                        placeholder="Dirección o referencia de entrega"
                         disabled={isFormLocked}
                         className={textareaClassName}
                       />

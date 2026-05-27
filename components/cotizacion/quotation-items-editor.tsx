@@ -97,7 +97,7 @@ export function QuotationItemsEditor({
 
   function getSourceLabel(source: QuotationEditorItem["source"]) {
     if (source === "catalog") {
-      return "Desde catalogo";
+      return "Desde catálogo";
     }
 
     if (source === "invoice") {
@@ -113,9 +113,9 @@ export function QuotationItemsEditor({
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl">Items de la cotizacion</CardTitle>
+              <CardTitle className="text-xl">Ítems de la cotización</CardTitle>
               <CardDescription>
-                Agrega conceptos manuales o importa items del catalogo como una
+                Agrega conceptos manuales o importa ítems del catálogo como una
                 copia editable.
               </CardDescription>
             </div>
@@ -136,7 +136,7 @@ export function QuotationItemsEditor({
                 disabled={disabled}
               >
                 <PackagePlus className="mr-2 h-4 w-4" />
-                Importar catalogo
+                Importar catálogo
               </Button>
             </div>
           </div>
@@ -145,7 +145,7 @@ export function QuotationItemsEditor({
         <CardContent className="space-y-4">
           {items.length === 0 ? (
             <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-              Carga tu primer item para ver el resumen en vivo y guardar el
+              Carga tu primer ítem para ver el resumen en vivo y guardar el
               borrador.
             </div>
           ) : (
@@ -178,7 +178,7 @@ export function QuotationItemsEditor({
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Total de linea</p>
+                          <p className="text-sm text-muted-foreground">Total de línea</p>
                           <p className="text-lg font-semibold text-foreground">
                             {formatCurrencyAmount(lineTotal, currency)}
                           </p>
@@ -229,7 +229,7 @@ export function QuotationItemsEditor({
                         <Input
                           id={`${item.id}-quantity`}
                           type="number"
-                          min="0"
+                          min="0.01"
                           step="0.01"
                           inputMode="decimal"
                           value={item.quantity}
@@ -246,7 +246,7 @@ export function QuotationItemsEditor({
                         <Input
                           id={`${item.id}-price`}
                           type="number"
-                          min="0"
+                          min="0.01"
                           step="0.01"
                           inputMode="decimal"
                           value={item.unitPrice}
@@ -292,10 +292,10 @@ export function QuotationItemsEditor({
           className="max-h-[85vh] overflow-y-auto border-token bg-surface"
         >
           <SheetHeader className="space-y-2">
-            <SheetTitle>Importar desde catalogo</SheetTitle>
+            <SheetTitle>Importar desde catálogo</SheetTitle>
             <SheetDescription>
-              Elige un item para copiarlo a la cotizacion y ajustarlo sin tocar
-              tu catalogo original.
+              Elige un ítem para copiarlo a la cotización y ajustarlo sin tocar
+              tu catálogo original.
             </SheetDescription>
           </SheetHeader>
 
@@ -305,7 +305,7 @@ export function QuotationItemsEditor({
               <Input
                 value={catalogSearch}
                 onChange={(event) => setCatalogSearch(event.target.value)}
-                placeholder="Buscar por nombre, categoria, descripcion o unidad"
+                placeholder="Buscar por nombre, categoría, descripción o unidad"
                 className="pl-9"
               />
             </div>
@@ -313,8 +313,8 @@ export function QuotationItemsEditor({
             {filteredCatalogItems.length === 0 ? (
               <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
                 {catalogSearch.trim()
-                  ? "No encontramos items para esa busqueda."
-                  : "Todavia no hay items en tu catalogo para importar."}
+                  ? "No encontramos ítems para esa búsqueda."
+                  : "Todavía no hay ítems en tu catálogo para importar."}
               </div>
             ) : (
               <div className="grid gap-3">
@@ -345,7 +345,7 @@ export function QuotationItemsEditor({
                       }}
                       disabled={disabled}
                     >
-                      Agregar a la cotizacion
+                      Agregar a la cotización
                     </Button>
                   </div>
                 ))}

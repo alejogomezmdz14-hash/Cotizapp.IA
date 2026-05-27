@@ -24,7 +24,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const clients = await getClients(user.id, search);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <section className="space-y-3">
         <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Clientes
@@ -45,7 +45,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <CardHeader className="space-y-2">
             <CardTitle className="text-xl">Nuevo cliente</CardTitle>
             <CardDescription>
-              Carga nombre, contacto y direccion para reutilizar este cliente en
+              Carga nombre, contacto y dirección para reutilizar este cliente en
               futuras cotizaciones.
             </CardDescription>
           </CardHeader>

@@ -19,7 +19,7 @@ export default async function BusinessProfilePage({
   const saved = searchParams?.saved === "1";
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:items-end">
           <div className="space-y-5">
@@ -28,7 +28,7 @@ export default async function BusinessProfilePage({
             </span>
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Centraliza la identidad que aparece en cada cotizacion
+                Centraliza la identidad que aparece en cada cotización
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                 Actualiza nombre comercial, logo, datos de contacto, moneda y el pie
@@ -46,7 +46,7 @@ export default async function BusinessProfilePage({
               },
               {
                 title: "Documentos",
-                description: "Pie de pagina y moneda unificados para cada envio.",
+                description: "Pie de página y moneda unificados para cada envío.",
                 icon: ScrollText,
               },
               {

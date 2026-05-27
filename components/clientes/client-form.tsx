@@ -5,6 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types";
 
@@ -40,6 +41,7 @@ export function ClientForm({
   const fieldId = useId();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const defaultSubmitLabel =
     mode === "edit" ? "Guardar cambios" : "Guardar cliente";
@@ -61,6 +63,13 @@ export function ClientForm({
         form.reset();
       }
 
+      toast({
+        title: mode === "edit" ? "Cliente actualizado" : "Cliente guardado",
+        description:
+          mode === "edit"
+            ? "Los cambios del cliente ya quedaron guardados."
+            : "El cliente ya está disponible para nuevas cotizaciones.",
+      });
       onSuccess?.();
     } catch (submissionError) {
       setError(getErrorMessage(submissionError));
@@ -97,7 +106,7 @@ export function ClientForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-phone`}>Telefono</Label>
+          <Label htmlFor={`${fieldId}-phone`}>Teléfono</Label>
           <Input
             id={`${fieldId}-phone`}
             name="phone"
@@ -105,17 +114,18 @@ export function ClientForm({
             placeholder="261 555 1234"
             defaultValue={initialValues?.phone ?? ""}
             disabled={isSubmitting}
+            minLength={8}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-address`}>Direccion</Label>
+        <Label htmlFor={`${fieldId}-address`}>Dirección</Label>
         <textarea
           id={`${fieldId}-address`}
           name="address"
           rows={4}
-          placeholder="Direccion o referencia de entrega"
+          placeholder="Dirección o referencia de entrega"
           defaultValue={initialValues?.address ?? ""}
           disabled={isSubmitting}
           className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

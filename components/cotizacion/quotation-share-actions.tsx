@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { formatDateTime } from "@/lib/formatting";
 import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
@@ -34,7 +35,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo completar la accion.";
+  return "No se pudo completar la acción.";
 }
 
 function getShareStatusLabel(status: string | null, sentAt: string | null) {
@@ -43,7 +44,7 @@ function getShareStatusLabel(status: string | null, sentAt: string | null) {
   }
 
   if (status === "pending") {
-    return "Lista para seguimiento y reenvio.";
+    return "Lista para seguimiento y reenvío.";
   }
 
   return null;
@@ -58,6 +59,7 @@ export function QuotationShareActions({
   initialStatus = null,
   onStateChange,
 }: QuotationShareActionsProps) {
+  const { toast } = useToast();
   const [pdfGeneratedAt, setPdfGeneratedAt] = useState(initialPdfGeneratedAt);
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [sentAt, setSentAt] = useState(initialSentAt);
@@ -104,7 +106,7 @@ export function QuotationShareActions({
 
   async function continueWhatsappShare(normalizedPhone: string) {
     const confirmed = window.confirm(
-      `Se abrira WhatsApp con un link publico para ${quotationNumber} y la cotizacion quedara marcada como pendiente. Queres continuar?`,
+      `Se abrirá WhatsApp con un link público para ${quotationNumber} y la cotización quedará marcada como pendiente. ¿Querés continuar?`,
     );
 
     if (!confirmed) {
@@ -120,7 +122,7 @@ export function QuotationShareActions({
       const shareUrl = new URL(result.sharePath, window.location.origin).toString();
       const whatsappHref = buildWhatsAppShareHref({
         phone: normalizedPhone,
-        text: `Hola, te comparto la cotizacion ${result.quotationNumber}. Puedes verla aqui: ${shareUrl}`,
+        text: `Hola, te comparto la cotización ${result.quotationNumber}. Puedes verla aquí: ${shareUrl}`,
       });
 
       setShareToken(result.shareToken);
@@ -133,6 +135,10 @@ export function QuotationShareActions({
         status: result.shareStatus,
       });
       setStatusMessage("WhatsApp abierto con el destinatario precargado.");
+      toast({
+        title: "WhatsApp abierto",
+        description: "La cotización se preparó para su envío.",
+      });
 
       const openedWindow = window.open(
         whatsappHref,
@@ -164,7 +170,11 @@ export function QuotationShareActions({
         sentAt,
         status: shareStatus,
       });
-      setStatusMessage("PDF generado. Ya puedes compartir la cotizacion por WhatsApp.");
+      setStatusMessage("PDF generado. Ya puedes compartir la cotización por WhatsApp.");
+      toast({
+        title: "PDF generado",
+        description: "La cotización ya está lista para compartir.",
+      });
     } catch (actionError) {
       setError(getErrorMessage(actionError));
     } finally {
@@ -174,7 +184,7 @@ export function QuotationShareActions({
 
   async function handleShareWhatsapp() {
     if (!pdfGeneratedAt) {
-      setError("Genera el PDF antes de compartir la cotizacion.");
+      setError("Genera el PDF antes de compartir la cotización.");
       return;
     }
 
@@ -185,7 +195,7 @@ export function QuotationShareActions({
       const normalizedPhone = await resolveNormalizedSharePhone();
 
       if (!normalizedPhone) {
-        setError("Ingresa el telefono del cliente antes de continuar con WhatsApp.");
+        setError("Ingresa el teléfono del cliente antes de continuar con WhatsApp.");
         return;
       }
 
@@ -199,7 +209,7 @@ export function QuotationShareActions({
     const phoneState = getWhatsAppSharePhoneState(phoneInput);
 
     if (!phoneInput.trim() || !phoneState.normalizedPhone) {
-      setError("Ingresa un telefono valido antes de compartir por WhatsApp.");
+      setError("Ingresa un teléfono válido antes de compartir por WhatsApp.");
       return;
     }
 
@@ -212,6 +222,10 @@ export function QuotationShareActions({
       setClientPhone(result.clientPhone);
       setPhoneInput(result.clientPhone ?? phoneInput.trim());
       setNeedsPhoneInput(false);
+      toast({
+        title: "Teléfono guardado",
+        description: "El cliente ya tiene un número listo para futuros envíos.",
+      });
       await continueWhatsappShare(phoneState.normalizedPhone);
     } catch (actionError) {
       setError(getErrorMessage(actionError));
@@ -226,8 +240,8 @@ export function QuotationShareActions({
         <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {pdfGeneratedAt
-            ? "El PDF ya esta listo. Comparte un link estable por WhatsApp sin adjuntar archivos manualmente."
-            : "Genera el PDF para habilitar el link estable y compartir esta cotizacion por WhatsApp."}
+            ? "El PDF ya está listo. Comparte un link estable por WhatsApp sin adjuntar archivos manualmente."
+            : "Genera el PDF para habilitar el link estable y compartir esta cotización por WhatsApp."}
         </p>
       </div>
 
@@ -257,7 +271,7 @@ export function QuotationShareActions({
         <div className="space-y-3 rounded-lg border border-token/80 bg-background/70 px-4 py-3">
           <div className="space-y-1">
             <Label htmlFor={`quotation-share-phone-${quotationId}`}>
-              Telefono del cliente
+              Teléfono del cliente
             </Label>
             <Input
               id={`quotation-share-phone-${quotationId}`}
@@ -269,7 +283,7 @@ export function QuotationShareActions({
             />
           </div>
           <p className="text-sm leading-6 text-muted-foreground">
-            Esta cotizacion necesita un telefono de cliente antes de abrir WhatsApp.
+            Esta cotización necesita un teléfono de cliente antes de abrir WhatsApp.
           </p>
           <Button
             type="button"
@@ -279,7 +293,7 @@ export function QuotationShareActions({
               void handleSavePhoneAndShare();
             }}
           >
-            {isSavingPhone ? "Guardando telefono..." : "Guardar telefono y compartir"}
+            {isSavingPhone ? "Guardando teléfono..." : "Guardar teléfono y compartir"}
           </Button>
         </div>
       ) : null}

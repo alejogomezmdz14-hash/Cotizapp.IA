@@ -210,7 +210,7 @@ export function ChatShell() {
   }
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">

@@ -80,7 +80,7 @@ export default async function QuotationsPage() {
     "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">
@@ -90,7 +90,7 @@ export default async function QuotationsPage() {
 
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Historial comercial con mejor lectura y acciones mas claras
+                Historial comercial con mejor lectura y acciones más claras
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                 Sigue tus borradores, revisa cotizaciones pendientes y vuelve al
@@ -100,7 +100,7 @@ export default async function QuotationsPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">
-                <Link href="/cotizaciones/nueva">Nueva cotizacion</Link>
+                <Link href="/cotizaciones/nueva">Nueva cotización</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="bg-background/75">
                 <Link href="/dashboard">Volver al panel</Link>
@@ -145,8 +145,8 @@ export default async function QuotationsPage() {
               Estado operativo de tus cotizaciones
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Resume rapido el volumen de trabajo y los estados presentes antes de
-              entrar a cada cotizacion.
+              Resume rápido el volumen de trabajo y los estados presentes antes de
+              entrar a cada cotización.
             </p>
           </div>
 
@@ -205,7 +205,7 @@ export default async function QuotationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                Retoma una cotizacion guardada cuando quieras seguir cargando items
+                Retoma una cotización guardada cuando quieras seguir cargando ítems
                 o adjuntos.
               </p>
             </CardContent>
@@ -227,7 +227,7 @@ export default async function QuotationsPage() {
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
                 La mezcla actual de estados ayuda a priorizar seguimiento,
-                reenvios o edicion.
+                reenvíos o edición.
               </p>
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export default async function QuotationsPage() {
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               Cada tarjeta resume importes, validez y siguientes acciones para que
-              no tengas que abrir mas pantallas de las necesarias.
+              no tengas que abrir más pantallas de las necesarias.
             </p>
           </div>
 
@@ -260,15 +260,15 @@ export default async function QuotationsPage() {
         {quotations.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
             <p className="text-lg font-semibold text-foreground">
-              Todavia no creaste cotizaciones
+              Todavía no creaste cotizaciones
             </p>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Empeza con tu primera cotizacion para abrir el flujo completo de
-              cliente, items, resumen y seguimiento desde una sola pantalla.
+              Empezá con tu primera cotización para abrir el flujo completo de
+              cliente, ítems, resumen y seguimiento desde una sola pantalla.
             </p>
             <div className="mt-5 flex justify-center">
               <Button asChild>
-                <Link href="/cotizaciones/nueva">Ir a nueva cotizacion</Link>
+                <Link href="/cotizaciones/nueva">Ir a nueva cotización</Link>
               </Button>
             </div>
           </div>
@@ -302,7 +302,7 @@ export default async function QuotationsPage() {
                           </CardTitle>
                           <CardDescription className="max-w-2xl leading-6">
                             {quotation.notes?.trim() ||
-                              "Sin notas adicionales para esta cotizacion."}
+                              "Sin notas adicionales para esta cotización."}
                           </CardDescription>
                         </div>
                       </div>

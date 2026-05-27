@@ -6,6 +6,7 @@ import {
   type QuotationPdfTemplateData,
 } from "@/components/cotizacion/quotation-pdf-template";
 import { normalizeCatalogUnit } from "@/lib/catalog";
+import { normalizeEntityName } from "@/lib/entity-normalization";
 import { buildProfileLogoDataUrl, resolveProfileBranding } from "@/lib/profile";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import {
@@ -365,7 +366,7 @@ function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
     }
 
     return {
-      name,
+      name: normalizeEntityName(name),
       email: getOptionalStringValue(parsedValue.email),
       phone: getOptionalStringValue(parsedValue.phone),
       address: getOptionalStringValue(parsedValue.address),
@@ -395,7 +396,7 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
     return parsedValue.map((item) => {
       const name = getOptionalStringValue(item.name);
       const quantity = parsePositiveDecimal(item.quantity);
-      const unitPrice = parseNonNegativeDecimal(item.unitPrice);
+      const unitPrice = parsePositiveDecimal(item.unitPrice);
 
       if (!name || quantity === null || unitPrice === null) {
         throw new Error(
@@ -405,7 +406,7 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
 
       return {
         catalogItemId: getOptionalStringValue(item.catalogItemId),
-        name,
+        name: normalizeEntityName(name),
         description: getOptionalStringValue(item.description),
         quantity,
         unit: normalizeCatalogUnit(getOptionalStringValue(item.unit)),

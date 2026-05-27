@@ -41,12 +41,12 @@ export default async function NotFound() {
               </span>
               <div className="mt-4 space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Esa pagina no existe en Cotizapp
+                  Esa página no existe en Cotizapp
                 </h1>
                 <p className="mx-auto max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  La ruta que intentaste abrir no esta disponible o ya cambio. Puedes
+                  La ruta que intentaste abrir no está disponible o ya cambió. Puedes
                   volver al dashboard, revisar tus cotizaciones o crear una nueva sin
-                  perder la navegacion principal.
+                  perder la navegación principal.
                 </p>
               </div>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -57,7 +57,7 @@ export default async function NotFound() {
                   <Link href="/cotizaciones">Ver cotizaciones</Link>
                 </Button>
                 <Button asChild variant="outline" className="bg-background/75">
-                  <Link href="/cotizaciones/nueva">Nueva cotizacion</Link>
+                  <Link href="/cotizaciones/nueva">Nueva cotización</Link>
                 </Button>
               </div>
             </section>

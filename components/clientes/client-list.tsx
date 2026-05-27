@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
 import type { Client } from "@/types";
 
 type ClientListProps = {
@@ -44,10 +45,11 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo completar la accion.";
+  return "No se pudo completar la acción.";
 }
 
 export function ClientList({ clients, search }: ClientListProps) {
+  const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function ClientList({ clients, search }: ClientListProps) {
 
   async function handleDelete(id: string) {
     const confirmed = window.confirm(
-      "Esta accion eliminara el cliente de forma permanente. Queres continuar?",
+      "Esta acción eliminará el cliente de forma permanente. ¿Querés continuar?",
     );
 
     if (!confirmed) {
@@ -79,6 +81,10 @@ export function ClientList({ clients, search }: ClientListProps) {
       if (editingId === id) {
         setEditingId(null);
       }
+      toast({
+        title: "Cliente eliminado",
+        description: "El cliente ya no figura en el listado.",
+      });
     } catch (error) {
       setActionError(getErrorMessage(error));
     } finally {
@@ -94,7 +100,7 @@ export function ClientList({ clients, search }: ClientListProps) {
             <div className="space-y-1">
               <CardTitle className="text-xl">Listado real de clientes</CardTitle>
               <CardDescription>
-                Busca por nombre, email o telefono y gestiona cada ficha sin salir
+                Busca por nombre, email o teléfono y gestiona cada ficha sin salir
                 del panel.
               </CardDescription>
             </div>
@@ -109,7 +115,7 @@ export function ClientList({ clients, search }: ClientListProps) {
               <Input
                 name="search"
                 defaultValue={search}
-                placeholder="Buscar por nombre, email o telefono"
+                placeholder="Buscar por nombre, email o teléfono"
                 className="pl-9"
               />
             </div>
@@ -143,13 +149,13 @@ export function ClientList({ clients, search }: ClientListProps) {
           <CardHeader>
             <CardTitle className="text-xl">
               {normalizedSearch
-                ? "No encontramos clientes para esa busqueda"
-                : "Todavia no hay clientes guardados"}
+                ? "No encontramos clientes para esa búsqueda"
+                : "Todavía no hay clientes guardados"}
             </CardTitle>
             <CardDescription>
               {normalizedSearch
-                ? `Proba con otro nombre, email o telefono. Busqueda actual: "${normalizedSearch}".`
-                : "Cuando registres tu primer cliente, aparecera en este listado para reutilizarlo en nuevas cotizaciones."}
+                ? `Proba con otro nombre, email o teléfono. Búsqueda actual: "${normalizedSearch}".`
+                : "Cuando registres tu primer cliente, aparecerá en este listado para reutilizarlo en nuevas cotizaciones."}
             </CardDescription>
           </CardHeader>
           <CardContent>
