@@ -9,7 +9,7 @@ import { saveThemePreferenceAction } from "@/app/actions/theme";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -17,7 +17,8 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  const isDark = mounted ? resolvedTheme === "dark" : true;
+  const activeTheme = mounted && theme ? theme : "dark";
+  const isDark = activeTheme === "dark";
 
   const handleToggle = () => {
     const nextTheme = isDark ? "light" : "dark";

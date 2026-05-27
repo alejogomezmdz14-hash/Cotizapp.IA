@@ -66,15 +66,15 @@ export function Sidebar() {
       <div className="shell-backdrop sticky top-0 flex h-screen flex-col gap-4 px-4 py-6">
         <Link
           href="/dashboard"
-          className="shell-panel flex shrink-0 justify-center px-4 py-5"
+          className="flex shrink-0 justify-center bg-transparent px-4 py-5"
           aria-label="Ir al inicio de Cotizapp"
         >
           <Image
             src="/cotizapp-logo.png"
             alt="Cotizapp"
-            width={140}
-            height={140}
-            className="h-auto w-[8.75rem] max-w-full"
+            width={160}
+            height={48}
+            className="h-auto w-[160px] max-w-full bg-transparent object-contain"
             priority
           />
         </Link>

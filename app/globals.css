@@ -3,25 +3,26 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  .light {
     color-scheme: light;
-    --background: #0F1117;
-    --background-rgb: 15 17 23;
-    --surface: #1A1D27;
-    --surface-rgb: 26 29 39;
-    --surface-2: #222536;
-    --surface-2-rgb: 34 37 54;
+    --background: #F4F6FB;
+    --background-rgb: 244 246 251;
+    --surface: #FFFFFF;
+    --surface-rgb: 255 255 255;
+    --surface-2: #E9EDF5;
+    --surface-2-rgb: 233 237 245;
     --accent: #3B82F6;
     --accent-rgb: 59 130 246;
-    --accent-soft: #1E3A8A;
-    --accent-soft-rgb: 30 58 138;
+    --accent-soft: #DBEAFE;
+    --accent-soft-rgb: 219 234 254;
     --accent-hover: #2563EB;
-    --text-primary: #FFFFFF;
-    --text-primary-rgb: 255 255 255;
-    --text-secondary: #8B8FA8;
-    --text-secondary-rgb: 139 143 168;
-    --border: #2A2D3E;
-    --border-rgb: 42 45 62;
+    --text-primary: #0F1117;
+    --text-primary-rgb: 15 17 23;
+    --text-secondary: #5B6178;
+    --text-secondary-rgb: 91 97 120;
+    --border: #D5DAE6;
+    --border-rgb: 213 218 230;
     --radius: 1rem;
   }
 
