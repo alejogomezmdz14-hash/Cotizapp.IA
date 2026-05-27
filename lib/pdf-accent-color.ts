@@ -1,10 +1,10 @@
 const PDF_ACCENT_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
-export const DEFAULT_PDF_ACCENT_COLOR = "#3B82F6";
+export const DEFAULT_PDF_ACCENT_COLOR = "#00E5A0";
 
 export const PDF_ACCENT_PRESETS = [
-  "#3B82F6",
-  "#2563EB",
+  "#00E5A0",
+  "#00C984",
   "#10B981",
   "#F59E0B",
   "#EF4444",

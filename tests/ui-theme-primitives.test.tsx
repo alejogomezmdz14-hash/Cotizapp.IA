@@ -10,23 +10,15 @@ import { buttonVariants } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 
-test("tailwind semantic colors map accent interactions to dedicated accent tokens", () => {
+test("tailwind semantic colors use Cotizapp green as primary and accent", () => {
   const colors = tailwindConfig.theme?.extend?.colors as
     | Record<string, { DEFAULT?: string; foreground?: string }>
     | undefined;
 
-  assert.equal(
-    colors?.primary?.DEFAULT,
-    "rgb(var(--accent-rgb) / <alpha-value>)",
-  );
-  assert.equal(
-    colors?.accent?.DEFAULT,
-    "rgb(var(--accent-soft-rgb) / <alpha-value>)",
-  );
-  assert.equal(
-    colors?.accent?.foreground,
-    "rgb(var(--text-primary-rgb) / <alpha-value>)",
-  );
+  assert.equal(colors?.primary?.DEFAULT, "#00E5A0");
+  assert.equal(colors?.primary?.foreground, "#000000");
+  assert.equal(colors?.accent?.DEFAULT, "#00E5A0");
+  assert.equal(colors?.accent?.foreground, "#000000");
 });
 
 test("global tokens keep the approved accent across both theme roots", async () => {
@@ -35,11 +27,12 @@ test("global tokens keep the approved accent across both theme roots", async () 
     "utf8",
   );
 
-  assert.match(source, /--sidebar-bg:\s*#1a2332;/i);
-  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#f0f4f8;/i);
+  assert.match(source, /--sidebar-bg:\s*#0a0a0f;/i);
+  assert.match(source, /\.light\s*\{[\s\S]*--background:\s*#f0f4f0;/i);
   assert.match(source, /\.light\s*\{[\s\S]*--accent:\s*#00c984;/i);
-  assert.match(source, /\.dark\s*\{[\s\S]*--background:\s*#0f1117;/i);
-  assert.match(source, /\.dark\s*\{[\s\S]*--surface:\s*#1a1d27;/i);
+  assert.match(source, /\.dark\s*\{[\s\S]*--background:\s*#0a0a0f;/i);
+  assert.match(source, /\.dark\s*\{[\s\S]*--accent:\s*#00e5a0;/i);
+  assert.doesNotMatch(source, /#3b82f6/i);
 });
 
 test("shell backdrop keeps sticky ancestors vertically unclipped", async () => {
@@ -55,6 +48,7 @@ test("shell backdrop keeps sticky ancestors vertically unclipped", async () => {
 test("shared primitives render the updated elevated dark theme classes", () => {
   const outlineButton = buttonVariants({ variant: "outline" });
   const secondaryButton = buttonVariants({ variant: "secondary" });
+  const defaultButton = buttonVariants({ variant: "default" });
   const inputHtml = renderToStaticMarkup(
     React.createElement(Input, { placeholder: "Buscar producto" }),
   );
@@ -62,6 +56,8 @@ test("shared primitives render the updated elevated dark theme classes", () => {
     React.createElement(Card, null, "Contenido"),
   );
 
+  assert.match(defaultButton, /bg-\[#00E5A0\]/);
+  assert.match(defaultButton, /text-\[#000000\]/);
   assert.match(outlineButton, /border-border\/70/);
   assert.match(outlineButton, /bg-background\/80/);
   assert.match(outlineButton, /text-foreground/);

@@ -29,7 +29,7 @@ function SidebarNavLink({
       className={cn(
         "group flex items-center gap-3 rounded-lg border-l-2 py-2.5 pl-4 pr-4 text-sm transition",
         active
-          ? "border-[#00E5A0] bg-[rgba(0,229,160,0.1)] text-[#00E5A0]"
+          ? "border-sidebar-active bg-sidebar-active text-sidebar-active"
           : "border-transparent text-[#C9D1D9] hover:bg-[rgba(255,255,255,0.05)] hover:text-white",
       )}
     >
@@ -37,7 +37,7 @@ function SidebarNavLink({
         className={cn(
           "h-5 w-5 shrink-0",
           active
-            ? "text-[#00E5A0]"
+            ? "text-sidebar-active"
             : "text-[#8B8FA8] group-hover:text-white",
         )}
       />
@@ -45,7 +45,7 @@ function SidebarNavLink({
         <span
           className={cn(
             "block truncate font-medium",
-            active ? "text-[#00E5A0]" : "text-[#C9D1D9] group-hover:text-white",
+            active ? "text-sidebar-active" : "text-[#C9D1D9] group-hover:text-white",
           )}
         >
           {item.label}
@@ -64,7 +64,7 @@ export function Sidebar() {
   const activeHref = getActiveNavHref(pathname, allNavItems);
 
   return (
-    <aside className="hidden w-[18.5rem] shrink-0 bg-[#111318] lg:block">
+    <aside className="hidden w-[18.5rem] shrink-0 bg-sidebar lg:block">
       <div className="sticky top-0 flex h-screen flex-col">
         <Link
           href="/dashboard"

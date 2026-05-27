@@ -18,8 +18,8 @@ const config: Config = {
         background: "rgb(var(--background-rgb) / <alpha-value>)",
         foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
         primary: {
-          DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
-          foreground: "rgb(255 255 255 / <alpha-value>)",
+          DEFAULT: "#00E5A0",
+          foreground: "#000000",
         },
         secondary: {
           DEFAULT: "rgb(var(--surface-2-rgb) / <alpha-value>)",
@@ -34,8 +34,8 @@ const config: Config = {
           foreground: "rgb(var(--text-secondary-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "rgb(var(--accent-soft-rgb) / <alpha-value>)",
-          foreground: "rgb(var(--text-primary-rgb) / <alpha-value>)",
+          DEFAULT: "#00E5A0",
+          foreground: "#000000",
         },
         popover: {
           DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
@@ -48,7 +48,7 @@ const config: Config = {
         sidebar: {
           DEFAULT: "rgb(var(--sidebar-bg-rgb) / <alpha-value>)",
           foreground: "rgb(var(--sidebar-text-rgb) / <alpha-value>)",
-          active: "rgb(var(--sidebar-active-rgb) / <alpha-value>)",
+          active: "#00E5A0",
           muted: "rgb(var(--sidebar-text-muted-rgb) / <alpha-value>)",
         },
         header: {
