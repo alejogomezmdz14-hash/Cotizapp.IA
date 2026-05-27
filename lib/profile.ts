@@ -187,7 +187,9 @@ export function buildOnboardingProfileUpsertInput({
     currency,
     pdfFooter: undefined,
     logoPath: undefined,
-    logoOnboardingCompleted: false,
+    // Omitimos el estado de onboarding del logo para no sobrescribir
+    // un logo ya completado por el usuario (o su carga previa).
+    logoOnboardingCompleted: undefined,
   });
 }
 
