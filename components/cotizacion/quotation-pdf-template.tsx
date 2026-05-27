@@ -12,11 +12,19 @@ import {
 import {
   formatCurrencyAmount,
   formatDateOnly,
-  formatDateTime,
   formatPercentage,
 } from "@/lib/formatting";
-import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
+import {
+  normalizeDateOnlyString,
+  sanitizeQuotationValidityDate,
+} from "@/lib/quotation-validity";
 import type { HydratedQuotation } from "@/types";
+
+const NAVY = "#1A2A4A";
+const ACCENT_LINE = "#00E5A0";
+const MUTED = "#64748B";
+const ROW_ALT = "#F5F5F5";
+const CLIENT_BG = "#F5F5F5";
 
 export type QuotationPdfTemplateData = {
   businessName: string;
@@ -25,7 +33,6 @@ export type QuotationPdfTemplateData = {
   customerContact: string[];
   quotationNumber: string;
   issuedAtLabel: string;
-  generatedAtLabel: string;
   validUntilLabel: string;
   notes: string | null;
   footerNote: string | null;
@@ -40,7 +47,7 @@ export type QuotationPdfTemplateData = {
     description: string | null;
     quantityLabel: string;
     unitPriceLabel: string;
-    totalLabel: string;
+    amountLabel: string;
   }>;
 };
 
@@ -63,12 +70,24 @@ function normalizeOptionalText(value: string | null) {
   return normalizedValue ? normalizedValue : null;
 }
 
-function formatQuantityLabel(quantity: number, unit: string) {
-  const quantityLabel = Number.isInteger(quantity)
-    ? quantity.toString()
-    : quantity.toString();
+function formatQuantityLabel(quantity: number) {
+  return Number.isInteger(quantity) ? quantity.toString() : quantity.toString();
+}
 
-  return `${quantityLabel} ${unit}`.trim();
+function formatIssueDateLabel(createdAt: string | null, fallback: string) {
+  const normalizedCreatedAt = normalizeDateOnlyString(createdAt);
+
+  if (normalizedCreatedAt) {
+    return formatDateOnly(normalizedCreatedAt);
+  }
+
+  const normalizedFallback = normalizeDateOnlyString(fallback);
+
+  if (normalizedFallback) {
+    return formatDateOnly(normalizedFallback);
+  }
+
+  return formatDateOnly(fallback.slice(0, 10));
 }
 
 export function buildQuotationPdfTemplateData({
@@ -76,10 +95,9 @@ export function buildQuotationPdfTemplateData({
   generatedAt,
   logoDataUrl,
 }: BuildQuotationPdfTemplateDataInput): QuotationPdfTemplateData {
-  const taxAmount = Math.max(
-    (quotation.quotation.total ?? 0) - (quotation.quotation.subtotal ?? 0),
-    0,
-  );
+  const subtotal = quotation.quotation.subtotal ?? 0;
+  const taxAmount = Math.max((quotation.quotation.total ?? 0) - subtotal, 0);
+  const currency = quotation.branding.currency;
 
   return {
     businessName: quotation.branding.businessName ?? "Cotizapp",
@@ -95,8 +113,10 @@ export function buildQuotationPdfTemplateData({
       quotation.customer.address,
     ]),
     quotationNumber: quotation.quotation.number,
-    issuedAtLabel: formatDateTime(quotation.quotation.created_at ?? generatedAt),
-    generatedAtLabel: formatDateTime(generatedAt),
+    issuedAtLabel: formatIssueDateLabel(
+      quotation.quotation.created_at,
+      generatedAt,
+    ),
     validUntilLabel: formatDateOnly(
       sanitizeQuotationValidityDate(quotation.quotation.valid_until),
     ),
@@ -104,271 +124,266 @@ export function buildQuotationPdfTemplateData({
     footerNote: normalizeOptionalText(quotation.branding.pdfFooter),
     logoDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
-    subtotalLabel: formatCurrencyAmount(
-      quotation.quotation.subtotal,
-      quotation.branding.currency,
-    ),
-    taxAmountLabel: formatCurrencyAmount(taxAmount, quotation.branding.currency),
-    totalLabel: formatCurrencyAmount(
-      quotation.quotation.total,
-      quotation.branding.currency,
-    ),
+    subtotalLabel: formatCurrencyAmount(subtotal, currency),
+    taxAmountLabel: formatCurrencyAmount(taxAmount, currency),
+    totalLabel: formatCurrencyAmount(quotation.quotation.total, currency),
     items: quotation.items.map((item) => ({
       id: item.id,
       name: item.name,
       description: normalizeOptionalText(item.description),
-      quantityLabel: formatQuantityLabel(item.quantity, item.unit),
-      unitPriceLabel: formatCurrencyAmount(
-        item.unitPrice,
-        quotation.branding.currency,
-      ),
-      totalLabel: formatCurrencyAmount(item.total, quotation.branding.currency),
+      quantityLabel: formatQuantityLabel(item.quantity),
+      unitPriceLabel: formatCurrencyAmount(item.unitPrice, currency),
+      amountLabel: formatCurrencyAmount(item.total, currency),
     })),
   };
 }
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 32,
-    paddingRight: 32,
-    paddingBottom: 28,
-    paddingLeft: 32,
-    fontSize: 10.5,
-    color: "#0F172A",
+    paddingTop: 36,
+    paddingRight: 40,
+    paddingBottom: 32,
+    paddingLeft: 40,
+    fontSize: 10,
+    color: "#111827",
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
   },
-  header: {
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 20,
-    marginBottom: 18,
+    marginBottom: 14,
   },
-  brandBlock: {
+  brandRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
     gap: 14,
-    flexGrow: 1,
     maxWidth: "62%",
   },
   logo: {
-    width: 58,
-    height: 58,
+    width: 64,
+    height: 64,
     objectFit: "contain",
     borderWidth: 1,
-    borderColor: "#D4D8E1",
-    borderRadius: 8,
+    borderColor: "#D9DEE8",
+    borderRadius: 10,
     padding: 6,
   },
-  title: {
-    fontSize: 22,
+  businessName: {
+    fontSize: 18,
     fontWeight: 700,
     marginBottom: 4,
+    color: "#111827",
   },
-  muted: {
-    color: "#64748B",
-  },
-  subtitle: {
+  contactLine: {
     fontSize: 9.5,
-    color: "#64748B",
-    marginBottom: 7,
-    textTransform: "uppercase",
+    color: "#374151",
+    lineHeight: 1.5,
+    marginBottom: 2,
   },
-  headerLine: {
-    marginBottom: 3,
-    lineHeight: 1.45,
+  metaColumn: {
+    alignItems: "flex-end",
+    minWidth: 200,
+    gap: 4,
   },
-  metaCard: {
-    width: 180,
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#F8FAFC",
-    gap: 8,
-  },
-  metaLabel: {
-    fontSize: 8.5,
-    color: "#64748B",
-    textTransform: "uppercase",
-  },
-  metaValue: {
-    fontSize: 11,
-    fontWeight: 700,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#D9DEE8",
-    marginBottom: 18,
-  },
-  sectionGrid: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 18,
-  },
-  sectionCard: {
-    flexGrow: 1,
-    flexBasis: 0,
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 7,
-  },
-  sectionTitle: {
+  docTypeLabel: {
     fontSize: 9,
     fontWeight: 700,
+    letterSpacing: 1.2,
+    color: MUTED,
     textTransform: "uppercase",
-    color: "#64748B",
+    marginBottom: 2,
   },
-  sectionLine: {
+  quotationNumber: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: NAVY,
+    marginBottom: 10,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+    marginBottom: 3,
+  },
+  metaRowLabel: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: MUTED,
+    textTransform: "uppercase",
+    width: 82,
+    textAlign: "right",
+  },
+  metaRowValue: {
+    fontSize: 9.5,
+    color: "#111827",
+    minWidth: 100,
+    textAlign: "right",
+  },
+  separator: {
+    height: 2,
+    backgroundColor: ACCENT_LINE,
+    marginBottom: 18,
+  },
+  clientSection: {
+    backgroundColor: CLIENT_BG,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    gap: 5,
+  },
+  clientLabel: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: MUTED,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  clientName: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#111827",
+  },
+  clientLine: {
+    fontSize: 9.5,
+    color: "#374151",
     lineHeight: 1.45,
   },
-  sectionSpacer: {
-    marginTop: 4,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  summaryLabel: {
-    color: "#64748B",
-  },
-  summaryValue: {
-    fontWeight: 700,
-  },
-  summaryTotalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-  },
-  summaryTotalLabel: {
-    fontSize: 10.5,
-    fontWeight: 700,
-  },
-  summaryTotalValue: {
-    fontSize: 13.5,
-    fontWeight: 700,
-    color: "#0F172A",
-  },
   table: {
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 18,
+    marginBottom: 20,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 9,
+    backgroundColor: NAVY,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  tableHeaderCell: {
+    fontSize: 8.5,
     fontWeight: 700,
+    color: "#FFFFFF",
     textTransform: "uppercase",
-    color: "#475569",
+    letterSpacing: 0.4,
   },
   tableRow: {
     flexDirection: "row",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  colConcept: {
-    width: "44%",
-    paddingRight: 8,
+  tableRowAlt: {
+    backgroundColor: ROW_ALT,
   },
-  colQty: {
-    width: "16%",
-    paddingRight: 8,
-  },
-  colPrice: {
-    width: "20%",
-    paddingRight: 8,
-    textAlign: "right",
-  },
-  colTotal: {
-    width: "20%",
-    textAlign: "right",
-  },
-  conceptTitle: {
+  colDescription: { width: "42%", paddingRight: 8 },
+  colQuantity: { width: "14%", textAlign: "center" },
+  colUnitPrice: { width: "22%", textAlign: "right", paddingRight: 6 },
+  colAmount: { width: "22%", textAlign: "right" },
+  itemName: {
+    fontSize: 10,
     fontWeight: 700,
-    marginBottom: 3,
+    marginBottom: 2,
+    color: "#111827",
   },
-  totalsWrap: {
+  itemDescription: {
+    fontSize: 8.5,
+    color: MUTED,
+    lineHeight: 1.35,
+  },
+  cellText: {
+    fontSize: 9.5,
+    color: "#111827",
+  },
+  totalsSection: {
     marginLeft: "auto",
-    width: "42%",
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 8,
+    width: 250,
+    gap: 6,
     marginBottom: 18,
-    backgroundColor: "#F8FAFC",
   },
   totalsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
+    alignItems: "center",
+    paddingVertical: 2,
   },
   totalsLabel: {
-    color: "#64748B",
-  },
-  totalStrong: {
-    fontSize: 15,
-    fontWeight: 700,
-  },
-  notesCard: {
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 6,
-  },
-  notesHeading: {
     fontSize: 9,
     fontWeight: 700,
-    color: "#64748B",
+    color: MUTED,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  footer: {
-    marginTop: 18,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#D9DEE8",
-    fontSize: 9,
-    color: "#64748B",
+  totalsValue: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#111827",
+  },
+  totalHighlightBox: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
+    alignItems: "center",
+    backgroundColor: NAVY,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 6,
   },
-  footerLeft: {
-    maxWidth: "70%",
-    gap: 2,
+  totalHighlightLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#FFFFFF",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  totalHighlightValue: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: "#FFFFFF",
+  },
+  notesSection: {
+    marginBottom: 16,
+    gap: 4,
+  },
+  notesLabel: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: MUTED,
+    textTransform: "uppercase",
+  },
+  notesText: {
+    fontSize: 9,
+    color: "#374151",
+    lineHeight: 1.5,
+  },
+  footer: {
+    marginTop: "auto",
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    gap: 4,
+  },
+  footerBusiness: {
+    fontSize: 9,
+    color: "#374151",
+  },
+  footerBrand: {
+    fontSize: 7,
+    color: "#CBD5E1",
+    textAlign: "center",
+    marginTop: 4,
   },
 });
 
 export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
   return (
     <Document
-      title={`Cotizacion ${data.quotationNumber}`}
+      title={`Cotización ${data.quotationNumber}`}
       author={data.businessName}
-      subject="Cotizacion comercial"
+      subject="Cotización comercial"
       language="es-AR"
     >
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View style={styles.brandBlock}>
+        <View style={styles.headerRow}>
+          <View style={styles.brandRow}>
             {data.logoDataUrl ? (
               <>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -376,123 +391,117 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
               </>
             ) : null}
             <View>
-              <Text style={styles.title}>{data.businessName}</Text>
-              <Text style={styles.subtitle}>Cotizacion comercial</Text>
+              <Text style={styles.businessName}>{data.businessName}</Text>
               {data.businessContact.map((line) => (
-                <Text key={line} style={styles.headerLine}>
+                <Text key={line} style={styles.contactLine}>
                   {line}
                 </Text>
               ))}
             </View>
           </View>
 
-          <View style={styles.metaCard}>
-            <View>
-              <Text style={styles.metaLabel}>Cotizacion</Text>
-              <Text style={styles.metaValue}>{data.quotationNumber}</Text>
+          <View style={styles.metaColumn}>
+            <Text style={styles.docTypeLabel}>COTIZACIÓN</Text>
+            <Text style={styles.quotationNumber}>{data.quotationNumber}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaRowLabel}>Fecha</Text>
+              <Text style={styles.metaRowValue}>{data.issuedAtLabel}</Text>
             </View>
-            <View>
-              <Text style={styles.metaLabel}>Fecha de emision</Text>
-              <Text>{data.issuedAtLabel}</Text>
-            </View>
-            <View>
-              <Text style={styles.metaLabel}>PDF generado</Text>
-              <Text>{data.generatedAtLabel}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaRowLabel}>Válida hasta</Text>
+              <Text style={styles.metaRowValue}>{data.validUntilLabel}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={styles.separator} />
 
-        <View style={styles.sectionGrid}>
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Cliente</Text>
-            <Text style={styles.conceptTitle}>{data.customerName}</Text>
-            {data.customerContact.length > 0 ? (
-              data.customerContact.map((line) => (
-                <Text key={line} style={styles.sectionLine}>
-                  {line}
-                </Text>
-              ))
-            ) : (
-              <Text style={styles.muted}>Sin datos adicionales</Text>
-            )}
-          </View>
-
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Resumen</Text>
-            <Text style={styles.sectionLine}>Items: {data.items.length}</Text>
-            <Text style={styles.sectionLine}>Valida hasta: {data.validUntilLabel}</Text>
-            <View style={styles.sectionSpacer}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>{data.subtotalLabel}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
-                  Impuesto ({data.taxRateLabel})
-                </Text>
-                <Text style={styles.summaryValue}>{data.taxAmountLabel}</Text>
-              </View>
-              <View style={styles.summaryTotalRow}>
-                <Text style={styles.summaryTotalLabel}>Total</Text>
-                <Text style={styles.summaryTotalValue}>{data.totalLabel}</Text>
-              </View>
-            </View>
-          </View>
+        <View style={styles.clientSection}>
+          <Text style={styles.clientLabel}>Facturar a</Text>
+          <Text style={styles.clientName}>{data.customerName}</Text>
+          {data.customerContact.length > 0 ? (
+            data.customerContact.map((line) => (
+              <Text key={line} style={styles.clientLine}>
+                {line}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.clientLine}>—</Text>
+          )}
         </View>
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.colConcept}>Descripcion</Text>
-            <Text style={styles.colQty}>Cantidad</Text>
-            <Text style={styles.colPrice}>Precio unitario</Text>
-            <Text style={styles.colTotal}>Total</Text>
+            <Text style={[styles.tableHeaderCell, styles.colDescription]}>
+              Descripción
+            </Text>
+            <Text style={[styles.tableHeaderCell, styles.colQuantity]}>
+              Cantidad
+            </Text>
+            <Text style={[styles.tableHeaderCell, styles.colUnitPrice]}>
+              Unitario
+            </Text>
+            <Text style={[styles.tableHeaderCell, styles.colAmount]}>Total</Text>
           </View>
 
-          {data.items.map((item) => (
-            <View key={item.id} style={styles.tableRow}>
-              <View style={styles.colConcept}>
-                <Text style={styles.conceptTitle}>{item.name}</Text>
+          {data.items.map((item, index) => (
+            <View
+              key={item.id}
+              style={
+                index % 2 === 1
+                  ? [styles.tableRow, styles.tableRowAlt]
+                  : styles.tableRow
+              }
+            >
+              <View style={styles.colDescription}>
+                <Text style={styles.itemName}>{item.name}</Text>
                 {item.description ? (
-                  <Text style={styles.muted}>{item.description}</Text>
+                  <Text style={styles.itemDescription}>{item.description}</Text>
                 ) : null}
               </View>
-              <Text style={styles.colQty}>{item.quantityLabel}</Text>
-              <Text style={styles.colPrice}>{item.unitPriceLabel}</Text>
-              <Text style={styles.colTotal}>{item.totalLabel}</Text>
+              <Text style={[styles.cellText, styles.colQuantity]}>
+                {item.quantityLabel}
+              </Text>
+              <Text style={[styles.cellText, styles.colUnitPrice]}>
+                {item.unitPriceLabel}
+              </Text>
+              <Text style={[styles.cellText, styles.colAmount]}>
+                {item.amountLabel}
+              </Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.totalsWrap}>
+        <View style={styles.totalsSection}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>{data.subtotalLabel}</Text>
+            <Text style={styles.totalsValue}>{data.subtotalLabel}</Text>
           </View>
           <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Impuesto ({data.taxRateLabel})</Text>
-            <Text style={styles.summaryValue}>{data.taxAmountLabel}</Text>
+            <Text style={styles.totalsLabel}>
+              Impuesto ({data.taxRateLabel})
+            </Text>
+            <Text style={styles.totalsValue}>{data.taxAmountLabel}</Text>
           </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalStrong}>Total</Text>
-            <Text style={styles.totalStrong}>{data.totalLabel}</Text>
+          <View style={styles.totalHighlightBox}>
+            <Text style={styles.totalHighlightLabel}>Total</Text>
+            <Text style={styles.totalHighlightValue}>{data.totalLabel}</Text>
           </View>
         </View>
 
-        <View style={styles.notesCard}>
-          <Text style={styles.notesHeading}>Notas y condiciones</Text>
-          <Text style={styles.sectionLine}>
-            {data.notes ?? "Cotizacion sujeta a disponibilidad de stock y confirmacion final."}
-          </Text>
-        </View>
+        {data.notes ? (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesLabel}>Notas</Text>
+            <Text style={styles.notesText}>{data.notes}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.footer}>
-          <View style={styles.footerLeft}>
-            <Text>{data.businessName}</Text>
-            {data.footerNote ? <Text>{data.footerNote}</Text> : null}
-          </View>
-          <Text>Generado con Cotizapp</Text>
+          <Text style={styles.footerBusiness}>{data.businessName}</Text>
+          {data.footerNote ? (
+            <Text style={styles.footerBusiness}>{data.footerNote}</Text>
+          ) : null}
+          <Text style={styles.footerBrand}>Generado con Cotizapp</Text>
         </View>
       </Page>
     </Document>

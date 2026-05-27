@@ -72,7 +72,7 @@ export function QuotationSummary({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Items cargados
+              Ítems cargados
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {items.length}
@@ -83,7 +83,11 @@ export function QuotationSummary({
               Estado del borrador
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
-              {isSaved ? "Guardado y bloqueado" : "Listo para guardar"}
+              {isSaved
+                ? "Guardado y bloqueado"
+                : items.length === 0
+                  ? "Agregá al menos un ítem para guardar."
+                  : "Listo para guardar"}
             </p>
           </div>
         </div>
@@ -133,7 +137,7 @@ export function QuotationSummary({
 
         {draftNumber ? (
           <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-            Borrador guardado con el numero <span className="font-semibold">{draftNumber}</span>.
+            Borrador guardado con el número <span className="font-semibold">{draftNumber}</span>.
             Ahora puedes sumar adjuntos antes de salir.
           </div>
         ) : (
@@ -142,7 +146,7 @@ export function QuotationSummary({
               <ShieldCheck className="h-4 w-4 text-accent-token" />
               Guardado controlado
             </div>
-            Al guardar se crea una cotizacion en estado borrador, lista para sumar
+            Al guardar se crea una cotización en estado borrador, lista para sumar
             adjuntos y preparar la salida por PDF o WhatsApp.
           </div>
         )}
@@ -168,7 +172,7 @@ export function QuotationSummary({
             ? "Guardando borrador..."
             : isSaved
               ? "Borrador guardado"
-              : "Guardar cotizacion"}
+              : "Guardar cotización"}
         </Button>
       </CardContent>
     </Card>

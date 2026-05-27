@@ -43,7 +43,7 @@ export function parseClientFormData(formData: FormData): ClientFormValues {
   }
 
   if (!hasMinimumPhoneDigits(phone)) {
-    throw new Error("Ingresa un telefono valido con al menos 8 digitos.");
+    throw new Error("Ingresa un teléfono válido con al menos 8 dígitos.");
   }
 
   return {
@@ -107,6 +107,24 @@ export function getClientDeleteFailureMessage(error: DatabaseErrorLike) {
   }
 
   return "No se pudo eliminar el cliente.";
+}
+
+export async function countClientQuotations(
+  userId: string,
+  clientId: string,
+): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("quotations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("client_id", clientId);
+
+  if (error) {
+    throw new Error("No se pudieron revisar las cotizaciones del cliente.");
+  }
+
+  return count ?? 0;
 }
 
 export async function getClients(userId: string, search?: string): Promise<Client[]> {

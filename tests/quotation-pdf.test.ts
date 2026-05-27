@@ -150,7 +150,11 @@ test("buildQuotationPdfTemplateData provides safe fallbacks and formatted line i
   assert.equal(templateData.customerName, "Cliente no especificado");
   assert.equal(templateData.validUntilLabel, "Sin fecha");
   assert.equal(templateData.notes, null);
-  assert.equal(templateData.items[0]?.quantityLabel, "2 bolsa");
+  assert.equal(templateData.items[0]?.quantityLabel, "2");
+  assert.equal(
+    templateData.items[0]?.unitPriceLabel,
+    formatCurrencyAmount(1200.25, quotation.branding.currency),
+  );
   assert.equal(templateData.items[0]?.description, "Bolsa de 50 kg");
 });
 

@@ -55,7 +55,7 @@ export function ChatShell() {
       id: "message-0",
       role: "assistant",
       content:
-        "Hola. Puedo ayudarte a revisar clientes, catalogo y cotizaciones, y tambien proponer borradores o cambios de precio. Cualquier escritura queda siempre pendiente de tu confirmacion.",
+        "Hola. Puedo ayudarte a revisar clientes, catálogo y cotizaciones, y también proponer borradores o cambios de precio. Cualquier escritura queda siempre pendiente de tu confirmación.",
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -71,7 +71,7 @@ export function ChatShell() {
   const userMessageCount = messages.filter((message) => message.role === "user").length;
   const pendingSuggestionLabel = pendingSuggestion
     ? pendingSuggestion.type === "draft_quotation_create"
-      ? "Borrador pendiente de confirmacion"
+      ? "Borrador pendiente de confirmación"
       : "Cambio de precio pendiente"
     : "Sin sugerencias pendientes";
 
@@ -165,8 +165,8 @@ export function ChatShell() {
           title: "Borrador creado",
           description:
             pendingSuggestion.clientSource === "inline"
-              ? `Se creo un cliente nuevo y el borrador ${result.number}. Ya puedes revisarlo fuera del chat.`
-              : `Se creo el borrador ${result.number} y ya puedes revisarlo fuera del chat.`,
+              ? `Se creó un cliente nuevo y el borrador ${result.number}. Ya puedes revisarlo fuera del chat.`
+              : `Se creó el borrador ${result.number} y ya puedes revisarlo fuera del chat.`,
           href: `/cotizaciones/nueva?quotationId=${result.quotationId}`,
           hrefLabel: "Abrir borrador",
         });
@@ -180,7 +180,7 @@ export function ChatShell() {
             "es-AR",
           )} a $${result.updatedPrice.toLocaleString("es-AR")}.`,
           href: "/catalogo",
-          hrefLabel: "Ver catalogo",
+          hrefLabel: "Ver catálogo",
         });
       }
 
@@ -205,7 +205,7 @@ export function ChatShell() {
     setFeedback({
       tone: "success",
       title: "Sugerencia descartada",
-      description: "No se persisitio ningun cambio desde el chat.",
+      description: "No se persistió ningún cambio desde el chat.",
     });
   }
 
@@ -220,18 +220,18 @@ export function ChatShell() {
               </span>
               <div className="space-y-2">
                 <CardTitle className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Un espacio conversacional con mejor jerarquia y confirmacion visible
+                  Un espacio conversacional con mejor jerarquía y confirmación visible
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-sm leading-7 sm:text-base">
                   Consulta el negocio, prepara borradores o revisa precios desde un
-                  workspace mas claro, con el historial y la zona de acciones
+                  workspace más claro, con el historial y la zona de acciones
                   separadas del contexto operativo.
                 </CardDescription>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {["Clientes", "Catalogo", "Cotizaciones", "Confirmacion manual"].map(
+              {["Clientes", "Catálogo", "Cotizaciones", "Confirmación manual"].map(
                 (label) => (
                   <span
                     key={label}
@@ -253,7 +253,7 @@ export function ChatShell() {
                 {assistantMessageCount}
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Respuestas generadas dentro de esta conversacion.
+                Respuestas generadas dentro de esta conversación.
               </p>
             </div>
             <div className="rounded-[1.75rem] border border-token bg-background/60 p-4 shadow-sm">
@@ -303,7 +303,13 @@ export function ChatShell() {
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <Bot className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>{assistantMessageCount} mensajes del asistente y {userMessageCount} tuyos en la sesion actual.</p>
+                <p>
+                  {assistantMessageCount}{" "}
+                  {assistantMessageCount === 1
+                    ? "mensaje del asistente"
+                    : "mensajes del asistente"}{" "}
+                  y {userMessageCount} tuyos en la sesión actual.
+                </p>
               </div>
               <div className="flex gap-2">
                 <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
@@ -314,23 +320,23 @@ export function ChatShell() {
 
           <Card className="shell-panel overflow-hidden shadow-none">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-xl">Guardrails del modulo</CardTitle>
+              <CardTitle className="text-xl">Reglas del asistente</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>Toda respuesta sale en espanol y toda escritura requiere confirmacion.</p>
+                <p>Toda respuesta sale en español y toda escritura requiere confirmación.</p>
               </div>
               <div className="flex gap-2">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>Puede sugerir borradores de cotizacion y ajustes puntuales de catalogo.</p>
+                <p>Puede sugerir borradores de cotización y ajustes puntuales de catálogo.</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="shell-panel overflow-hidden shadow-none">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-xl">Siguiente accion</CardTitle>
+              <CardTitle className="text-xl">Siguiente acción</CardTitle>
               <CardDescription className="leading-6">
                 Usa el chat para explorar y luego confirma el cambio desde el bloque
                 correspondiente.
@@ -340,7 +346,7 @@ export function ChatShell() {
               <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
                 <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
                   <FileText className="h-4 w-4 text-accent-token" />
-                  Recomendacion actual
+                  Recomendación actual
                 </div>
                 <p>{pendingSuggestionLabel}.</p>
                 <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">

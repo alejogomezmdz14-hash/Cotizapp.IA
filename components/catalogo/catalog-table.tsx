@@ -52,10 +52,10 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
   const normalizedSearch = search.trim();
   const resultLabel = useMemo(() => {
     if (items.length === 1) {
-      return "1 item";
+      return "1 ítem";
     }
 
-    return `${items.length} items`;
+    return `${items.length} ítems`;
   }, [items.length]);
 
   async function handleDelete(id: string) {
@@ -237,10 +237,10 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
                         <div className="rounded-lg border border-token/80 bg-background/60 p-4">
                           <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
                             <Tag className="h-4 w-4 text-muted-foreground" />
-                            Categoria
+                            Categoría
                           </p>
                           <p className="text-sm leading-6 text-muted-foreground">
-                            {item.category?.trim() || "Sin categoria"}
+                            {item.category?.trim() || "Sin categoría"}
                           </p>
                         </div>
 
@@ -265,11 +265,11 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
 
                       <div className="rounded-lg border border-token/80 bg-background/60 p-4">
                         <p className="mb-2 text-sm font-medium text-foreground">
-                          Descripcion
+                          Descripción
                         </p>
                         <p className="text-sm leading-6 text-muted-foreground">
                           {item.description?.trim() ||
-                            "Sin descripcion cargada para este item."}
+                            "Sin descripción cargada para este ítem."}
                         </p>
                       </div>
                     </>

@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import { Mail, MapPin, Pencil, Phone, Search, Trash2, Users } from "lucide-react";
 
-import { deleteClientAction, updateClientAction } from "@/app/actions/clients";
+import {
+  deleteClientAction,
+  getClientQuotationCountAction,
+  updateClientAction,
+} from "@/app/actions/clients";
 import { ClientForm } from "@/components/clientes/client-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,8 +68,24 @@ export function ClientList({ clients, search }: ClientListProps) {
   }, [clients.length]);
 
   async function handleDelete(id: string) {
+    let quotationCount = 0;
+
+    try {
+      const impact = await getClientQuotationCountAction(id);
+      quotationCount = impact.quotationCount;
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Esta acción eliminará el cliente de forma permanente. ¿Querés continuar?",
+      quotationCount > 0
+        ? `Este cliente tiene ${quotationCount} cotización${
+            quotationCount === 1 ? "" : "es"
+          } asociada${
+            quotationCount === 1 ? "" : "s"
+          }. Si lo eliminás, el historial puede quedar inconsistente. ¿Querés continuar igualmente?`
+        : "Esta acción eliminará el cliente de forma permanente. ¿Querés continuar?",
     );
 
     if (!confirmed) {
@@ -244,10 +264,10 @@ export function ClientList({ clients, search }: ClientListProps) {
                         <div className="rounded-lg border border-token/80 bg-background/60 p-4">
                           <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                            Telefono
+                            Teléfono
                           </p>
                           <p className="text-sm leading-6 text-muted-foreground">
-                            {client.phone?.trim() || "Sin telefono cargado"}
+                            {client.phone?.trim() || "Sin teléfono cargado"}
                           </p>
                         </div>
                       </div>
@@ -255,10 +275,10 @@ export function ClientList({ clients, search }: ClientListProps) {
                       <div className="rounded-lg border border-token/80 bg-background/60 p-4">
                         <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
-                          Direccion
+                          Dirección
                         </p>
                         <p className="text-sm leading-6 text-muted-foreground">
-                          {client.address?.trim() || "Sin direccion cargada"}
+                          {client.address?.trim() || "Sin dirección cargada"}
                         </p>
                       </div>
                     </>

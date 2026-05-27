@@ -144,8 +144,13 @@ export function QuotationListActions({
             }}
           >
             {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
+              <option
+                key={option.value}
+                value={option.value}
+                disabled={option.value === (initialStatus ?? "draft")}
+              >
                 {option.label}
+                {option.value === (initialStatus ?? "draft") ? " (actual)" : ""}
               </option>
             ))}
           </select>

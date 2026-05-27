@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   assertSingleClientMutation,
+  countClientQuotations,
   getClientDeleteFailureMessage,
   parseClientFormData,
 } from "@/lib/clients";
@@ -51,6 +52,15 @@ export async function updateClientAction(id: string, formData: FormData) {
   assertSingleClientMutation(data, "update");
 
   revalidateClientViews();
+}
+
+export async function getClientQuotationCountAction(clientId: string) {
+  const user = await requireUser();
+  const quotationCount = await countClientQuotations(user.id, clientId);
+
+  return {
+    quotationCount,
+  };
 }
 
 export async function deleteClientAction(id: string) {
