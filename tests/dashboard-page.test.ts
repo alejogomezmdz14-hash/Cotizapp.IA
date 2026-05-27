@@ -16,11 +16,14 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
         acceptedQuotations: 4,
         pendingQuotations: 6,
       },
+      expensesThisMonth: 320,
+      acceptedQuotedThisMonth: 1800,
+      netProfitThisMonth: 1480,
     },
     "ARS",
   );
 
-  assert.equal(sections.quotationMetricCards.length, 4);
+  assert.equal(sections.quotationMetricCards.length, 6);
   assert.deepEqual(
     sections.quotationMetricCards.map((card) => card.title),
     [
@@ -28,6 +31,8 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
       "Enviadas",
       "Aceptadas",
       "Pendientes",
+      "Gastos este mes",
+      "Ganancia neta",
     ],
   );
   assert.equal(

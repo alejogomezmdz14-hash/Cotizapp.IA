@@ -70,7 +70,7 @@ export function Sidebar() {
           aria-label="Ir al inicio de Cotizapp"
         >
           <Image
-            src="/icons/icon-512.svg"
+            src="/cotizapp-logo.png"
             alt="Cotizapp"
             width={140}
             height={140}

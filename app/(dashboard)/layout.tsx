@@ -19,8 +19,6 @@ export default async function DashboardLayout({
   }
 
   const branding = await resolveDashboardBranding(profile);
-  const { getProfileAvatarUploadState } = await import("@/app/actions/uploads");
-  const avatarState = await getProfileAvatarUploadState(profile?.avatar_url ?? null);
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
@@ -30,9 +28,6 @@ export default async function DashboardLayout({
         <DashboardHeader
           businessName={branding.businessName}
           logoUrl={branding.logoUrl}
-          userFirstName={profile?.first_name ?? null}
-          userLastName={profile?.last_name ?? null}
-          userAvatarUrl={avatarState?.previewUrl ?? null}
         />
         <main className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 lg:pb-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
