@@ -22,10 +22,10 @@ import {
 } from "@/lib/quotation-validity";
 import type { HydratedQuotation } from "@/types";
 
-const NAVY = "#1A2A4A";
-const MUTED = "#64748B";
-const ROW_ALT = "#F5F5F5";
-const CLIENT_BG = "#F5F5F5";
+const GRAY_500 = "#6B7280";
+const GRAY_700 = "#374151";
+const GRAY_50 = "#F9FAFB";
+const INK = "#111827";
 
 export type QuotationPdfTemplateData = {
   businessName: string;
@@ -151,273 +151,258 @@ export function buildQuotationPdfTemplateData({
   };
 }
 
-function createPdfStyles(accentColor: string, pdfTemplate: PdfTemplateId) {
-  const isModern = pdfTemplate === "modern";
-  const isMinimal = pdfTemplate === "minimal";
-  const tableHeaderBg = isMinimal ? "#F9FAFB" : isModern ? accentColor : NAVY;
-  const tableHeaderText = isMinimal ? "#111827" : "#FFFFFF";
-  const separatorColor = isMinimal ? "#D1D5DB" : accentColor;
-  const clientBackground = isMinimal ? "#FFFFFF" : CLIENT_BG;
-  const totalHighlightBackground = isMinimal ? "#F3F4F6" : isModern ? accentColor : NAVY;
-  const totalHighlightText = isMinimal ? "#111827" : "#FFFFFF";
-  const quotationNumberColor = isMinimal ? "#111827" : NAVY;
-
+function createPdfStyles(accentColor: string) {
   return StyleSheet.create({
-  page: {
-    paddingTop: 36,
-    paddingRight: 40,
-    paddingBottom: 32,
-    paddingLeft: 40,
-    fontSize: 10,
-    color: "#111827",
-    fontFamily: "Helvetica",
-    backgroundColor: "#FFFFFF",
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    maxWidth: "62%",
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    objectFit: "contain",
-    borderWidth: 1,
-    borderColor: "#D9DEE8",
-    borderRadius: 10,
-    padding: 6,
-  },
-  businessName: {
-    fontSize: 18,
-    fontWeight: 700,
-    marginBottom: 4,
-    color: "#111827",
-  },
-  contactLine: {
-    fontSize: 9.5,
-    color: "#374151",
-    lineHeight: 1.5,
-    marginBottom: 2,
-  },
-  metaColumn: {
-    alignItems: "flex-end",
-    minWidth: 200,
-    gap: 4,
-  },
-  docTypeLabel: {
-    fontSize: 9,
-    fontWeight: 700,
-    letterSpacing: 1.2,
-    color: MUTED,
-    textTransform: "uppercase",
-    marginBottom: 2,
-  },
-  quotationNumber: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: quotationNumberColor,
-    marginBottom: 10,
-  },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 8,
-    marginBottom: 3,
-  },
-  metaRowLabel: {
-    fontSize: 8.5,
-    fontWeight: 700,
-    color: MUTED,
-    textTransform: "uppercase",
-    width: 82,
-    textAlign: "right",
-  },
-  metaRowValue: {
-    fontSize: 9.5,
-    color: "#111827",
-    minWidth: 100,
-    textAlign: "right",
-  },
-  separator: {
-    height: isMinimal ? 1 : 2,
-    backgroundColor: separatorColor,
-    marginBottom: 18,
-  },
-  clientSection: {
-    backgroundColor: clientBackground,
-    borderWidth: isMinimal ? 1 : 0,
-    borderColor: isMinimal ? "#E5E7EB" : "transparent",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 20,
-    gap: 5,
-  },
-  clientLabel: {
-    fontSize: 8.5,
-    fontWeight: 700,
-    color: MUTED,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  clientName: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#111827",
-  },
-  clientLine: {
-    fontSize: 9.5,
-    color: "#374151",
-    lineHeight: 1.45,
-  },
-  table: {
-    marginBottom: 20,
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: tableHeaderBg,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-  },
-  tableHeaderCell: {
-    fontSize: 8.5,
-    fontWeight: 700,
-    color: tableHeaderText,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  tableRow: {
-    flexDirection: "row",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  tableRowAlt: {
-    backgroundColor: ROW_ALT,
-  },
-  colDescription: { width: "42%", paddingRight: 8 },
-  colQuantity: { width: "14%", textAlign: "center" },
-  colUnitPrice: { width: "22%", textAlign: "right", paddingRight: 6 },
-  colAmount: { width: "22%", textAlign: "right" },
-  itemName: {
-    fontSize: 10,
-    fontWeight: 700,
-    marginBottom: 2,
-    color: "#111827",
-  },
-  itemDescription: {
-    fontSize: 8.5,
-    color: MUTED,
-    lineHeight: 1.35,
-  },
-  cellText: {
-    fontSize: 9.5,
-    color: "#111827",
-  },
-  totalsSection: {
-    marginLeft: "auto",
-    width: 250,
-    gap: 6,
-    marginBottom: 18,
-  },
-  totalsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 2,
-  },
-  totalsLabel: {
-    fontSize: 9,
-    fontWeight: 700,
-    color: MUTED,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  totalsValue: {
-    fontSize: 10,
-    fontWeight: 700,
-    color: "#111827",
-  },
-  totalHighlightBox: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: totalHighlightBackground,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 6,
-  },
-  totalHighlightLabel: {
-    fontSize: 9,
-    fontWeight: 700,
-    color: totalHighlightText,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  totalHighlightValue: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: totalHighlightText,
-  },
-  notesSection: {
-    marginBottom: 16,
-    gap: 4,
-  },
-  notesLabel: {
-    fontSize: 8.5,
-    fontWeight: 700,
-    color: MUTED,
-    textTransform: "uppercase",
-  },
-  notesText: {
-    fontSize: 9,
-    color: "#374151",
-    lineHeight: 1.5,
-  },
-  footer: {
-    marginTop: "auto",
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-    gap: 4,
-  },
-  footerBusiness: {
-    fontSize: 9,
-    color: "#374151",
-  },
-  footerBrand: {
-    fontSize: 7,
-    color: "#CBD5E1",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  signatureSection: {
-    marginTop: 18,
-    gap: 6,
-  },
-  signatureLabel: {
-    fontSize: 8.5,
-    fontWeight: 700,
-    color: MUTED,
-    textTransform: "uppercase",
-  },
-  signatureImage: {
-    width: 180,
-    height: 64,
-    objectFit: "contain",
-  },
+    page: {
+      paddingTop: 36,
+      paddingRight: 40,
+      paddingBottom: 32,
+      paddingLeft: 40,
+      fontSize: 10,
+      color: INK,
+      fontFamily: "Helvetica",
+      backgroundColor: "#FFFFFF",
+    },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 16,
+    },
+    brandColumn: {
+      maxWidth: "58%",
+      gap: 8,
+    },
+    logo: {
+      width: 80,
+      height: 80,
+      objectFit: "contain",
+    },
+    businessName: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: INK,
+      marginBottom: 4,
+    },
+    contactLine: {
+      fontSize: 10,
+      color: GRAY_500,
+      lineHeight: 1.45,
+      marginBottom: 2,
+    },
+    metaColumn: {
+      alignItems: "flex-end",
+      minWidth: 210,
+      gap: 4,
+    },
+    docTypeLabel: {
+      fontSize: 11,
+      letterSpacing: 1.65,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      marginBottom: 2,
+    },
+    quotationNumber: {
+      fontSize: 13,
+      fontFamily: "Courier",
+      color: GRAY_700,
+      marginBottom: 8,
+    },
+    metaBlock: {
+      gap: 4,
+      alignItems: "flex-end",
+    },
+    metaRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "baseline",
+      gap: 8,
+    },
+    metaRowLabel: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    metaRowValue: {
+      fontSize: 10,
+      color: GRAY_700,
+      minWidth: 88,
+      textAlign: "right",
+    },
+    separator: {
+      height: 2,
+      backgroundColor: accentColor,
+      marginBottom: 18,
+    },
+    clientSection: {
+      backgroundColor: GRAY_50,
+      borderRadius: 6,
+      padding: 12,
+      marginBottom: 20,
+      gap: 4,
+    },
+    clientLabel: {
+      fontSize: 9,
+      fontWeight: 700,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      marginBottom: 2,
+    },
+    clientName: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: INK,
+      marginBottom: 2,
+    },
+    clientLine: {
+      fontSize: 10,
+      color: GRAY_500,
+      lineHeight: 1.45,
+    },
+    table: {
+      marginBottom: 20,
+    },
+    tableHeader: {
+      flexDirection: "row",
+      backgroundColor: accentColor,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+    },
+    tableHeaderCell: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#FFFFFF",
+      textTransform: "uppercase",
+      letterSpacing: 0.35,
+    },
+    tableRow: {
+      flexDirection: "row",
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      backgroundColor: "#FFFFFF",
+    },
+    tableRowAlt: {
+      backgroundColor: GRAY_50,
+    },
+    colDescription: { width: "50%", paddingRight: 8 },
+    colQuantity: { width: "15%", textAlign: "center" },
+    colUnitPrice: { width: "17%", textAlign: "right", paddingRight: 6 },
+    colAmount: { width: "18%", textAlign: "right" },
+    itemName: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: INK,
+      marginBottom: 2,
+    },
+    itemDescription: {
+      fontSize: 9,
+      color: GRAY_500,
+      lineHeight: 1.35,
+    },
+    cellText: {
+      fontSize: 10,
+      color: INK,
+    },
+    totalsSection: {
+      marginLeft: "auto",
+      width: 240,
+      gap: 6,
+      marginBottom: 18,
+    },
+    totalsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    totalsLabel: {
+      fontSize: 10,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      letterSpacing: 0.35,
+    },
+    totalsValue: {
+      fontSize: 11,
+      color: INK,
+    },
+    totalHighlightBox: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: accentColor,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      marginTop: 4,
+      borderRadius: 4,
+    },
+    totalHighlightLabel: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#FFFFFF",
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    totalHighlightValue: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#FFFFFF",
+    },
+    notesSection: {
+      marginBottom: 16,
+      gap: 4,
+    },
+    notesLabel: {
+      fontSize: 9,
+      fontWeight: 700,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    notesText: {
+      fontSize: 10,
+      color: GRAY_700,
+      lineHeight: 1.5,
+    },
+    footer: {
+      marginTop: "auto",
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: "#E5E7EB",
+      gap: 4,
+    },
+    footerBusiness: {
+      fontSize: 9,
+      color: GRAY_700,
+    },
+    footerBrand: {
+      fontSize: 7,
+      color: "#9CA3AF",
+      textAlign: "center",
+      marginTop: 4,
+    },
+    signatureSection: {
+      marginTop: 16,
+      gap: 6,
+    },
+    signatureLabel: {
+      fontSize: 9,
+      fontWeight: 700,
+      color: GRAY_500,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    signatureImage: {
+      width: 180,
+      height: 64,
+      objectFit: "contain",
+    },
   });
 }
 
 export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
-  const styles = createPdfStyles(data.pdfAccentColor, data.pdfTemplate);
-  const useAlternatingRows = data.pdfTemplate !== "minimal";
+  const styles = createPdfStyles(data.pdfAccentColor);
 
   return (
     <Document
@@ -428,33 +413,33 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          <View style={styles.brandRow}>
+          <View style={styles.brandColumn}>
             {data.logoDataUrl ? (
               <>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
                 <Image src={data.logoDataUrl} style={styles.logo} />
               </>
             ) : null}
-            <View>
-              <Text style={styles.businessName}>{data.businessName}</Text>
-              {data.businessContact.map((line) => (
-                <Text key={line} style={styles.contactLine}>
-                  {line}
-                </Text>
-              ))}
-            </View>
+            <Text style={styles.businessName}>{data.businessName}</Text>
+            {data.businessContact.map((line) => (
+              <Text key={line} style={styles.contactLine}>
+                {line}
+              </Text>
+            ))}
           </View>
 
           <View style={styles.metaColumn}>
             <Text style={styles.docTypeLabel}>{data.documentTypeLabel}</Text>
             <Text style={styles.quotationNumber}>{data.quotationNumber}</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaRowLabel}>Fecha</Text>
-              <Text style={styles.metaRowValue}>{data.issuedAtLabel}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaRowLabel}>Válida hasta</Text>
-              <Text style={styles.metaRowValue}>{data.validUntilLabel}</Text>
+            <View style={styles.metaBlock}>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaRowLabel}>Fecha</Text>
+                <Text style={styles.metaRowValue}>{data.issuedAtLabel}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaRowLabel}>Válida hasta</Text>
+                <Text style={styles.metaRowValue}>{data.validUntilLabel}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -493,7 +478,7 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
             <View
               key={item.id}
               style={
-                useAlternatingRows && index % 2 === 1
+                index % 2 === 1
                   ? [styles.tableRow, styles.tableRowAlt]
                   : styles.tableRow
               }
