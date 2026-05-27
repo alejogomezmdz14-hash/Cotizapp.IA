@@ -185,16 +185,16 @@ export function InvoiceItemsReview({
     return (
       <Card className="shell-panel overflow-hidden shadow-none">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Revision del escaneo</CardTitle>
+          <CardTitle className="text-xl">Revisión del escaneo</CardTitle>
           <CardDescription className="leading-6">
-            Cuando el AI termine de leer tu factura, aqui podras editar cada
-            renglon y decidir si va a la cotizacion actual, al catalogo o se
+            Cuando la IA termine de leer tu factura, aquí podrás editar cada
+            renglón y decidir si va a la cotización actual, al catálogo o se
             descarta.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-            Carga una factura para abrir la revision editable y decidir destino por
+            Carga una factura para abrir la revisión editable y decidir destino por
             destino antes de persistir nada.
           </div>
         </CardContent>
@@ -211,10 +211,10 @@ export function InvoiceItemsReview({
               <FileSpreadsheet className="h-4 w-4" />
               Resultado editable
             </div>
-            <CardTitle className="text-xl">Revisar items detectados</CardTitle>
+            <CardTitle className="text-xl">Revisar ítems detectados</CardTitle>
             <CardDescription>
-              Nada se guarda automaticamente. Edita los datos, marca el destino
-              exclusivo de cada item y confirma la accion correspondiente.
+              Nada se guarda automáticamente. Edita los datos, marca el destino
+              exclusivo de cada ítem y confirma la acción correspondiente.
             </CardDescription>
           </div>
 
@@ -226,7 +226,7 @@ export function InvoiceItemsReview({
             disabled={disabled || isSavingCatalog || isApplyingQuotation}
           >
             <RefreshCcw className="mr-2 h-4 w-4" />
-            Limpiar revision
+            Limpiar revisión
           </Button>
         </div>
       </CardHeader>
@@ -235,7 +235,7 @@ export function InvoiceItemsReview({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Items detectados
+              Ítems detectados
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {result.items.length}
@@ -243,7 +243,7 @@ export function InvoiceItemsReview({
           </div>
           <div className="rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Para cotizacion
+              Para cotización
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {quotationSelection.length}
@@ -251,7 +251,7 @@ export function InvoiceItemsReview({
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Para catalogo
+              Para catálogo
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {catalogSelection.length}
@@ -286,7 +286,7 @@ export function InvoiceItemsReview({
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Numero
+              Número
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
               {result.invoiceNumber ?? "No detectado"}
@@ -322,7 +322,7 @@ export function InvoiceItemsReview({
           <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             <div className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              El resultado ya esta listo para revisar y confirmar.
+              El resultado ya está listo para revisar y confirmar.
             </div>
           </div>
         )}
@@ -330,8 +330,8 @@ export function InvoiceItemsReview({
         {rows.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
             {result.items.length === 0
-              ? "No encontramos items claros en esta factura. Puedes intentar con otra imagen mas nitida o cargar los conceptos manualmente."
-              : "No quedan items pendientes en esta revision. Puedes limpiar la revision o subir otra factura."}
+              ? "No encontramos ítems claros en esta factura. Puedes intentar con otra imagen más nítida o cargar los conceptos manualmente."
+              : "No quedan ítems pendientes en esta revisión. Puedes limpiar la revisión o subir otra factura."}
           </div>
         ) : (
           <div className="grid gap-4">
@@ -343,11 +343,11 @@ export function InvoiceItemsReview({
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
-                      Item detectado {index + 1}
+                      Ítem detectado {index + 1}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Corrige nombre, detalle, cantidad, unidad y precio antes de
-                      confirmar cualquier accion.
+                      confirmar cualquier acción.
                     </p>
                   </div>
 
@@ -365,7 +365,7 @@ export function InvoiceItemsReview({
                         disabled={disabled || isSavingCatalog || isApplyingQuotation}
                         className="h-4 w-4 rounded border-input"
                       />
-                      Agregar a esta cotizacion
+                      Agregar a esta cotización
                     </label>
                     <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
                       <input
@@ -380,7 +380,7 @@ export function InvoiceItemsReview({
                         disabled={disabled || isSavingCatalog || isApplyingQuotation}
                         className="h-4 w-4 rounded border-input"
                       />
-                      Guardar en catalogo
+                      Guardar en catálogo
                     </label>
                     <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
                       <input
@@ -486,13 +486,13 @@ export function InvoiceItemsReview({
 
         <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
           <p>
-            Seleccionados para cotizacion:{" "}
+            Seleccionados para cotización:{" "}
             <span className="font-medium text-foreground">
               {quotationSelection.length}
             </span>
           </p>
           <p>
-            Seleccionados para catalogo:{" "}
+            Seleccionados para catálogo:{" "}
             <span className="font-medium text-foreground">
               {catalogSelection.length}
             </span>
@@ -524,8 +524,8 @@ export function InvoiceItemsReview({
             disabled={disabled || isApplyingQuotation || rows.length === 0}
           >
             {isApplyingQuotation
-              ? "Agregando a la cotizacion..."
-              : "Agregar seleccionados a la cotizacion"}
+              ? "Agregando a la cotización..."
+              : "Agregar seleccionados a la cotización"}
           </Button>
           <Button
             type="button"
@@ -535,8 +535,8 @@ export function InvoiceItemsReview({
             className="bg-background/75"
           >
             {isSavingCatalog
-              ? "Guardando en catalogo..."
-              : "Guardar seleccionados en catalogo"}
+              ? "Guardando en catálogo..."
+              : "Guardar seleccionados en catálogo"}
           </Button>
         </div>
       </CardContent>

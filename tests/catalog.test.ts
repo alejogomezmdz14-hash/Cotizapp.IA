@@ -34,7 +34,7 @@ test("parseCatalogFormData rejects missing names", () => {
 
   assert.throws(
     () => parseCatalogFormData(formData),
-    /El nombre del item es obligatorio\./,
+    /El nombre del ítem es obligatorio\./,
   );
 });
 
@@ -45,7 +45,7 @@ test("parseCatalogFormData rejects invalid prices", () => {
 
   assert.throws(
     () => parseCatalogFormData(formData),
-    /Ingresa un precio valido mayor a cero\./,
+    /Ingresa un precio válido mayor a cero\./,
   );
 });
 
@@ -57,7 +57,7 @@ test("parseCatalogFormData rejects malformed numeric strings", () => {
 
     assert.throws(
       () => parseCatalogFormData(formData),
-      /Ingresa un precio valido mayor a cero\./,
+      /Ingresa un precio válido mayor a cero\./,
     );
   }
 });
@@ -105,20 +105,20 @@ test("assertSingleCatalogMutation accepts exactly one affected row", () => {
 test("assertSingleCatalogMutation rejects update mutations with zero affected rows", () => {
   assert.throws(
     () => assertSingleCatalogMutation([], "update"),
-    /El item no existe o no tenes permisos para actualizarlo\./,
+    /El ítem no existe o no tenés permisos para actualizarlo\./,
   );
 });
 
 test("assertSingleCatalogMutation rejects delete mutations with zero affected rows", () => {
   assert.throws(
     () => assertSingleCatalogMutation([], "delete"),
-    /El item no existe, no te pertenece o ya fue eliminado\./,
+    /El ítem no existe, no te pertenece o ya fue eliminado\./,
   );
 });
 
 test("getCatalogDeleteFailureMessage returns a clearer message for protected deletes", () => {
   assert.equal(
     getCatalogDeleteFailureMessage({ code: "23503" }),
-    "No se puede eliminar el item porque esta siendo usado en otras entidades.",
+    "No se puede eliminar el ítem porque está siendo usado en otras entidades.",
   );
 });

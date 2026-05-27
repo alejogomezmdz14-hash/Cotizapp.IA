@@ -19,7 +19,7 @@ test("GET serves an existing persisted PDF without triggering generation", async
         bytes: Uint8Array.from([1, 2, 3]),
       };
     },
-  });
+  } as unknown as Parameters<typeof createQuotationPdfRouteHandlers>[0]);
 
   const response = await GET(new Request("http://localhost/api/quotations/quotation-1/pdf"), {
     params: Promise.resolve({ id: "quotation-1" }),
@@ -50,7 +50,7 @@ test("POST generates and persists the PDF explicitly", async () => {
       calls.push("get-stored");
       throw new Error("POST no debe leer solamente el PDF persistido.");
     },
-  });
+  } as unknown as Parameters<typeof createQuotationPdfRouteHandlers>[0]);
 
   const response = await POST(new Request("http://localhost/api/quotations/quotation-1/pdf", {
     method: "POST",

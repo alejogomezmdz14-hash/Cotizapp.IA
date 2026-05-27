@@ -1,5 +1,5 @@
 import { normalizeCatalogUnit } from "@/lib/catalog";
-import { getOpenAIClient } from "@/lib/ai/openai";
+import { getOpenAIApiKey, getOpenAIClient } from "@/lib/ai/openai";
 import type {
   CatalogItem,
   ChatConversationMessage,
@@ -289,7 +289,7 @@ export async function readChatRequestBody(
     return (await request.json()) as ChatRequestBody;
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw createChatHttpError(400, "El cuerpo JSON del chat es invalido.");
+      throw createChatHttpError(400, "El cuerpo JSON del chat es inválido.");
     }
 
     throw error;
@@ -299,13 +299,13 @@ export async function readChatRequestBody(
 export function buildBusinessChatSystemPrompt() {
   return [
     "Eres el asistente comercial de Cotizapp.",
-    "Responde siempre en espanol rioplatense claro.",
-    "Trabaja solo dentro de este alcance: clientes, catalogo, cotizaciones y perfil/resumen del negocio.",
-    "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que esta fuera de alcance y redirige la conversacion a esos modulos de negocio; no actues como asistente general.",
+    "Responde siempre en español rioplatense claro.",
+    "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones y perfil/resumen del negocio.",
+    "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que está fuera de alcance y redirige la conversación a esos módulos de negocio; no actúes como asistente general.",
     "Nunca afirmes que ya creaste, actualizaste o eliminaste datos.",
-    "Solo puedes sugerir acciones de escritura para confirmacion explicita del usuario.",
-    "Si no hace falta proponer una accion, devuelve suggestedAction como null.",
-    "Las unicas acciones permitidas son draft_quotation_create y catalog_price_update.",
+    "Solo puedes sugerir acciones de escritura para confirmación explícita del usuario.",
+    "Si no hace falta proponer una acción, devuelve suggestedAction como null.",
+    "Las únicas acciones permitidas son draft_quotation_create y catalog_price_update.",
   ].join(" ");
 }
 
@@ -364,7 +364,7 @@ export function normalizeBusinessChatResult(
   return {
     reply:
       getTrimmedString(source.reply) ??
-      "No pude generar una respuesta util en este momento. Intenta reformular tu consulta.",
+      "No pude generar una respuesta útil en este momento. Intenta reformular tu consulta.",
     suggestedAction: normalizeSuggestedAction(source.suggestedAction, references),
   };
 }
@@ -377,7 +377,7 @@ export async function runBusinessChat(
     history?: ChatConversationMessage[];
   },
 ): Promise<ChatReplyPayload> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = getOpenAIApiKey();
 
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY para usar el chat con AI.");
@@ -404,7 +404,7 @@ export async function runBusinessChat(
       ...formatHistoryMessages(history),
       {
         role: "user",
-        content: `${prompt}\n\nDevuelve solo JSON con esta forma exacta: {"reply":"string","suggestedAction":null|{...}}. reply debe estar en espanol.`,
+        content: `${prompt}\n\nDevuelve solo JSON con esta forma exacta: {"reply":"string","suggestedAction":null|{...}}. reply debe estar en español.`,
       },
     ],
   });

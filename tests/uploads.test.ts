@@ -45,7 +45,7 @@ test("parseLogoUploadFormData rejects oversized logos", () => {
 
   assert.throws(
     () => parseLogoUploadFormData(formData),
-    /El logo supera el tamano maximo permitido de 5 MB\./,
+    /El logo supera el tamaño máximo permitido de 5 MB\./,
   );
 });
 
@@ -94,7 +94,7 @@ test("parseQuotationAttachmentUploadFormData rejects missing quotation ids", () 
 
   assert.throws(
     () => parseQuotationAttachmentUploadFormData(formData),
-    /Guarda la cotizacion borrador antes de subir adjuntos\./,
+    /Guarda la cotización borrador antes de subir adjuntos\./,
   );
 });
 
@@ -112,7 +112,7 @@ test("parseQuotationAttachmentUploadFormData rejects oversized attachments", () 
 
   assert.throws(
     () => parseQuotationAttachmentUploadFormData(formData),
-    /Uno de los adjuntos supera el tamano maximo permitido de 10 MB\./,
+    /Uno de los adjuntos supera el tamaño máximo permitido de 10 MB\./,
   );
 });
 

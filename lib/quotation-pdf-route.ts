@@ -24,8 +24,8 @@ function getErrorResponse(error: unknown, fallbackMessage: string) {
       ? error.message
       : fallbackMessage;
   const status =
-    message === "La cotizacion no existe o no te pertenece." ||
-      message === "El PDF de la cotizacion aun no fue generado."
+    message === "La cotización no existe o no te pertenece." ||
+      message === "El PDF de la cotización aún no fue generado."
       ? 404
       : 500;
 
@@ -79,7 +79,7 @@ export function createQuotationPdfRouteHandlers(
         if (!user) {
           return NextResponse.json(
             {
-              error: "Debes iniciar sesion para descargar cotizaciones.",
+              error: "Debes iniciar sesión para descargar cotizaciones.",
             },
             {
               status: 401,
@@ -92,7 +92,7 @@ export function createQuotationPdfRouteHandlers(
         if (!quotationId) {
           return NextResponse.json(
             {
-              error: "Falta indicar que cotizacion quieres descargar.",
+              error: "Falta indicar qué cotización quieres descargar.",
             },
             {
               status: 400,
@@ -107,7 +107,7 @@ export function createQuotationPdfRouteHandlers(
 
         return buildPdfResponse(result);
       } catch (error) {
-        return getErrorResponse(error, "No se pudo descargar el PDF de la cotizacion.");
+        return getErrorResponse(error, "No se pudo descargar el PDF de la cotización.");
       }
     },
     POST: async (_request: Request, context: RouteContext) => {
@@ -117,7 +117,7 @@ export function createQuotationPdfRouteHandlers(
         if (!user) {
           return NextResponse.json(
             {
-              error: "Debes iniciar sesion para generar cotizaciones.",
+              error: "Debes iniciar sesión para generar cotizaciones.",
             },
             {
               status: 401,
@@ -130,7 +130,7 @@ export function createQuotationPdfRouteHandlers(
         if (!quotationId) {
           return NextResponse.json(
             {
-              error: "Falta indicar que cotizacion quieres generar.",
+              error: "Falta indicar qué cotización quieres generar.",
             },
             {
               status: 400,
@@ -145,7 +145,7 @@ export function createQuotationPdfRouteHandlers(
 
         return buildPdfResponse(result);
       } catch (error) {
-        return getErrorResponse(error, "No se pudo generar el PDF de la cotizacion.");
+        return getErrorResponse(error, "No se pudo generar el PDF de la cotización.");
       }
     },
   };

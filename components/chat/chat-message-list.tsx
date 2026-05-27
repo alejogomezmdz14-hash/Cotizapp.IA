@@ -50,11 +50,11 @@ export function ChatMessageList({
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-xl">Conversacion</CardTitle>
+            <CardTitle className="text-xl">Conversación</CardTitle>
             <CardDescription className="leading-6">
-              El asistente puede consultar contexto de clientes, catalogo y
-              cotizaciones. Si propone escribir algo, siempre te pedira
-              confirmacion explicita.
+              El asistente puede consultar contexto de clientes, catálogo y
+              cotizaciones. Si propone escribir algo, siempre te pedirá
+              confirmación explícita.
             </CardDescription>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm">
@@ -74,7 +74,7 @@ export function ChatMessageList({
             </div>
             {pendingSuggestion ? (
               <span className="rounded-full border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1 text-xs font-medium text-foreground">
-                Confirmacion pendiente
+                Confirmación pendiente
               </span>
             ) : null}
           </div>

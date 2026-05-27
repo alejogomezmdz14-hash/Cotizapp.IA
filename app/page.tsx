@@ -3,14 +3,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const landingHighlights = [
-  "Catalogo y clientes listos para operar",
-  "Cotizaciones con una presencia mas profesional",
+  "Catálogo y clientes listos para operar",
+  "Cotizaciones con una presencia más profesional",
   "Base preparada para crecer con IA",
 ];
 
 const landingSignals = [
   { label: "Experiencia", value: "Panel claro desde el primer ingreso" },
-  { label: "Enfoque", value: "Menos friccion en la operacion comercial" },
+  { label: "Enfoque", value: "Menos fricción en la operación comercial" },
 ];
 
 export default function HomePage() {
@@ -28,7 +28,7 @@ export default function HomePage() {
                   Cotizapp te ayuda a cotizar con tu marca y sin perder tiempo.
                 </h1>
                 <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                  Catalogo, clientes, cotizaciones y una base lista para crecer
+                  Catálogo, clientes, cotizaciones y una base lista para crecer
                   con IA.
                 </p>
               </div>
@@ -62,11 +62,11 @@ export default function HomePage() {
               </span>
               <div className="space-y-3">
                 <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Una presencia mas solida para tu operacion diaria.
+                  Una presencia más sólida para tu operación diaria.
                 </h2>
                 <p className="text-sm leading-7 text-muted-foreground sm:text-base">
-                  Entradas claras, panel mas ordenado y puntos de accion mas
-                  visibles para que tu equipo encuentre rapido que hacer.
+                  Entradas claras, panel más ordenado y puntos de acción más
+                  visibles para que tu equipo encuentre rápido qué hacer.
                 </p>
               </div>
             </div>

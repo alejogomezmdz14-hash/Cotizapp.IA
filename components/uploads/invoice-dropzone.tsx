@@ -214,11 +214,11 @@ export function InvoiceDropzone({
               <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 Escaneo asistido
               </div>
-              <CardTitle className="text-xl">Escanear factura con AI</CardTitle>
+              <CardTitle className="text-xl">Escanear factura con IA</CardTitle>
               <CardDescription className="leading-6">
                 Sube una imagen de factura o remito, espera la lectura asistida y
-                revisa los items detectados antes de decidir si van a la cotizacion
-                actual o al catalogo.
+                revisa los ítems detectados antes de decidir si van a la cotización
+                actual o al catálogo.
               </CardDescription>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function InvoiceDropzone({
               1. Carga
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Elige una imagen nitida de la factura o remito.
+              Elige una imagen nítida de la factura o remito.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
@@ -251,7 +251,7 @@ export function InvoiceDropzone({
               2. Analiza
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              AI interpreta los renglones y arma una revision editable.
+              La IA interpreta los renglones y arma una revisión editable.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
@@ -260,7 +260,7 @@ export function InvoiceDropzone({
               3. Decide
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Confirma que items van al borrador o al catalogo.
+              Confirma qué ítems van al borrador o al catálogo.
             </p>
           </div>
         </div>
@@ -297,10 +297,10 @@ export function InvoiceDropzone({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <UploadCloud className="h-4 w-4 text-accent-token" />
-                Arrastra la factura aqui o elige un archivo
+                Arrastra la factura aquí o elige un archivo
               </div>
               <p className="text-sm leading-6 text-muted-foreground">
-                Formatos admitidos: PNG, JPG y WEBP. Tamano maximo: 10 MB.
+                Formatos admitidos: PNG, JPG y WEBP. Tamaño máximo: 10 MB.
               </p>
             </div>
 

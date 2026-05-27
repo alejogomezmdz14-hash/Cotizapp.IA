@@ -83,7 +83,7 @@ export function parseLogoUploadFormData(formData: FormData): ParsedLogoUpload {
 
   if (file.size > LOGO_UPLOAD_MAX_BYTES) {
     throw new UploadActionError(
-      `El logo supera el tamano maximo permitido de ${getQuotedSizeInMegabytes(
+      `El logo supera el tamaño máximo permitido de ${getQuotedSizeInMegabytes(
         LOGO_UPLOAD_MAX_BYTES,
       )}.`,
     );
@@ -108,7 +108,7 @@ export function parseInvoiceUploadFormData(
 
   if (file.size > INVOICE_UPLOAD_MAX_BYTES) {
     throw new UploadActionError(
-      `La factura supera el tamano maximo permitido de ${getQuotedSizeInMegabytes(
+      `La factura supera el tamaño máximo permitido de ${getQuotedSizeInMegabytes(
         INVOICE_UPLOAD_MAX_BYTES,
       )}.`,
     );
@@ -124,7 +124,7 @@ export function parseQuotationAttachmentUploadFormData(
 
   if (!quotationId) {
     throw new UploadActionError(
-      "Guarda la cotizacion borrador antes de subir adjuntos.",
+      "Guarda la cotización borrador antes de subir adjuntos.",
     );
   }
 
@@ -140,7 +140,7 @@ export function parseQuotationAttachmentUploadFormData(
 
   if (files.some((file) => file.size > QUOTATION_ATTACHMENT_MAX_BYTES)) {
     throw new UploadActionError(
-      `Uno de los adjuntos supera el tamano maximo permitido de ${getQuotedSizeInMegabytes(
+      `Uno de los adjuntos supera el tamaño máximo permitido de ${getQuotedSizeInMegabytes(
         QUOTATION_ATTACHMENT_MAX_BYTES,
       )}.`,
     );

@@ -12,13 +12,13 @@ const onboardingHighlights = [
     icon: Building2,
   },
   {
-    title: "Presentacion consistente",
+    title: "Presentación consistente",
     description: "Moneda, datos y branding conectados con el nuevo shell visual.",
     icon: Palette,
   },
   {
     title: "Contacto disponible",
-    description: "Telefono, email y direccion para acompañar cada envio comercial.",
+    description: "Teléfono, email y dirección para acompañar cada envío comercial.",
     icon: PhoneCall,
   },
 ] as const;
@@ -43,7 +43,7 @@ export default async function OnboardingPage() {
               </span>
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Terminá la configuración de tu negocio con una superficie mas pulida
+                  Terminá la configuración de tu negocio con una superficie más pulida
                 </h1>
                 <p className="text-sm leading-7 text-muted-foreground sm:text-base">
                   Necesitamos algunos datos para personalizar tus cotizaciones,
@@ -73,10 +73,10 @@ export default async function OnboardingPage() {
             <div className="rounded-[1.75rem] border border-token bg-background/70 px-4 py-4 text-sm text-muted-foreground">
               <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
                 <BadgeCheck className="h-4 w-4 text-accent-token" />
-                Que vas a dejar listo
+                Qué vas a dejar listo
               </div>
               Nombre comercial, rubro, moneda, contacto y logo para que las
-              futuras cotizaciones ya salgan con mejor presentacion.
+              futuras cotizaciones ya salgan con mejor presentación.
             </div>
           </section>
 
@@ -88,7 +88,7 @@ export default async function OnboardingPage() {
                 </span>
                 <div className="space-y-2">
                   <h2 className="text-3xl font-semibold tracking-tight">
-                    Configuracion inicial
+                    Configuración inicial
                   </h2>
                   <p className="text-sm leading-6 text-muted-foreground">
                     Completa solo lo necesario para entrar al panel con una base

@@ -40,7 +40,7 @@ export function Sidebar({ businessName, logoUrl }: SidebarProps) {
 
         <div className="shell-panel flex flex-1 flex-col p-3">
           <p className="px-3 pb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Navegacion
+            Navegación
           </p>
           <nav className="space-y-2">
             {sidebarNavItems.map((item) => {
@@ -72,7 +72,7 @@ export function Sidebar({ businessName, logoUrl }: SidebarProps) {
                   <div className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{item.label}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {active ? "Seccion actual" : "Acceso directo"}
+                      {active ? "Sección actual" : "Acceso directo"}
                     </span>
                   </div>
                 </Link>
@@ -85,7 +85,7 @@ export function Sidebar({ businessName, logoUrl }: SidebarProps) {
               Shell
             </p>
             <p className="mt-2 text-sm leading-6 text-foreground">
-              Navegacion clara para volver rapido a las tareas clave del dia.
+              Navegación clara para volver rápido a las tareas clave del día.
             </p>
           </div>
         </div>

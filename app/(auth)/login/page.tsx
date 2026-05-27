@@ -1,7 +1,7 @@
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 const loginHighlights = [
-  "Acceso rapido para continuar con tu configuracion inicial.",
+  "Acceso rápido para continuar con tu configuración inicial.",
   "Misma base visual que el panel para que todo se sienta conectado.",
   "Flujo simple y enfocado desde mobile hasta escritorio.",
 ];
@@ -18,11 +18,11 @@ export default function LoginPage() {
               </span>
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Entrá a Cotizapp con una experiencia mas clara y consistente.
+                  Entrá a Cotizapp con una experiencia más clara y consistente.
                 </h1>
                 <p className="text-sm leading-7 text-muted-foreground sm:text-base">
-                  Un solo acceso para seguir con la configuracion de tu negocio
-                  y volver rapido al panel principal.
+                  Un solo acceso para seguir con la configuración de tu negocio
+                  y volver rápido al panel principal.
                 </p>
               </div>
             </div>
@@ -51,7 +51,7 @@ export default function LoginPage() {
                   </h2>
                   <p className="text-sm leading-6 text-muted-foreground">
                     Usá tu cuenta de Google para ingresar y terminar la
-                    configuracion inicial de tu negocio.
+                    configuración inicial de tu negocio.
                   </p>
                 </div>
               </div>
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
               <div className="rounded-[1.75rem] border border-token bg-background/60 px-4 py-4">
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Si tu perfil todavia no esta completo, te vamos a guiar al
+                  Si tu perfil todavía no está completo, te vamos a guiar al
                   onboarding antes de entrar al panel.
                 </p>
               </div>

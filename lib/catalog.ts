@@ -84,7 +84,7 @@ function normalizePriceInput(value: string) {
   }
 
   if (!/^\d+(?:[.,]\d+)?$/.test(compactValue)) {
-    throw new Error("Ingresa un precio valido mayor a cero.");
+    throw new Error("Ingresa un precio válido mayor a cero.");
   }
 
   return compactValue.replace(",", ".");
@@ -102,7 +102,7 @@ function parseCatalogPrice(formData: FormData) {
   const price = Number.parseFloat(normalizedValue);
 
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("Ingresa un precio valido mayor a cero.");
+    throw new Error("Ingresa un precio válido mayor a cero.");
   }
 
   return price;
@@ -112,7 +112,7 @@ export function parseCatalogFormData(formData: FormData): CatalogFormValues {
   const name = getRequiredCatalogValue(formData, "name");
 
   if (!name) {
-    throw new Error("El nombre del item es obligatorio.");
+    throw new Error("El nombre del ítem es obligatorio.");
   }
 
   return {
@@ -155,18 +155,18 @@ export function assertSingleCatalogMutation(
   }
 
   if (action === "update") {
-    throw new Error("El item no existe o no tenes permisos para actualizarlo.");
+    throw new Error("El ítem no existe o no tenés permisos para actualizarlo.");
   }
 
-  throw new Error("El item no existe, no te pertenece o ya fue eliminado.");
+  throw new Error("El ítem no existe, no te pertenece o ya fue eliminado.");
 }
 
 export function getCatalogDeleteFailureMessage(error: DatabaseErrorLike) {
   if (error?.code === "23503") {
-    return "No se puede eliminar el item porque esta siendo usado en otras entidades.";
+    return "No se puede eliminar el ítem porque está siendo usado en otras entidades.";
   }
 
-  return "No se pudo eliminar el item.";
+  return "No se pudo eliminar el ítem.";
 }
 
 export async function getCatalogItems(
@@ -191,7 +191,7 @@ export async function getCatalogItems(
   const { data, error } = await query.order(orderBy, { ascending });
 
   if (error) {
-    throw new Error("No se pudo cargar el catalogo.");
+    throw new Error("No se pudo cargar el catálogo.");
   }
 
   return ((data ?? []) as CatalogItemRow[]).map((item) => ({

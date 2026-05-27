@@ -18,10 +18,10 @@ function getErrorResponse(error: unknown, fallbackMessage: string) {
       ? error.message
       : fallbackMessage;
   const status =
-    message === "Falta indicar que cotizacion compartida quieres abrir."
+    message === "Falta indicar qué cotización compartida quieres abrir."
       ? 400
-      : message === "La cotizacion compartida no existe o ya no esta disponible." ||
-          message === "El PDF de la cotizacion aun no fue generado."
+      : message === "La cotización compartida no existe o ya no está disponible." ||
+          message === "El PDF de la cotización aún no fue generado."
         ? 404
         : 500;
 
@@ -65,7 +65,7 @@ export function createQuotationShareRouteHandlers(
         if (!shareToken) {
           return NextResponse.json(
             {
-              error: "Falta indicar que cotizacion compartida quieres abrir.",
+              error: "Falta indicar qué cotización compartida quieres abrir.",
             },
             {
               status: 400,
@@ -79,7 +79,7 @@ export function createQuotationShareRouteHandlers(
       } catch (error) {
         return getErrorResponse(
           error,
-          "No se pudo abrir la cotizacion compartida.",
+          "No se pudo abrir la cotización compartida.",
         );
       }
     },

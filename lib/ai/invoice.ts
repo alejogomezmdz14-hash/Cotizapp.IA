@@ -236,17 +236,17 @@ function buildWarnings(stats: InvoiceItemNormalizationStats) {
   const warnings: string[] = [];
 
   if (stats.omittedRows > 0) {
-    warnings.push(`Se omitieron ${stats.omittedRows} filas vacias.`);
+    warnings.push(`Se omitieron ${stats.omittedRows} filas vacías.`);
   }
 
   if (stats.repairedQuantities > 0) {
     warnings.push(
-      `Se ajustaron ${stats.repairedQuantities} cantidades invalidas.`,
+      `Se ajustaron ${stats.repairedQuantities} cantidades inválidas.`,
     );
   }
 
   if (stats.repairedPrices > 0) {
-    warnings.push(`Se ajustaron ${stats.repairedPrices} precios invalidos.`);
+    warnings.push(`Se ajustaron ${stats.repairedPrices} precios inválidos.`);
   }
 
   return warnings;
@@ -396,7 +396,7 @@ export async function scanInvoiceWithAi({
       {
         role: "system",
         content:
-          "Analiza la imagen de una factura o remito y devuelve solo un JSON valido. Incluye supplier_name, invoice_number, invoice_date, currency, notes e items. Prioriza extraer el nombre del proveedor, el numero de factura y la moneda aunque tambien existan encabezados o sellos. Cada item debe tener name, description, quantity, unit y unit_price. Si un dato no se puede leer con certeza, usa null o una cadena vacia segun corresponda, pero no inventes valores.",
+          "Analiza la imagen de una factura o remito y devuelve solo un JSON válido. Incluye supplier_name, invoice_number, invoice_date, currency, notes e items. Prioriza extraer el nombre del proveedor, el número de factura y la moneda aunque también existan encabezados o sellos. Cada item debe tener name, description, quantity, unit y unit_price. Si un dato no se puede leer con certeza, usa null o una cadena vacía según corresponda, pero no inventes valores.",
       },
       {
         role: "user",

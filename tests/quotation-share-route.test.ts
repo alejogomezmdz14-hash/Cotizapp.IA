@@ -48,14 +48,14 @@ test("GET returns 400 when the share token is missing", async () => {
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
-    error: "Falta indicar que cotizacion compartida quieres abrir.",
+    error: "Falta indicar qué cotización compartida quieres abrir.",
   });
 });
 
 test("GET returns 404 when the shared quotation PDF is unavailable", async () => {
   const { GET } = createQuotationShareRouteHandlers({
     getSharedQuotationPdf: async () => {
-      throw new Error("La cotizacion compartida no existe o ya no esta disponible.");
+      throw new Error("La cotización compartida no existe o ya no está disponible.");
     },
   });
 
@@ -68,6 +68,6 @@ test("GET returns 404 when the shared quotation PDF is unavailable", async () =>
 
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), {
-    error: "La cotizacion compartida no existe o ya no esta disponible.",
+    error: "La cotización compartida no existe o ya no está disponible.",
   });
 });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getDefaultQuotationClientId } from "../lib/quotation-client-selection";
+import type { Client } from "../types";
 
 test("getDefaultQuotationClientId auto-selects the only available client", () => {
   assert.equal(
@@ -15,7 +16,7 @@ test("getDefaultQuotationClientId auto-selects the only available client", () =>
         address: null,
         created_at: null,
       },
-    ]),
+    ] as Client[]),
     "client-1",
   );
 });
@@ -41,7 +42,7 @@ test("getDefaultQuotationClientId keeps selection empty when there are multiple 
         address: null,
         created_at: null,
       },
-    ]),
+    ] as Client[]),
     null,
   );
 });

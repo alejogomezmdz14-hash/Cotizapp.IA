@@ -60,7 +60,7 @@ export async function createDraftQuotationAction(formData: FormData) {
       .in("id", requestedCatalogItemIds);
 
     if (error) {
-      throw new Error("No se pudieron validar los items del catalogo de la cotizacion.");
+      throw new Error("No se pudieron validar los ítems del catálogo de la cotización.");
     }
 
     for (const row of (data ?? []) as Array<{ id: string }>) {
@@ -86,7 +86,7 @@ export async function createDraftQuotationAction(formData: FormData) {
           .single();
 
         if (error || !data) {
-          throw new Error("No se pudo crear el cliente de la cotizacion.");
+          throw new Error("No se pudo crear el cliente de la cotización.");
         }
 
         return data;
@@ -133,7 +133,7 @@ export async function createDraftQuotationAction(formData: FormData) {
           .single();
 
         if (error || !data) {
-          throw new Error("No se pudo guardar la cotizacion borrador.");
+          throw new Error("No se pudo guardar la cotización borrador.");
         }
 
         return data;
@@ -144,7 +144,7 @@ export async function createDraftQuotationAction(formData: FormData) {
           .insert(buildQuotationItemInsertRows(quotationId, items));
 
         if (error) {
-          throw new Error("No se pudieron guardar los items de la cotizacion.");
+          throw new Error("No se pudieron guardar los ítems de la cotización.");
         }
       },
       deleteQuotation: async (quotationId) => {
@@ -156,7 +156,7 @@ export async function createDraftQuotationAction(formData: FormData) {
           .select("id");
 
         if (error) {
-          throw new Error("No se pudo revertir la cotizacion borrador.");
+          throw new Error("No se pudo revertir la cotización borrador.");
         }
 
         assertSingleQuotationRollbackMutation(data, "quotation");
@@ -171,7 +171,7 @@ export async function createDraftQuotationAction(formData: FormData) {
 
         if (error) {
           throw new Error(
-            "No se pudo eliminar el cliente temporal creado para la cotizacion.",
+            "No se pudo eliminar el cliente temporal creado para la cotización.",
           );
         }
 
@@ -223,7 +223,7 @@ export async function deleteQuotationAttachmentAction(id: string) {
                 .maybeSingle();
 
               if (error) {
-                throw new Error("No se pudo validar la cotizacion del adjunto.");
+                throw new Error("No se pudo validar la cotización del adjunto.");
               }
 
               return data;
@@ -290,7 +290,7 @@ export async function getQuotationWhatsappRecipientAction(quotationId: string) {
     .maybeSingle();
 
   if (quotationError || !quotationData) {
-    throw new Error("No se pudo cargar el cliente de la cotizacion.");
+    throw new Error("No se pudo cargar el cliente de la cotización.");
   }
 
   if (!quotationData.client_id) {
@@ -307,7 +307,7 @@ export async function getQuotationWhatsappRecipientAction(quotationId: string) {
     .maybeSingle();
 
   if (clientError) {
-    throw new Error("No se pudo cargar el telefono del cliente.");
+    throw new Error("No se pudo cargar el teléfono del cliente.");
   }
 
   return {
@@ -324,7 +324,7 @@ export async function saveQuotationClientPhoneAction(
   const phoneState = getWhatsAppSharePhoneState(normalizedPhoneInput);
 
   if (!normalizedPhoneInput || !phoneState.normalizedPhone) {
-    throw new Error("Ingresa un telefono valido antes de compartir por WhatsApp.");
+    throw new Error("Ingresa un teléfono válido antes de compartir por WhatsApp.");
   }
 
   const supabase = await createClient();
@@ -336,11 +336,11 @@ export async function saveQuotationClientPhoneAction(
     .maybeSingle();
 
   if (quotationError || !quotationData) {
-    throw new Error("No se pudo cargar la cotizacion para actualizar el telefono.");
+    throw new Error("No se pudo cargar la cotización para actualizar el teléfono.");
   }
 
   if (!quotationData.client_id) {
-    throw new Error("La cotizacion no tiene un cliente asociado para guardar el telefono.");
+    throw new Error("La cotización no tiene un cliente asociado para guardar el teléfono.");
   }
 
   const { data: clientData, error: clientError } = await supabase
@@ -354,7 +354,7 @@ export async function saveQuotationClientPhoneAction(
     .maybeSingle();
 
   if (clientError || !clientData) {
-    throw new Error("No se pudo guardar el telefono del cliente.");
+    throw new Error("No se pudo guardar el teléfono del cliente.");
   }
 
   return {
@@ -370,7 +370,7 @@ export async function updateQuotationStatusAction(
   const normalizedStatus = normalizeQuotationStatus(nextStatus);
 
   if (!normalizedStatus || !EDITABLE_QUOTATION_STATUSES.has(normalizedStatus)) {
-    throw new Error("Selecciona un estado valido para la cotizacion.");
+    throw new Error("Selecciona un estado válido para la cotización.");
   }
 
   const supabase = await createClient();
@@ -382,7 +382,7 @@ export async function updateQuotationStatusAction(
     .maybeSingle();
 
   if (quotationError || !quotationData) {
-    throw new Error("No se pudo cargar la cotizacion para actualizar el estado.");
+    throw new Error("No se pudo cargar la cotización para actualizar el estado.");
   }
 
   const sentAt =
@@ -401,7 +401,7 @@ export async function updateQuotationStatusAction(
     .maybeSingle();
 
   if (error || !data) {
-    throw new Error("No se pudo actualizar el estado de la cotizacion.");
+    throw new Error("No se pudo actualizar el estado de la cotización.");
   }
 
   revalidateQuotationViews();
@@ -425,7 +425,7 @@ export async function duplicateQuotationAction(quotationId: string) {
     .maybeSingle();
 
   if (quotationError || !quotationData) {
-    throw new Error("No se pudo cargar la cotizacion a duplicar.");
+    throw new Error("No se pudo cargar la cotización a duplicar.");
   }
 
   const { data: itemRows, error: itemsError } = await supabase
@@ -436,7 +436,7 @@ export async function duplicateQuotationAction(quotationId: string) {
     .order("id", { ascending: true });
 
   if (itemsError) {
-    throw new Error("No se pudieron cargar los items para duplicar la cotizacion.");
+    throw new Error("No se pudieron cargar los ítems para duplicar la cotización.");
   }
 
   const duplicatedItems = (itemRows ?? []).map((item) => ({
@@ -449,7 +449,7 @@ export async function duplicateQuotationAction(quotationId: string) {
   }));
 
   if (duplicatedItems.length === 0) {
-    throw new Error("La cotizacion no tiene items para duplicar.");
+    throw new Error("La cotización no tiene ítems para duplicar.");
   }
 
   const totals = calculateQuotationTotals(
@@ -481,7 +481,7 @@ export async function duplicateQuotationAction(quotationId: string) {
     .single();
 
   if (duplicateError || !duplicatedQuotation) {
-    throw new Error("No se pudo duplicar la cotizacion.");
+    throw new Error("No se pudo duplicar la cotización.");
   }
 
   const { error: duplicatedItemsError } = await supabase
@@ -494,7 +494,7 @@ export async function duplicateQuotationAction(quotationId: string) {
       .delete()
       .eq("id", duplicatedQuotation.id)
       .eq("user_id", user.id);
-    throw new Error("No se pudieron duplicar los items de la cotizacion.");
+    throw new Error("No se pudieron duplicar los ítems de la cotización.");
   }
 
   revalidateQuotationViews();
@@ -523,11 +523,11 @@ export async function deleteQuotationAction(quotationId: string) {
   ]);
 
   if (quotationResult.error || !quotationResult.data) {
-    throw new Error("No se pudo cargar la cotizacion a eliminar.");
+    throw new Error("No se pudo cargar la cotización a eliminar.");
   }
 
   if (attachmentsResult.error) {
-    throw new Error("No se pudieron cargar los adjuntos de la cotizacion.");
+    throw new Error("No se pudieron cargar los adjuntos de la cotización.");
   }
 
   const { data, error } = await supabase
@@ -538,7 +538,7 @@ export async function deleteQuotationAction(quotationId: string) {
     .select("id");
 
   if (error || (data?.length ?? 0) !== 1) {
-    throw new Error("No se pudo eliminar la cotizacion.");
+    throw new Error("No se pudo eliminar la cotización.");
   }
 
   const cleanupTasks = (attachmentsResult.data ?? []).map((attachment) =>
@@ -583,7 +583,7 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
           .maybeSingle();
 
         if (error) {
-          throw new Error("No se pudo cargar la cotizacion para compartir.");
+          throw new Error("No se pudo cargar la cotización para compartir.");
         }
 
         if (!data) {
@@ -601,7 +601,7 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
             .maybeSingle();
 
           if (clientError) {
-            throw new Error("No se pudo cargar el telefono del cliente.");
+            throw new Error("No se pudo cargar el teléfono del cliente.");
           }
 
           clientPhone = clientData?.phone ?? null;
@@ -631,7 +631,7 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
           .maybeSingle();
 
         if (error || !data) {
-          throw new Error("No se pudo guardar el estado de envio de la cotizacion.");
+          throw new Error("No se pudo guardar el estado de envío de la cotización.");
         }
       },
     },

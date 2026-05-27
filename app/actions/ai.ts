@@ -111,7 +111,7 @@ function normalizeDraftQuotationSuggestion(
   input: unknown,
 ): ChatDraftQuotationCreateAction {
   if (!isRecord(input) || input.type !== "draft_quotation_create") {
-    throw new Error("La sugerencia de cotizacion no es valida.");
+    throw new Error("La sugerencia de cotización no es válida.");
   }
 
   const rawItems = Array.isArray(input.items) ? input.items : [];
@@ -120,7 +120,7 @@ function normalizeDraftQuotationSuggestion(
     .filter((item): item is ChatSuggestedQuotationItem => item !== null);
 
   if (items.length === 0) {
-    throw new Error("La sugerencia no incluye items validos para crear un borrador.");
+    throw new Error("La sugerencia no incluye ítems válidos para crear un borrador.");
   }
 
   const clientId = getTrimmedString(input.clientId);
@@ -136,7 +136,7 @@ function normalizeDraftQuotationSuggestion(
 
   if (clientSource === "existing") {
     if (!clientId) {
-      throw new Error("La sugerencia no incluye un cliente existente valido.");
+      throw new Error("La sugerencia no incluye un cliente existente válido.");
     }
 
     return {
@@ -154,7 +154,7 @@ function normalizeDraftQuotationSuggestion(
   }
 
   if (!clientName) {
-    throw new Error("La sugerencia no incluye un cliente valido.");
+    throw new Error("La sugerencia no incluye un cliente válido.");
   }
 
   return {
@@ -171,20 +171,20 @@ function normalizeCatalogPriceSuggestion(
   input: unknown,
 ): ChatCatalogPriceUpdateAction {
   if (!isRecord(input) || input.type !== "catalog_price_update") {
-    throw new Error("La sugerencia de precio no es valida.");
+    throw new Error("La sugerencia de precio no es válida.");
   }
 
   const itemId = getTrimmedString(input.itemId);
   const suggestedPrice = parseDecimal(input.suggestedPrice);
 
   if (!itemId || suggestedPrice === null || suggestedPrice < 0) {
-    throw new Error("La sugerencia de precio no es valida.");
+    throw new Error("La sugerencia de precio no es válida.");
   }
 
   return {
     type: "catalog_price_update",
     itemId,
-    itemName: getTrimmedString(input.itemName) ?? "Item del catalogo",
+    itemName: getTrimmedString(input.itemName) ?? "Ítem del catálogo",
     currentPrice: parseDecimal(input.currentPrice) ?? 0,
     suggestedPrice,
     reason: getTrimmedString(input.reason),
@@ -211,7 +211,7 @@ export async function confirmCatalogPriceUpdateAction(input: unknown) {
     .maybeSingle();
 
   if (itemError) {
-    throw new Error("No se pudo validar el item del catalogo sugerido.");
+    throw new Error("No se pudo validar el ítem del catálogo sugerido.");
   }
 
   const currentItem = (item as CatalogItemRecord | null) ?? null;
@@ -237,7 +237,7 @@ export async function confirmCatalogPriceUpdateAction(input: unknown) {
     .maybeSingle();
 
   if (error) {
-    throw new Error("No se pudo actualizar el precio del catalogo.");
+    throw new Error("No se pudo actualizar el precio del catálogo.");
   }
 
   const updatedItem = (data as CatalogItemRecord | null) ?? null;
@@ -273,7 +273,7 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
       .in("id", requestedCatalogIds);
 
     if (catalogError) {
-      throw new Error("No se pudieron validar los items sugeridos del catalogo.");
+      throw new Error("No se pudieron validar los ítems sugeridos del catálogo.");
     }
 
     for (const row of (catalogRows ?? []) as Array<{ id: string }>) {

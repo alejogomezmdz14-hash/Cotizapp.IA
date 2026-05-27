@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         {
-          error: "Debes iniciar sesion para usar el chat.",
+          error: "Debes iniciar sesión para usar el chat.",
         },
         {
           status: 401,
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     if (!latestMessage || latestMessage.role !== "user") {
       return NextResponse.json(
         {
-          error: "Envia una consulta valida para continuar.",
+          error: "Envía una consulta válida para continuar.",
         },
         {
           status: 400,

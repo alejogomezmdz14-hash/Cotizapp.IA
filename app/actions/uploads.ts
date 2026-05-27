@@ -81,7 +81,7 @@ export async function uploadLogoFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesion para subir un logo.",
+      "Debes iniciar sesión para subir un logo.",
       401,
     );
   }
@@ -166,7 +166,7 @@ export async function uploadInvoiceForScanFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesion para subir una factura.",
+      "Debes iniciar sesión para subir una factura.",
       401,
     );
   }
@@ -255,7 +255,7 @@ export async function uploadQuotationAttachmentsFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesion para subir adjuntos.",
+      "Debes iniciar sesión para subir adjuntos.",
       401,
     );
   }
@@ -273,7 +273,7 @@ export async function uploadQuotationAttachmentsFromFormData(
           .maybeSingle();
 
         if (error) {
-          throw new UploadActionError("No se pudo validar la cotizacion.", 500);
+          throw new UploadActionError("No se pudo validar la cotización.", 500);
         }
 
         return data;
@@ -288,7 +288,7 @@ export async function uploadQuotationAttachmentsFromFormData(
     throw new UploadActionError(
       getUploadErrorMessage(
         error,
-        "La cotizacion no existe, no te pertenece o ya no se puede modificar.",
+        "La cotización no existe, no te pertenece o ya no se puede modificar.",
       ),
       409,
     );

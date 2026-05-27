@@ -11,7 +11,9 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 
 test("tailwind semantic colors map accent interactions to dedicated accent tokens", () => {
-  const colors = tailwindConfig.theme?.extend?.colors;
+  const colors = tailwindConfig.theme?.extend?.colors as
+    | Record<string, { DEFAULT?: string; foreground?: string }>
+    | undefined;
 
   assert.equal(
     colors?.primary?.DEFAULT,

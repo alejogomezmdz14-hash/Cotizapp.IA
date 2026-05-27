@@ -101,7 +101,7 @@ test("parseQuotationFormData rejects validity dates beyond the allowed year wind
       parseQuotationFormData(formData, {
         now: new Date("2026-05-26T12:00:00.000Z"),
       }),
-    /La fecha de validez no puede superar 5 anos desde hoy\./,
+    /La fecha de validez no puede superar 5 años desde hoy\./,
   );
 });
 
@@ -162,7 +162,7 @@ test("parseQuotationFormData rejects existing mode without a selected client", (
 
   assert.throws(
     () => parseQuotationFormData(formData),
-    /Selecciona un cliente existente o crea uno nuevo dentro de la cotizacion\./,
+    /Selecciona un cliente existente o crea uno nuevo dentro de la cotización\./,
   );
 });
 
@@ -174,7 +174,7 @@ test("parseQuotationFormData rejects missing items", () => {
 
   assert.throws(
     () => parseQuotationFormData(formData),
-    /Agrega al menos un item a la cotizacion antes de guardarla\./,
+    /Agrega al menos un ítem a la cotización antes de guardarla\./,
   );
 });
 
@@ -196,7 +196,7 @@ test("parseQuotationFormData rejects malformed item values", () => {
 
   assert.throws(
     () => parseQuotationFormData(formData),
-    /Cada item necesita un concepto, una cantidad valida y un precio valido\./,
+    /Cada ítem necesita un concepto, una cantidad válida y un precio válido\./,
   );
 });
 
@@ -342,14 +342,14 @@ test("assertSingleQuotationRollbackMutation accepts exactly one cleaned row", ()
 test("assertSingleQuotationRollbackMutation rejects missing quotation cleanup rows", () => {
   assert.throws(
     () => assertSingleQuotationRollbackMutation([], "quotation"),
-    /No se pudo revertir la cotizacion borrador\./,
+    /No se pudo revertir la cotización borrador\./,
   );
 });
 
 test("assertSingleQuotationRollbackMutation rejects missing client cleanup rows", () => {
   assert.throws(
     () => assertSingleQuotationRollbackMutation([], "client"),
-    /No se pudo eliminar el cliente temporal creado para la cotizacion\./,
+    /No se pudo eliminar el cliente temporal creado para la cotización\./,
   );
 });
 
@@ -362,7 +362,7 @@ test("assertDraftQuotationMutationAllowed rejects quotations that are not mutabl
         },
         "quotation-1",
       ),
-    /La cotizacion no existe, no te pertenece o ya no se puede modificar\./,
+    /La cotización no existe, no te pertenece o ya no se puede modificar\./,
   );
 });
 
@@ -382,7 +382,7 @@ test("persistDraftQuotation removes the inline client when quotation creation fa
           },
           createQuotation: async () => {
             calls.push("create-quotation");
-            throw new Error("No se pudo guardar la cotizacion borrador.");
+            throw new Error("No se pudo guardar la cotización borrador.");
           },
           createQuotationItems: async () => {
             calls.push("create-items");
@@ -422,7 +422,7 @@ test("persistDraftQuotation removes the inline client when quotation creation fa
           total: 1452,
         },
       ),
-    /No se pudo guardar la cotizacion borrador\./,
+    /No se pudo guardar la cotización borrador\./,
   );
 
   assert.deepEqual(calls, [
@@ -452,7 +452,7 @@ test("persistDraftQuotation removes quotation and inline client when item persis
           },
           createQuotationItems: async () => {
             calls.push("create-items");
-            throw new Error("No se pudieron guardar los items de la cotizacion.");
+            throw new Error("No se pudieron guardar los ítems de la cotización.");
           },
           deleteQuotation: async (quotationId) => {
             calls.push(`delete-quotation:${quotationId}`);
@@ -489,7 +489,7 @@ test("persistDraftQuotation removes quotation and inline client when item persis
           total: 1452,
         },
       ),
-    /No se pudieron guardar los items de la cotizacion\./,
+    /No se pudieron guardar los ítems de la cotización\./,
   );
 
   assert.deepEqual(calls, [
@@ -518,7 +518,7 @@ test("persistDraftQuotation surfaces quotation cleanup failures after the origin
             number: "COT-20260525-145607-A1B2C3",
           }),
           createQuotationItems: async () => {
-            throw new Error("No se pudieron guardar los items de la cotizacion.");
+            throw new Error("No se pudieron guardar los ítems de la cotización.");
           },
           deleteQuotation: async () => {
             throw new Error("rollback failed");
@@ -553,7 +553,7 @@ test("persistDraftQuotation surfaces quotation cleanup failures after the origin
           total: 1452,
         },
       ),
-    /No se pudieron guardar los items de la cotizacion\. Tambien fallo la limpieza automatica de cotizacion\./,
+    /No se pudieron guardar los ítems de la cotización\. Tambien fallo la limpieza automatica de cotizacion\./,
   );
 });
 
@@ -647,7 +647,7 @@ test("deleteQuotationAttachmentWithCleanup stops before touching storage when qu
           }),
           assertCanMutateQuotation: async () => {
             calls.push("validate-draft");
-            throw new Error("La cotizacion no existe, no te pertenece o ya no se puede modificar.");
+            throw new Error("La cotización no existe, no te pertenece o ya no se puede modificar.");
           },
           removeAttachmentFile: async (path) => {
             calls.push(`remove-file:${path}`);
@@ -658,7 +658,7 @@ test("deleteQuotationAttachmentWithCleanup stops before touching storage when qu
         },
         "attachment-1",
       ),
-    /La cotizacion no existe, no te pertenece o ya no se puede modificar\./,
+    /La cotización no existe, no te pertenece o ya no se puede modificar\./,
   );
 
   assert.deepEqual(calls, ["validate-draft"]);
@@ -1168,7 +1168,7 @@ test("confirmQuotationWhatsappShare rejects attempts to share quotations without
           quotationId: "quotation-1",
         },
       ),
-    /Genera el PDF antes de compartir la cotizacion\./,
+    /Genera el PDF antes de compartir la cotización\./,
   );
 });
 

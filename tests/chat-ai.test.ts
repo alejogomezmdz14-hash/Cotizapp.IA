@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
@@ -7,6 +10,7 @@ import {
   normalizeBusinessChatResult,
   readChatRequestBody,
 } from "../lib/ai/chat";
+import { getOpenAIClient } from "../lib/ai/openai";
 import { getNextPendingSuggestion } from "../lib/chat/pending-suggestion";
 import type { CatalogItem, Client, Profile, Quotation } from "../types";
 
@@ -376,8 +380,8 @@ test("buildBusinessChatSystemPrompt keeps the assistant inside the business scop
   const prompt = buildBusinessChatSystemPrompt();
 
   assert.match(prompt, /solo dentro de este alcance/i);
-  assert.match(prompt, /clientes, catalogo, cotizaciones y perfil/i);
-  assert.match(prompt, /rechaza|rechazar|indica que esta fuera de alcance/i);
+  assert.match(prompt, /clientes, catálogo, cotizaciones y perfil/i);
+  assert.match(prompt, /rechaza.*fuera de alcance/i);
 });
 
 test("readChatRequestBody returns a 400 error for malformed json", async () => {
@@ -390,9 +394,38 @@ test("readChatRequestBody returns a 400 error for malformed json", async () => {
       }),
     (error: unknown) => {
       assert.ok(error instanceof Error);
-      assert.equal(error.message, "El cuerpo JSON del chat es invalido.");
+      assert.equal(error.message, "El cuerpo JSON del chat es inválido.");
       assert.equal((error as Error & { status?: number }).status, 400);
       return true;
     },
   );
+});
+
+test("getOpenAIClient falls back to .env.local when process env is stale", () => {
+  const originalApiKey = process.env.OPENAI_API_KEY;
+  const originalCwd = process.cwd();
+  const tempDir = mkdtempSync(join(tmpdir(), "cotizapp-openai-"));
+
+  writeFileSync(
+    join(tempDir, ".env.local"),
+    'OPENAI_API_KEY="test-openai-key-from-dotenv-local"\n',
+    "utf8",
+  );
+  delete process.env.OPENAI_API_KEY;
+  process.chdir(tempDir);
+
+  try {
+    const client = getOpenAIClient();
+    assert.ok(client, "Expected an OpenAI client to be created from .env.local.");
+  } finally {
+    process.chdir(originalCwd);
+
+    if (typeof originalApiKey === "string") {
+      process.env.OPENAI_API_KEY = originalApiKey;
+    } else {
+      delete process.env.OPENAI_API_KEY;
+    }
+
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });

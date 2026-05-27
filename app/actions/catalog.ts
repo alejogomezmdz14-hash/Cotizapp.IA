@@ -27,7 +27,7 @@ export async function createCatalogItemAction(formData: FormData) {
   });
 
   if (error) {
-    throw new Error("No se pudo crear el item del catalogo.");
+    throw new Error("No se pudo crear el ítem del catálogo.");
   }
 
   revalidateCatalogViews();
@@ -68,7 +68,7 @@ export async function createCatalogItemsFromInvoiceAction(items: unknown) {
   const skippedCount = Math.max(requestedCount - catalogItems.length, 0);
 
   if (catalogItems.length === 0) {
-    throw new Error("No hay items validos para guardar en el catalogo.");
+    throw new Error("No hay ítems válidos para guardar en el catálogo.");
   }
 
   const supabase = await createClient();
@@ -84,7 +84,7 @@ export async function createCatalogItemsFromInvoiceAction(items: unknown) {
   );
 
   if (error) {
-    throw new Error("No se pudieron guardar los items seleccionados en el catalogo.");
+    throw new Error("No se pudieron guardar los ítems seleccionados en el catálogo.");
   }
 
   revalidateCatalogViews();
@@ -110,7 +110,7 @@ export async function updateCatalogItemAction(id: string, formData: FormData) {
     .select("id");
 
   if (error) {
-    throw new Error("No se pudo actualizar el item del catalogo.");
+    throw new Error("No se pudo actualizar el ítem del catálogo.");
   }
 
   assertSingleCatalogMutation(data, "update");

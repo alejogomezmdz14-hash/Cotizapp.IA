@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         {
-          error: "Debes iniciar sesion para escanear facturas.",
+          error: "Debes iniciar sesión para escanear facturas.",
         },
         {
           status: 401,

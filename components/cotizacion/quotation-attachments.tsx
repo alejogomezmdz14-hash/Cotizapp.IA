@@ -68,7 +68,7 @@ export function QuotationAttachments({
 
   async function handleUpload() {
     if (readOnly) {
-      setError("Los adjuntos quedan en solo lectura despues de compartir la cotizacion.");
+      setError("Los adjuntos quedan en solo lectura después de compartir la cotización.");
       return;
     }
 
@@ -131,7 +131,7 @@ export function QuotationAttachments({
 
   async function handleRemoveAttachment(id: string) {
     if (readOnly) {
-      setError("Los adjuntos quedan en solo lectura despues de compartir la cotizacion.");
+      setError("Los adjuntos quedan en solo lectura después de compartir la cotización.");
       return;
     }
 
@@ -161,19 +161,19 @@ export function QuotationAttachments({
       <CardHeader className="space-y-1">
         <CardTitle className="text-xl">Adjuntos</CardTitle>
         <CardDescription>
-          Suma fotos, PDFs o documentos relacionados con esta cotizacion.
+          Suma fotos, PDFs o documentos relacionados con esta cotización.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {!quotationId ? (
           <div className="rounded-lg border border-dashed border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
-            Guarda primero la cotizacion como borrador para habilitar la carga de
+            Guarda primero la cotización como borrador para habilitar la carga de
             adjuntos.
           </div>
         ) : readOnly ? (
           <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
-            La cotizacion ya fue compartida. Los adjuntos siguen disponibles para
+            La cotización ya fue compartida. Los adjuntos siguen disponibles para
             consulta, pero las cargas y eliminaciones quedan bloqueadas.
           </div>
         ) : (
@@ -195,7 +195,7 @@ export function QuotationAttachments({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Puedes elegir un archivo o varios a la vez. Tamano maximo por archivo:
+              Puedes elegir un archivo o varios a la vez. Tamaño máximo por archivo:
               10 MB.
             </p>
 

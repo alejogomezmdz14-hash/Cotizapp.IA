@@ -40,7 +40,7 @@ export function OnboardingForm({
         </div>
         <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
           <div className="mb-4 rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-            Estos datos se usan para presentar tu marca y completar la informacion
+            Estos datos se usan para presentar tu marca y completar la información
             principal de las cotizaciones.
           </div>
 

@@ -36,10 +36,10 @@ export function ChatInput({
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-xl">Escribi tu consulta</CardTitle>
+            <CardTitle className="text-xl">Escribí tu consulta</CardTitle>
             <CardDescription className="leading-6">
-              Puedes pedir contexto del negocio, ayuda para armar una cotizacion o
-              una propuesta de actualizacion de precios.
+              Puedes pedir contexto del negocio, ayuda para armar una cotización o
+              una propuesta de actualización de precios.
             </CardDescription>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -54,7 +54,7 @@ export function ChatInput({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envio en 48 horas."
+            placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envío en 48 horas."
             disabled={isLoading}
             className={textareaClassName}
           />
@@ -64,7 +64,7 @@ export function ChatInput({
           {[
             "Consultar historial de cotizaciones",
             "Pedir un borrador sugerido",
-            "Revisar precios del catalogo",
+            "Revisar precios del catálogo",
           ].map((hint) => (
             <span
               key={hint}
@@ -77,7 +77,7 @@ export function ChatInput({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Presiona Enter para enviar o Shift + Enter para un salto de linea.
+            Presiona Enter para enviar o Shift + Enter para un salto de línea.
           </p>
           <Button
             type="button"

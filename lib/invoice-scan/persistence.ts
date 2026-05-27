@@ -289,13 +289,13 @@ export async function processPersistedInvoiceScan(
   if (resolved.kind === "invalid") {
     if (resolved.reason === "missing-normalized-result") {
       throw new PersistedInvoiceScanError(
-        "La factura ya fue procesada, pero el resultado guardado es invalido.",
+        "La factura ya fue procesada, pero el resultado guardado es inválido.",
         409,
       );
     }
 
     throw new PersistedInvoiceScanError(
-      "La factura tiene un estado invalido para ser analizada.",
+      "La factura tiene un estado inválido para ser analizada.",
       409,
     );
   }

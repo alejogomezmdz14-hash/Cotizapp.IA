@@ -31,7 +31,7 @@ test("parseClientFormData rejects phones that do not meet the minimum format", (
 
   assert.throws(
     () => parseClientFormData(formData),
-    /Ingresa un telefono valido con al menos 8 digitos\./,
+    /Ingresa un teléfono válido con al menos 8 dígitos\./,
   );
 });
 

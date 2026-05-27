@@ -1,61 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-type ReviewModule = {
-  createInvoiceReviewItems: (input: {
-    supplierName: string | null;
-    invoiceNumber: string | null;
-    invoiceDate: string | null;
-    currency: string | null;
-    notes: string | null;
-    warnings: string[];
-    items: Array<{
-      name: string;
-      description: string | null;
-      quantity: number;
-      unit: string;
-      unitPrice: number;
-    }>;
-  } | null) => Array<{
-    id: string;
-    name: string;
-    description: string | null;
-    quantity: number;
-    unit: string;
-    unitPrice: number;
-    destination: "quotation" | "catalog" | "discard";
-  }>;
-  updateInvoiceReviewDestination: (
-    rows: Array<{
-      id: string;
-      destination: "quotation" | "catalog" | "discard";
-    }>,
-    rowId: string,
-    destination: "quotation" | "catalog" | "discard",
-  ) => Array<{
-    id: string;
-    destination: "quotation" | "catalog" | "discard";
-  }>;
-  markSavedCatalogRows: (
-    rows: Array<{
-      id: string;
-      destination: "quotation" | "catalog" | "discard";
-    }>,
-    savedRowIds: string[],
-  ) => Array<{
-    id: string;
-    destination: "quotation" | "catalog" | "discard";
-  }>;
-  removeAppliedQuotationRows: (
-    rows: Array<{
-      id: string;
-      destination: "quotation" | "catalog" | "discard";
-    }>,
-  ) => Array<{
-    id: string;
-    destination: "quotation" | "catalog" | "discard";
-  }>;
-};
+type ReviewModule = typeof import("../lib/invoice-scan/review");
 
 async function getReviewModule() {
   const reviewModule = await import("../lib/invoice-scan/review").catch(

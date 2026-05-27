@@ -123,7 +123,7 @@ test("normalizeInvoiceScanResult drops empty rows and warns when values are repa
   ]);
   assert.match(
     result.warnings.join(" "),
-    /Se omitieron 1 filas? vacias?.*Se ajustaron 1 cantidades?.*Se ajustaron 1 precios?/,
+    /Se omitieron 1 filas? vac[ií]as?.*Se ajustaron 1 cantidades? inv[aá]lidas?.*Se ajustaron 1 precios? inv[aá]lidos?/,
   );
 });
 
