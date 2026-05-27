@@ -1,18 +1,19 @@
 import Link from "next/link";
+import { Camera, FileOutput, FileText } from "lucide-react";
 
 const features = [
   {
-    icon: "??",
-    title: "Cat?logo propio",
-    description: "Tus ?tems listos para cotizar",
+    icon: FileText,
+    title: "Catalogo propio",
+    description: "Tus items listos para cotizar",
   },
   {
-    icon: "??",
+    icon: Camera,
     title: "Escanear facturas",
-    description: "Foto ? ?tems en segundos",
+    description: "Foto a items en segundos",
   },
   {
-    icon: "??",
+    icon: FileOutput,
     title: "PDF con tu marca",
     description: "Profesional, listo para WhatsApp",
   },
@@ -21,7 +22,11 @@ const features = [
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0A0A0F] text-white">
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 py-20">
+      <section className="relative flex min-h-screen flex-col items-center justify-center bg-[#0A0A0F] px-6 py-20">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[#0A0A0F]"
+          aria-hidden
+        />
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -38,26 +43,26 @@ export default function HomePage() {
             Cotizaciones profesionales con IA
           </span>
 
-          <h1 className="text-balance text-[2.5rem] font-extrabold leading-[1.05] tracking-tight sm:text-[4rem]">
-            Cotiz?. Envi?.
+          <h1 className="text-balance text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-white sm:text-[4rem]">
+            Cotiza. Envia.
             <br />
-            Cobr?.
+            Cobra.
           </h1>
 
           <p className="mt-6 max-w-xl text-lg text-[#8b949e]">
-            Para plomeros, electricistas, revendedores y cualquier negocio.
+            Para plomeros, electricistas, jardineros y revendedores.
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/login"
-              className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl bg-[#00E5A0] px-6 text-sm font-bold text-black transition hover:bg-[#00cc8f]"
+              className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl bg-[#00E5A0] px-6 text-sm font-bold text-[#000000] transition hover:bg-[#00cc8f]"
             >
               Empezar gratis
             </Link>
             <Link
               href="/login"
-              className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl border border-white/12 bg-transparent px-6 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/5"
+              className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl border border-white/20 bg-transparent px-6 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
             >
               Ver demo
             </Link>
@@ -69,26 +74,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/6 px-6 py-20">
+      <section className="border-t border-white/6 bg-[#0A0A0F] px-6 py-20">
         <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-3 md:gap-8">
-          {features.map((feature) => (
-            <div key={feature.title} className="text-center">
-              <div className="mb-4 text-3xl" aria-hidden>
-                {feature.icon}
+          {features.map((feature) => {
+            const Icon = feature.icon;
+
+            return (
+              <div key={feature.title} className="text-center">
+                <div
+                  className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#16161d] text-[#00E5A0]"
+                  aria-hidden
+                >
+                  <Icon className="h-6 w-6" strokeWidth={1.75} />
+                </div>
+                <h2 className="text-base font-semibold text-white">{feature.title}</h2>
+                <p className="mt-2 text-sm text-[#8b949e]">{feature.description}</p>
               </div>
-              <h2 className="text-base font-semibold text-white">{feature.title}</h2>
-              <p className="mt-2 text-sm text-[#8b949e]">{feature.description}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      <section className="bg-[#111116] px-6 py-24">
+      <section className="border-t border-white/6 bg-[#0A0A0F] px-6 py-24">
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-          <h2 className="text-[2.5rem] font-extrabold tracking-tight">Empez? hoy. Gratis.</h2>
+          <h2 className="text-[2.5rem] font-extrabold tracking-tight text-white">
+            Empieza hoy. Gratis.
+          </h2>
           <Link
             href="/login"
-            className="mt-8 inline-flex h-14 min-w-[14rem] items-center justify-center rounded-xl bg-[#00E5A0] px-8 text-base font-bold text-black transition hover:bg-[#00cc8f]"
+            className="mt-8 inline-flex h-14 min-w-[14rem] items-center justify-center rounded-xl bg-[#00E5A0] px-8 text-base font-bold text-[#000000] transition hover:bg-[#00cc8f]"
           >
             Crear mi cuenta
           </Link>

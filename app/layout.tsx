@@ -13,7 +13,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "Cotizapp",
-  description: "Cotizaciones profesionales en minutos para autónomos y pymes.",
+  description: "Cotizaciones profesionales en minutos para autonomos y pymes.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F1117",
+  themeColor: "#0A0A0F",
 };
 
 export default function RootLayout({
