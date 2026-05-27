@@ -94,25 +94,19 @@ export function buildDashboardPageCards(
     },
   ];
 
-  if (hasExpenses && stats.canCalculateNetProfit) {
-    quotationMetricCards.push({
-      id: "netProfitThisMonth",
-      title: "Ganancia neta",
-      value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
-      description: "Total aceptado del mes menos gastos registrados.",
-      href: "/gastos",
-    });
-  } else {
-    quotationMetricCards.push({
-      id: "netProfitPlaceholder",
-      title: "Ganancia neta",
-      value: "—",
-      description: hasExpenses
-        ? "Registrá gastos en una sola moneda para ver tu margen."
-        : "Registrá gastos para ver tu margen real.",
-      href: "/gastos",
-    });
-  }
+  quotationMetricCards.push({
+    id: hasExpenses && stats.canCalculateNetProfit ? "netProfitThisMonth" : "netProfitPlaceholder",
+    title: "Ganancia neta",
+    value:
+      hasExpenses && stats.canCalculateNetProfit
+        ? formatCurrencyAmount(stats.netProfitThisMonth, currency)
+        : formatCurrencyAmount(acceptedQuotedThisMonth, currency),
+    description:
+      hasExpenses && stats.canCalculateNetProfit
+        ? "Total aceptado del mes menos gastos registrados."
+        : "Sin gastos registrados",
+    href: "/gastos",
+  });
 
   return {
     quotationMetricCards,

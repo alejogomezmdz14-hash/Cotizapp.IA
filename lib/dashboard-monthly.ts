@@ -1,3 +1,4 @@
+import { formatMonthShortLabel } from "@/lib/formatting";
 import { createClient } from "@/lib/supabase/server";
 import type { DashboardMonthlyPoint } from "@/types";
 
@@ -24,10 +25,7 @@ function getMonthBoundaries(monthsAgo: number) {
   const dateOnlyEnd = end.toISOString().slice(0, 10);
 
   return {
-    label: new Intl.DateTimeFormat("es-AR", {
-      month: "short",
-      year: "2-digit",
-    }).format(start),
+    label: formatMonthShortLabel(start),
     isoStart: start.toISOString(),
     isoEnd: end.toISOString(),
     dateOnlyStart,
@@ -35,15 +33,16 @@ function getMonthBoundaries(monthsAgo: number) {
   };
 }
 
-export async function getInvoicedThisMonth(userId: string) {
+export async function getCollectedThisMonth(userId: string) {
   const { isoStart, isoEnd } = getMonthBoundaries(0);
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("invoices")
+    .from("quotations")
     .select("total")
     .eq("user_id", userId)
-    .gte("created_at", isoStart)
-    .lte("created_at", isoEnd);
+    .not("paid_at", "is", null)
+    .gte("paid_at", isoStart)
+    .lte("paid_at", isoEnd);
 
   if (error) {
     return 0;

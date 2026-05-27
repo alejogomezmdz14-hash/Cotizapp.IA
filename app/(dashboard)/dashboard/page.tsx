@@ -88,21 +88,24 @@ export default async function DashboardPage() {
       value: formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
     },
     {
-      label: "Facturado",
-      value: formatCurrencyAmount(stats.invoicedThisMonth, currency),
+      label: "Cobrado",
+      value: formatCurrencyAmount(stats.collectedThisMonth, currency),
     },
     {
       label: "Gastos",
       value: expensesSummary,
     },
-    ...(hasExpenses && stats.canCalculateNetProfit
-      ? [
-          {
-            label: "Ganancia neta",
-            value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
-          },
-        ]
-      : []),
+    {
+      label: "Ganancia neta",
+      value:
+        hasExpenses && stats.canCalculateNetProfit
+          ? formatCurrencyAmount(stats.netProfitThisMonth, currency)
+          : formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
+      hint:
+        hasExpenses && stats.canCalculateNetProfit
+          ? undefined
+          : "Sin gastos registrados",
+    },
   ];
   const panelClassName =
     "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
@@ -189,19 +192,16 @@ export default async function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">
-                  {isNetProfitPlaceholder ? (
-                    <Button asChild variant="outline" size="sm" className="bg-background/75">
-                      <Link href="/gastos">
-                        {hasExpenses
-                          ? "Ver gastos"
-                          : "Registra tus gastos para ver tu margen real"}
-                      </Link>
-                    </Button>
-                  ) : (
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {card.description}
-                    </p>
-                  )}
+                  <p
+                    className={cn(
+                      "text-sm leading-6",
+                      isNetProfitPlaceholder && card.description === "Sin gastos registrados"
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {card.description}
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -235,6 +235,9 @@ export default async function DashboardPage() {
               <p className="mt-2 text-2xl font-semibold tracking-tight">
                 {item.value}
               </p>
+              {"hint" in item && item.hint ? (
+                <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
+              ) : null}
             </div>
           ))}
         </div>

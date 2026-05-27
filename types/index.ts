@@ -194,7 +194,7 @@ export type DashboardStats = {
   expensesThisMonth: number;
   expensesByCurrency: ExpenseCurrencyTotal[];
   acceptedQuotedThisMonth: number;
-  invoicedThisMonth: number;
+  collectedThisMonth: number;
   netProfitThisMonth: number;
   canCalculateNetProfit: boolean;
   monthlyComparison: DashboardMonthlyPoint[];

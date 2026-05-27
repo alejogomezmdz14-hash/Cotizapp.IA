@@ -2,6 +2,30 @@ import { normalizeDateOnlyString } from "@/lib/quotation-validity";
 
 const DEFAULT_CURRENCY = "ARS";
 
+function capitalizeMonthToken(value: string) {
+  const normalizedValue = value.replace(/\./g, "").trim();
+
+  if (!normalizedValue) {
+    return value;
+  }
+
+  return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
+}
+
+function formatDateWithCapitalizedMonth(
+  date: Date,
+  options: Intl.DateTimeFormatOptions,
+) {
+  const formatter = new Intl.DateTimeFormat("es-AR", options);
+
+  return formatter
+    .formatToParts(date)
+    .map((part) =>
+      part.type === "month" ? capitalizeMonthToken(part.value) : part.value,
+    )
+    .join("");
+}
+
 function getCurrencyCode(currency: string | null) {
   const normalizedCurrency = currency?.trim().toUpperCase();
 
@@ -94,12 +118,12 @@ export function formatDateOnly(value: string | null) {
     return "Sin fecha";
   }
 
-  return new Intl.DateTimeFormat("es-AR", {
+  return formatDateWithCapitalizedMonth(date, {
     day: "2-digit",
     month: "short",
     year: "numeric",
     timeZone: "UTC",
-  }).format(date);
+  });
 }
 
 export function formatDateTime(value: string | null) {
@@ -113,9 +137,31 @@ export function formatDateTime(value: string | null) {
     return "Sin fecha";
   }
 
-  return new Intl.DateTimeFormat("es-AR", {
+  return formatDateWithCapitalizedMonth(date, {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(date);
+  });
+}
+
+export function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+
+  if (!year || !month) {
+    return monthKey;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return formatDateWithCapitalizedMonth(date, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function formatMonthShortLabel(date: Date) {
+  return formatDateWithCapitalizedMonth(date, {
+    month: "short",
+    year: "2-digit",
+  });
 }

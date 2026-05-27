@@ -111,7 +111,7 @@ export function ClientForm({
             id={`${fieldId}-phone`}
             name="phone"
             type="tel"
-            placeholder="261 555 1234"
+            placeholder="Ej: +54 9 11 1234 5678"
             defaultValue={initialValues?.phone ?? ""}
             disabled={isSubmitting}
             minLength={8}

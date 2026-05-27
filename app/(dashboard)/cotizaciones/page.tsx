@@ -79,9 +79,6 @@ export default async function QuotationsPage() {
               <Button asChild size="lg">
                 <Link href="/cotizaciones/nueva">Nueva cotización</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="bg-background/75">
-                <Link href="/dashboard">Volver al panel</Link>
-              </Button>
             </div>
           </div>
 

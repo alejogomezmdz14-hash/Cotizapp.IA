@@ -15,7 +15,7 @@ const baseStats = {
     pendingQuotations: 6,
   },
   acceptedQuotedThisMonth: 1800,
-  invoicedThisMonth: 0,
+  collectedThisMonth: 0,
   monthlyComparison: [],
 };
 
