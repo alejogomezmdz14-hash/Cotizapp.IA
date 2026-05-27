@@ -33,8 +33,14 @@ export function BusinessProfileForm({
 }: BusinessProfileFormProps) {
   const [isLogoUploading, setIsLogoUploading] = useState(false);
 
+  const savedTaxId = profile?.tax_id?.trim() || null;
+
   return (
-    <form action={saveBusinessProfileAction} className="space-y-6">
+    <form
+      key={`${profile?.id ?? "new-profile"}-${savedTaxId ?? "sin-tax-id"}`}
+      action={saveBusinessProfileAction}
+      className="space-y-6"
+    >
       <LogoUploader
         currentLogoUrl={currentLogoUrl}
         currentLogoPath={currentLogoPath}
@@ -43,7 +49,13 @@ export function BusinessProfileForm({
 
       {saved ? (
         <p className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-          El perfil de empresa se guardo correctamente.
+          El perfil de empresa se guardó correctamente.
+          {savedTaxId ? (
+            <>
+              {" "}
+              Número fiscal guardado: <span className="font-semibold">{savedTaxId}</span>.
+            </>
+          ) : null}
         </p>
       ) : null}
 
@@ -103,6 +115,11 @@ export function BusinessProfileForm({
                 defaultValue={profile?.tax_id ?? ""}
                 autoComplete="off"
               />
+              <p className="text-xs leading-5 text-muted-foreground">
+                {savedTaxId
+                  ? `Cargado desde tu perfil: ${savedTaxId}`
+                  : "Todavía no hay un número fiscal guardado para este negocio."}
+              </p>
             </div>
           </div>
         </div>

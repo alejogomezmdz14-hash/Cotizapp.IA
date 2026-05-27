@@ -114,7 +114,10 @@ export async function saveBusinessProfileAction(formData: FormData) {
     .single();
 
   if (error || !data) {
-    throw new Error("No se pudo guardar el perfil de empresa.");
+    const details =
+      error?.message?.trim() ||
+      "No se pudo guardar el perfil de empresa. Verificá que la columna tax_id exista en Supabase.";
+    throw new Error(details);
   }
 
   revalidatePath("/perfil-empresa");
