@@ -72,16 +72,15 @@ export default async function DashboardPage() {
     pendingQuotations: Clock3,
     expensesThisMonth: Receipt,
     netProfitThisMonth: Wallet,
+    netProfitPlaceholder: Wallet,
   } as const;
   const recentQuotations = quotations.slice(0, 5);
   const currency = profile?.currency ?? null;
+  const hasExpenses = stats.expensesThisMonth > 0;
   const monthlySummary = [
     {
-      label: "Cotizado",
-      value: formatCurrencyAmount(
-        stats.quotationMetrics.totalQuotedThisMonth,
-        currency,
-      ),
+      label: "Aceptado este mes",
+      value: formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
     },
     {
       label: "Facturado",
@@ -91,10 +90,14 @@ export default async function DashboardPage() {
       label: "Gastos",
       value: formatCurrencyAmount(stats.expensesThisMonth, currency),
     },
-    {
-      label: "Ganancia neta",
-      value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
-    },
+    ...(hasExpenses
+      ? [
+          {
+            label: "Ganancia neta",
+            value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
+          },
+        ]
+      : []),
   ];
   const panelClassName =
     "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
@@ -126,6 +129,7 @@ export default async function DashboardPage() {
             const Icon = quotationMetricIcons[card.id];
             const isExpenseCard = card.id === "expensesThisMonth";
             const isNetProfitCard = card.id === "netProfitThisMonth";
+            const isNetProfitPlaceholder = card.id === "netProfitPlaceholder";
             const isHighlight = index === 0;
 
             return (
@@ -141,6 +145,7 @@ export default async function DashboardPage() {
                     (stats.netProfitThisMonth >= 0
                       ? "!border-emerald-500/30 !bg-emerald-500/8"
                       : "!border-destructive/30 !bg-destructive/8"),
+                  isNetProfitPlaceholder && "!border-dashed !border-token",
                 )}
               >
                 <CardHeader className="space-y-4">
@@ -179,9 +184,15 @@ export default async function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {card.description}
-                  </p>
+                  {isNetProfitPlaceholder ? (
+                    <Button asChild variant="outline" size="sm" className="bg-background/75">
+                      <Link href="/gastos">Registrá tus gastos</Link>
+                    </Button>
+                  ) : (
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      {card.description}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             );

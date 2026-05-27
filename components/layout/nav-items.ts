@@ -1,6 +1,5 @@
 import {
   FileText,
-  FileSpreadsheet,
   MessageSquare,
   Package,
   Plus,
@@ -19,7 +18,6 @@ export type NavItem = {
 export const primaryNavItems = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
-  { href: "/facturas", label: "Facturas", icon: FileSpreadsheet },
   { href: "/cotizaciones/nueva", label: "Nuevo", icon: Plus },
   { href: "/gastos", label: "Gastos", icon: Receipt },
   { href: "/catalogo", label: "Catálogo", icon: Package },

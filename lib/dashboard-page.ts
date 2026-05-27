@@ -7,7 +7,8 @@ export type QuotationMetricCardId =
   | "acceptedQuotations"
   | "pendingQuotations"
   | "expensesThisMonth"
-  | "netProfitThisMonth";
+  | "netProfitThisMonth"
+  | "netProfitPlaceholder";
 
 export type DashboardSummaryCardId =
   | "quotations"
@@ -44,54 +45,67 @@ export function buildDashboardPageCards(
   stats: DashboardStats,
   currency: string | null,
 ): DashboardPageCards {
+  const acceptedQuotedThisMonth = stats.acceptedQuotedThisMonth;
+  const hasExpenses = stats.expensesThisMonth > 0;
+
+  const quotationMetricCards: DashboardQuotationMetricCard[] = [
+    {
+      id: "totalQuotedThisMonth",
+      title: "Cotizado este mes",
+      value: formatCurrencyAmount(acceptedQuotedThisMonth, currency),
+      description: "Suma de cotizaciones aceptadas del mes actual.",
+      href: "/cotizaciones",
+    },
+    {
+      id: "sentQuotations",
+      title: "Enviadas",
+      value: formatDashboardCount(stats.quotationMetrics.sentQuotations),
+      description: "Presupuestos que ya compartiste con tus clientes.",
+      href: "/cotizaciones",
+    },
+    {
+      id: "acceptedQuotations",
+      title: "Aceptadas",
+      value: formatDashboardCount(stats.quotationMetrics.acceptedQuotations),
+      description: "Cotizaciones aprobadas listas para avanzar.",
+      href: "/cotizaciones",
+    },
+    {
+      id: "pendingQuotations",
+      title: "Pendientes",
+      value: formatDashboardCount(stats.quotationMetrics.pendingQuotations),
+      description: "Oportunidades que siguen en seguimiento.",
+      href: "/cotizaciones",
+    },
+    {
+      id: "expensesThisMonth",
+      title: "Gastos este mes",
+      value: formatCurrencyAmount(stats.expensesThisMonth, currency),
+      description: "Total registrado en gastos del mes actual.",
+      href: "/gastos",
+    },
+  ];
+
+  if (hasExpenses) {
+    quotationMetricCards.push({
+      id: "netProfitThisMonth",
+      title: "Ganancia neta",
+      value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
+      description: "Total aceptado del mes menos gastos registrados.",
+      href: "/gastos",
+    });
+  } else {
+    quotationMetricCards.push({
+      id: "netProfitPlaceholder",
+      title: "Ganancia neta",
+      value: "—",
+      description: "Registrá gastos para ver tu margen.",
+      href: "/gastos",
+    });
+  }
+
   return {
-    quotationMetricCards: [
-      {
-        id: "totalQuotedThisMonth",
-        title: "Cotizado este mes",
-        value: formatCurrencyAmount(
-          stats.quotationMetrics.totalQuotedThisMonth,
-          currency,
-        ),
-        description: "Monto acumulado de cotizaciones creadas este mes.",
-        href: "/cotizaciones",
-      },
-      {
-        id: "sentQuotations",
-        title: "Enviadas",
-        value: formatDashboardCount(stats.quotationMetrics.sentQuotations),
-        description: "Presupuestos que ya compartiste con tus clientes.",
-        href: "/cotizaciones",
-      },
-      {
-        id: "acceptedQuotations",
-        title: "Aceptadas",
-        value: formatDashboardCount(stats.quotationMetrics.acceptedQuotations),
-        description: "Cotizaciones aprobadas listas para avanzar.",
-        href: "/cotizaciones",
-      },
-      {
-        id: "pendingQuotations",
-        title: "Pendientes",
-        value: formatDashboardCount(stats.quotationMetrics.pendingQuotations),
-        description: "Oportunidades que siguen en seguimiento.",
-        href: "/cotizaciones",
-      },
-      {
-        id: "expensesThisMonth",
-        title: "Gastos este mes",
-        value: formatCurrencyAmount(stats.expensesThisMonth, currency),
-        description: "Total registrado en gastos del mes actual.",
-        href: "/gastos",
-      },
-      {
-        id: "netProfitThisMonth",
-        title: "Ganancia neta",
-        value: formatCurrencyAmount(stats.netProfitThisMonth, currency),
-        description: "Cotizado aceptado menos gastos del mes.",
-        href: "/gastos",
-      },
-    ],
+    quotationMetricCards,
     summaryCards: [
       {
         id: "quotations",

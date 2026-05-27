@@ -32,7 +32,7 @@ export default async function DashboardLayout({
           businessName={branding.businessName}
           logoUrl={branding.logoUrl}
         />
-        <main className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 lg:pb-6">
+        <main className="flex-1 px-4 py-4 pb-[calc(4rem+env(safe-area-inset-bottom))] md:px-6 lg:pb-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
         <BottomNav />

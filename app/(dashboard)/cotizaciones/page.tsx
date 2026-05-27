@@ -18,7 +18,9 @@ import {
   formatDateTime,
 } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
+import { isQuotationPastValidity } from "@/lib/quotation-expiry";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
+import { cn } from "@/lib/utils";
 import {
   getDraftQuotationEditorHref,
   getQuotations,
@@ -284,9 +286,16 @@ export default async function QuotationsPage() {
               const canShareQuotation =
                 isDraftQuotationStatus(quotation.status) ||
                 quotation.status === "pending";
+              const isExpired = isQuotationPastValidity(quotation.valid_until);
 
               return (
-                <Card key={quotation.id} className={summaryCardClassName}>
+                <Card
+                  key={quotation.id}
+                  className={cn(
+                    summaryCardClassName,
+                    isExpired && "!border-destructive/50 !bg-destructive/5",
+                  )}
+                >
                   <CardHeader className="space-y-4">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-3">
@@ -299,6 +308,11 @@ export default async function QuotationsPage() {
                           >
                             {formatStatusLabel(quotation.status)}
                           </span>
+                          {isExpired ? (
+                            <span className="w-fit rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
+                              Vencida
+                            </span>
+                          ) : null}
                           {quotation.paid_at ? (
                             <span className="w-fit rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                               Pagada

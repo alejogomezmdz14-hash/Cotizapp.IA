@@ -113,6 +113,7 @@ async function getDashboardQuotationMetricsFallback(userId: string) {
     }
 
     if (
+      (status === "accepted" || status === "approved") &&
       Number.isFinite(createdAt) &&
       createdAt >= monthStartMs &&
       createdAt < nextMonthStartMs

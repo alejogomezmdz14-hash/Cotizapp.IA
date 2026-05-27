@@ -37,9 +37,33 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
   );
   assert.equal(
     sections.quotationMetricCards[0]?.value,
-    formatCurrencyAmount(2050.5, "ARS"),
+    formatCurrencyAmount(1800, "ARS"),
   );
   assert.equal(sections.quotationMetricCards[0]?.href, "/cotizaciones");
+  const noExpenseSections = buildDashboardPageCards(
+    {
+      quotations: 18,
+      clients: 7,
+      catalogItems: 42,
+      quotationMetrics: {
+        totalQuotedThisMonth: 2050.5,
+        sentQuotations: 9,
+        acceptedQuotations: 4,
+        pendingQuotations: 6,
+      },
+      expensesThisMonth: 0,
+      acceptedQuotedThisMonth: 1800,
+      netProfitThisMonth: 1800,
+    },
+    "ARS",
+  );
+
+  assert.equal(noExpenseSections.quotationMetricCards.length, 6);
+  assert.equal(
+    noExpenseSections.quotationMetricCards[5]?.id,
+    "netProfitPlaceholder",
+  );
+
   assert.equal(sections.summaryCards.length, 3);
   assert.deepEqual(
     sections.summaryCards.map((card) => card.title),
