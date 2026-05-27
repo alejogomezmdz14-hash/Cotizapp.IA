@@ -175,7 +175,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 OPENAI_CHAT_MODEL=gpt-4o-mini
 OPENAI_VISION_MODEL=gpt-4o
-NEXT_PUBLIC_APP_URL=https://cotizapp-puce.vercel.app
+NEXT_PUBLIC_APP_URL=https://cotizapp-ia.vercel.app
 
 ## Lo que NO hacer
 - No mostrar /facturas en ninguna parte de la UI hasta nuevo aviso
