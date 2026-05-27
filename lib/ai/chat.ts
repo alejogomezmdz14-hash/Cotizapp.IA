@@ -1,5 +1,6 @@
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { getOpenAIApiKey, getOpenAIClient } from "@/lib/ai/openai";
+import { getExpenses, normalizeExpenseCategory } from "@/lib/expenses";
 import type {
   CatalogItem,
   ChatConversationMessage,
@@ -7,6 +8,8 @@ import type {
   ChatSuggestedAction,
   ChatSuggestedQuotationItem,
   Client,
+  Expense,
+  ExpenseCurrencyTotal,
   Profile,
   Quotation,
 } from "@/types";
@@ -15,6 +18,7 @@ const DEFAULT_CHAT_MODEL = "gpt-4o-mini";
 const MAX_CONTEXT_CLIENTS = 6;
 const MAX_CONTEXT_CATALOG_ITEMS = 8;
 const MAX_CONTEXT_QUOTATIONS = 6;
+const MAX_CONTEXT_EXPENSES = 6;
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_NOTES_LENGTH = 96;
 
@@ -23,6 +27,7 @@ type BusinessChatContextInput = {
   clients: Client[];
   catalogItems: CatalogItem[];
   quotations: Quotation[];
+  expenses?: BusinessChatExpenseSnapshot | null;
 };
 
 type BusinessChatReferences = {
@@ -78,6 +83,33 @@ export type BusinessChatContext = {
     createdAt: string | null;
     notes: string | null;
   }>;
+  expenses: BusinessChatExpenseSnapshot;
+};
+
+export type BusinessChatExpenseLine = {
+  id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  category: string;
+  date: string;
+};
+
+export type BusinessChatExpenseSnapshot = {
+  period: QuotationPeriodFilter | "month";
+  expenseCount: number;
+  totalsByCurrency: ExpenseCurrencyTotal[];
+  totalsByCategory: Array<{ category: string; total: number }>;
+  latestExpense: BusinessChatExpenseLine | null;
+  largestExpense: BusinessChatExpenseLine | null;
+  recentExpenses: BusinessChatExpenseLine[];
+  profitability: {
+    acceptedQuotedTotal: number;
+    netProfit: number | null;
+    netProfitCurrency: string | null;
+    canCalculateNetProfit: boolean;
+    note: string | null;
+  };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -215,6 +247,208 @@ export function resolveQuotationPeriodFilter(
   }
 
   return null;
+}
+
+function parseExpenseDate(value: string) {
+  const parsedDate = new Date(`${value}T12:00:00`);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+export function filterExpensesByPeriod(
+  expenses: Expense[],
+  period: QuotationPeriodFilter,
+  referenceDate = new Date(),
+) {
+  const today = getReferenceDate(referenceDate);
+
+  return expenses.filter((expense) => {
+    const expenseDay = parseExpenseDate(expense.date);
+
+    if (!expenseDay) {
+      return false;
+    }
+
+    const scopedDay = getReferenceDate(expenseDay);
+
+    if (period === "day") {
+      return scopedDay.getTime() === today.getTime();
+    }
+
+    if (period === "week") {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      return (
+        scopedDay.getTime() >= weekStart.getTime() &&
+        scopedDay.getTime() <= weekEnd.getTime()
+      );
+    }
+
+    return (
+      scopedDay.getFullYear() === today.getFullYear() &&
+      scopedDay.getMonth() === today.getMonth()
+    );
+  });
+}
+
+export function resolveExpensePeriodFilter(prompt: string) {
+  return resolveQuotationPeriodFilter(prompt);
+}
+
+export function shouldLoadExpenseDetails(prompt: string) {
+  const normalizedPrompt = prompt.trim().toLowerCase();
+
+  if (!normalizedPrompt) {
+    return false;
+  }
+
+  return /(gasto|gastos|egreso|egresos|ganancia neta|gané neto|gane neto|margen|cuánto gasté|cuanto gaste|mayor gasto|último gasto|ultimo gasto|por categor[ií]a|neto este mes|cuánto gané|cuanto gane)/i.test(
+    normalizedPrompt,
+  );
+}
+
+function toExpenseLine(expense: Expense): BusinessChatExpenseLine {
+  return {
+    id: expense.id,
+    description: expense.description,
+    amount: expense.amount,
+    currency: expense.currency,
+    category: expense.category,
+    date: expense.date,
+  };
+}
+
+function buildTotalsByCategory(expenses: Expense[]) {
+  const totals = new Map<string, number>();
+
+  for (const expense of expenses) {
+    const category = normalizeExpenseCategory(expense.category);
+    totals.set(category, (totals.get(category) ?? 0) + expense.amount);
+  }
+
+  return Array.from(totals.entries())
+    .map(([category, total]) => ({ category, total }))
+    .sort((left, right) => right.total - left.total);
+}
+
+function buildTotalsByCurrency(expenses: Expense[]): ExpenseCurrencyTotal[] {
+  const totals = new Map<string, number>();
+
+  for (const expense of expenses) {
+    totals.set(
+      expense.currency,
+      (totals.get(expense.currency) ?? 0) + expense.amount,
+    );
+  }
+
+  return Array.from(totals.entries())
+    .map(([currency, total]) => ({ currency, total }))
+    .sort((left, right) => left.currency.localeCompare(right.currency));
+}
+
+function getAcceptedQuotedTotal(
+  quotations: Quotation[],
+  period: QuotationPeriodFilter,
+  referenceDate = new Date(),
+) {
+  return filterQuotationsByPeriod(quotations, period, referenceDate)
+    .filter((quotation) => {
+      const status = getTrimmedString(quotation.status)?.toLowerCase() ?? "";
+      return status === "accepted" || status === "approved";
+    })
+    .reduce((sum, quotation) => sum + (quotation.total ?? 0), 0);
+}
+
+export function buildBusinessChatExpenseSnapshot({
+  expenses,
+  quotations,
+  profile,
+  period = "month",
+  referenceDate = new Date(),
+}: {
+  expenses: Expense[];
+  quotations: Quotation[];
+  profile: Profile | null;
+  period?: QuotationPeriodFilter | "month";
+  referenceDate?: Date;
+}): BusinessChatExpenseSnapshot {
+  const scopedPeriod: QuotationPeriodFilter =
+    period === "month" ? "month" : period;
+  const scopedExpenses = filterExpensesByPeriod(
+    expenses,
+    scopedPeriod,
+    referenceDate,
+  );
+  const totalsByCurrency = buildTotalsByCurrency(scopedExpenses);
+  const totalsByCategory = buildTotalsByCategory(scopedExpenses);
+  const sortedByAmount = [...scopedExpenses].sort(
+    (left, right) => right.amount - left.amount,
+  );
+  const sortedByDate = [...scopedExpenses].sort((left, right) =>
+    right.date.localeCompare(left.date),
+  );
+  const acceptedQuotedTotal = getAcceptedQuotedTotal(
+    quotations,
+    scopedPeriod,
+    referenceDate,
+  );
+  const profileCurrency = getTrimmedString(profile?.currency ?? null);
+  const canCalculateNetProfit =
+    scopedExpenses.length > 0 &&
+    totalsByCurrency.length === 1 &&
+    totalsByCurrency[0]?.currency === profileCurrency;
+  const expenseTotal = totalsByCurrency[0]?.total ?? 0;
+
+  return {
+    period: scopedPeriod,
+    expenseCount: scopedExpenses.length,
+    totalsByCurrency,
+    totalsByCategory,
+    latestExpense: sortedByDate[0] ? toExpenseLine(sortedByDate[0]) : null,
+    largestExpense: sortedByAmount[0] ? toExpenseLine(sortedByAmount[0]) : null,
+    recentExpenses: sortedByDate
+      .slice(0, MAX_CONTEXT_EXPENSES)
+      .map((expense) => toExpenseLine(expense)),
+    profitability: {
+      acceptedQuotedTotal,
+      netProfit: canCalculateNetProfit
+        ? acceptedQuotedTotal - expenseTotal
+        : null,
+      netProfitCurrency: canCalculateNetProfit ? profileCurrency : null,
+      canCalculateNetProfit,
+      note: !scopedExpenses.length
+        ? "Sin gastos registrados en el período consultado."
+        : totalsByCurrency.length > 1
+          ? "Hay gastos en varias monedas; la ganancia neta solo se calcula con una moneda."
+          : profileCurrency && totalsByCurrency[0]?.currency !== profileCurrency
+            ? `Los gastos están en ${totalsByCurrency[0]?.currency} y el perfil usa ${profileCurrency}.`
+            : null,
+    },
+  };
+}
+
+export async function loadBusinessChatExpenseContext(
+  userId: string,
+  options?: {
+    periodFilter?: QuotationPeriodFilter | null;
+    quotations?: Quotation[];
+    profile?: Profile | null;
+    referenceDate?: Date;
+  },
+): Promise<BusinessChatExpenseSnapshot> {
+  const referenceDate = options?.referenceDate ?? new Date();
+  const period = options?.periodFilter ?? "month";
+  const expenses = await getExpenses(userId);
+
+  return buildBusinessChatExpenseSnapshot({
+    expenses,
+    quotations: options?.quotations ?? [],
+    profile: options?.profile ?? null,
+    period,
+    referenceDate,
+  });
 }
 
 export function filterQuotationsByPeriod(
@@ -389,11 +623,14 @@ export function buildBusinessChatSystemPrompt() {
   return [
     "Eres el asistente comercial de Cotizapp.",
     "Responde siempre en español rioplatense claro.",
-    "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones y perfil/resumen del negocio.",
+    "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones, gastos y perfil/resumen del negocio.",
+    "Tenés acceso a los gastos del negocio. Podés consultar gastos del mes, por categoría y calcular ganancia neta (cotizaciones aceptadas - gastos). No podés crear ni eliminar gastos desde el chat.",
+    "Usa expenses del contexto para responder cuánto gastó el usuario, el mayor gasto, el último gasto y la ganancia neta del período.",
     "Usa meta.currentDate como fecha de referencia para interpretar hoy, esta semana y este mes.",
-    "Si meta.quotationPeriodFilter viene informado, responde usando solo recentQuotations y summary.filteredQuotations para ese período.",
+    "Si meta.quotationPeriodFilter viene informado, responde usando solo recentQuotations, summary.filteredQuotations y expenses del mismo período.",
     "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que está fuera de alcance y redirige la conversación a esos módulos de negocio; no actúes como asistente general.",
     "Nunca afirmes que ya creaste, actualizaste o eliminaste datos.",
+    "Nunca crees ni elimines gastos; solo consultalos.",
     "Solo puedes sugerir acciones de escritura para confirmación explícita del usuario.",
     "Si no hace falta proponer una acción, devuelve suggestedAction como null.",
     "Las únicas acciones permitidas son draft_quotation_create y catalog_price_update.",
@@ -405,6 +642,7 @@ export function buildBusinessChatContext({
   clients,
   catalogItems,
   quotations,
+  expenses = null,
   quotationPeriodFilter = null,
   referenceDate = new Date(),
 }: BusinessChatContextInput & {
@@ -414,6 +652,15 @@ export function buildBusinessChatContext({
   const scopedQuotations = quotationPeriodFilter
     ? filterQuotationsByPeriod(quotations, quotationPeriodFilter, referenceDate)
     : quotations;
+  const expenseSnapshot =
+    expenses ??
+    buildBusinessChatExpenseSnapshot({
+      expenses: [],
+      quotations,
+      profile,
+      period: quotationPeriodFilter ?? "month",
+      referenceDate,
+    });
 
   return {
     meta: {
@@ -461,6 +708,7 @@ export function buildBusinessChatContext({
         createdAt: quotation.created_at,
         notes: truncateText(getTrimmedString(quotation.notes), MAX_NOTES_LENGTH),
       })),
+    expenses: expenseSnapshot,
   };
 }
 

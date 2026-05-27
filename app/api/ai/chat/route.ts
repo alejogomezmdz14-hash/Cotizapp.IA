@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   buildBusinessChatContext,
+  loadBusinessChatExpenseContext,
   readChatRequestBody,
   resolveQuotationPeriodFilter,
   runBusinessChat,
@@ -113,11 +114,17 @@ export async function POST(request: Request) {
     const quotationPeriodFilter = resolveQuotationPeriodFilter(
       latestMessage.content,
     );
+    const expenses = await loadBusinessChatExpenseContext(user.id, {
+      periodFilter: quotationPeriodFilter,
+      quotations,
+      profile,
+    });
     const context = buildBusinessChatContext({
       profile,
       clients,
       catalogItems,
       quotations,
+      expenses,
       quotationPeriodFilter,
     });
     const result = await runBusinessChat(

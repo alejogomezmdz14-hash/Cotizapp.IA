@@ -5,16 +5,20 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  buildBusinessChatExpenseSnapshot,
   buildBusinessChatSystemPrompt,
   buildBusinessChatContext,
+  filterExpensesByPeriod,
   filterQuotationsByPeriod,
   normalizeBusinessChatResult,
   readChatRequestBody,
+  resolveExpensePeriodFilter,
   resolveQuotationPeriodFilter,
+  shouldLoadExpenseDetails,
 } from "../lib/ai/chat";
 import { getOpenAIClient } from "../lib/ai/openai";
 import { getNextPendingSuggestion } from "../lib/chat/pending-suggestion";
-import type { CatalogItem, Client, Profile, Quotation } from "../types";
+import type { CatalogItem, Client, Expense, Profile, Quotation } from "../types";
 
 function createClient(id: number): Client {
   return {
@@ -38,6 +42,22 @@ function createCatalogItem(id: number): CatalogItem {
     price: id * 1000,
     category: id % 2 === 0 ? "Materiales" : "Herramientas",
     created_at: `2026-05-${String(id).padStart(2, "0")}T11:00:00.000Z`,
+  };
+}
+
+function createExpense(id: number, amount: number, date: string): Expense {
+  return {
+    id: `expense-${id}`,
+    user_id: "user-1",
+    description: `Gasto ${id}`,
+    amount,
+    currency: "ARS",
+    category: id % 2 === 0 ? "Materiales" : "Transporte",
+    date,
+    receipt_url: null,
+    receipt_path: null,
+    notes: null,
+    created_at: `${date}T10:00:00.000Z`,
   };
 }
 
@@ -152,6 +172,72 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
     (context.recentQuotations[0]!.notes ?? "").length < 120,
     "Expected quotation notes to be truncated in bounded context.",
   );
+  assert.equal(context.expenses.period, "month");
+  assert.equal(context.expenses.expenseCount, 0);
+});
+
+test("buildBusinessChatExpenseSnapshot summarizes totals, categories and net profit", () => {
+  const profile: Profile = {
+    id: "user-1",
+    business_name: "Pro Mat",
+    industry: null,
+    logo_url: null,
+    phone: null,
+    email: null,
+    address: null,
+    currency: "ARS",
+    theme: null,
+    created_at: null,
+  };
+
+  const snapshot = buildBusinessChatExpenseSnapshot({
+    profile,
+    period: "month",
+    referenceDate: new Date("2026-05-26T12:00:00.000Z"),
+    expenses: [
+      createExpense(1, 5000, "2026-05-10"),
+      createExpense(2, 12000, "2026-05-20"),
+      createExpense(3, 3000, "2026-04-15"),
+    ],
+    quotations: [
+      {
+        ...createQuotation(1, "accepted"),
+        total: 50000,
+        created_at: "2026-05-12T12:00:00.000Z",
+      },
+    ],
+  });
+
+  assert.equal(snapshot.expenseCount, 2);
+  assert.equal(snapshot.totalsByCurrency[0]?.total, 17000);
+  assert.equal(snapshot.largestExpense?.amount, 12000);
+  assert.equal(snapshot.latestExpense?.id, "expense-2");
+  assert.equal(snapshot.profitability.acceptedQuotedTotal, 50000);
+  assert.equal(snapshot.profitability.netProfit, 33000);
+  assert.equal(snapshot.profitability.canCalculateNetProfit, true);
+});
+
+test("filterExpensesByPeriod scopes expenses to the requested window", () => {
+  const expenses = [
+    createExpense(1, 1000, "2026-05-26"),
+    createExpense(2, 2000, "2026-05-01"),
+    createExpense(3, 3000, "2026-04-20"),
+  ];
+
+  const filtered = filterExpensesByPeriod(
+    expenses,
+    "month",
+    new Date("2026-05-26T12:00:00.000Z"),
+  );
+
+  assert.equal(filtered.length, 2);
+});
+
+test("shouldLoadExpenseDetails detects expense-related prompts", () => {
+  assert.equal(shouldLoadExpenseDetails("¿Cuánto gasté este mes?"), true);
+  assert.equal(shouldLoadExpenseDetails("¿Cuál fue mi mayor gasto?"), true);
+  assert.equal(resolveExpensePeriodFilter("Ganancia neta del mes"), "month");
+  assert.equal(shouldLoadExpenseDetails("Mostrame el catálogo"), false);
 });
 
 test("normalizeBusinessChatResult keeps a valid quotation draft suggestion in Spanish", () => {
@@ -414,7 +500,12 @@ test("buildBusinessChatSystemPrompt keeps the assistant inside the business scop
   const prompt = buildBusinessChatSystemPrompt();
 
   assert.match(prompt, /solo dentro de este alcance/i);
-  assert.match(prompt, /clientes, catálogo, cotizaciones y perfil/i);
+  assert.match(prompt, /clientes, catálogo, cotizaciones, gastos y perfil/i);
+  assert.match(
+    prompt,
+    /Tenés acceso a los gastos del negocio\. Podés consultar gastos del mes/i,
+  );
+  assert.match(prompt, /No podés crear ni eliminar gastos desde el chat/i);
   assert.match(prompt, /rechaza.*fuera de alcance/i);
 });
 
