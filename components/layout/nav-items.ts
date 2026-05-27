@@ -1,6 +1,5 @@
 import {
   FileText,
-  Home,
   MessageSquare,
   Package,
   Plus,
@@ -15,7 +14,7 @@ export type NavItem = {
 };
 
 export const primaryNavItems = [
-  { href: "/dashboard", label: "Inicio", icon: Home },
+  { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { href: "/cotizaciones/nueva", label: "Nuevo", icon: Plus },
   { href: "/catalogo", label: "Catálogo", icon: Package },
@@ -28,7 +27,7 @@ export const sidebarNavItems = [
 ] as const satisfies readonly NavItem[];
 
 function isNestedPath(pathname: string, href: string) {
-  return href !== "/dashboard" && pathname.startsWith(`${href}/`);
+  return pathname.startsWith(`${href}/`);
 }
 
 export function getActiveNavHref(

@@ -34,7 +34,14 @@ type ChatRequestBody = {
   messages?: unknown;
 };
 
+export type QuotationPeriodFilter = "day" | "week" | "month";
+
 export type BusinessChatContext = {
+  meta: {
+    currentDate: string;
+    timezone: string;
+    quotationPeriodFilter: QuotationPeriodFilter | null;
+  };
   business: {
     businessName: string | null;
     industry: string | null;
@@ -45,6 +52,7 @@ export type BusinessChatContext = {
     totalClients: number;
     totalCatalogItems: number;
     totalQuotations: number;
+    filteredQuotations: number;
     quotationStatusBreakdown: Record<string, number>;
   };
   recentClients: Array<{
@@ -67,6 +75,7 @@ export type BusinessChatContext = {
     clientName: string | null;
     total: number;
     validUntil: string | null;
+    createdAt: string | null;
     notes: string | null;
   }>;
 };
@@ -165,6 +174,86 @@ function buildStatusBreakdown(quotations: Quotation[]) {
     counts[status] = (counts[status] ?? 0) + 1;
     return counts;
   }, {});
+}
+
+function getReferenceDate(referenceDate = new Date()) {
+  return new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  );
+}
+
+function parseQuotationCreatedAt(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+export function resolveQuotationPeriodFilter(
+  prompt: string,
+): QuotationPeriodFilter | null {
+  const normalizedPrompt = prompt.trim().toLowerCase();
+
+  if (!normalizedPrompt) {
+    return null;
+  }
+
+  if (/(hoy|de hoy|del día|del dia)/.test(normalizedPrompt)) {
+    return "day";
+  }
+
+  if (/(esta semana|de la semana|semana actual)/.test(normalizedPrompt)) {
+    return "week";
+  }
+
+  if (/(este mes|del mes|mes actual)/.test(normalizedPrompt)) {
+    return "month";
+  }
+
+  return null;
+}
+
+export function filterQuotationsByPeriod(
+  quotations: Quotation[],
+  period: QuotationPeriodFilter,
+  referenceDate = new Date(),
+) {
+  const today = getReferenceDate(referenceDate);
+
+  return quotations.filter((quotation) => {
+    const createdAt = parseQuotationCreatedAt(quotation.created_at);
+
+    if (!createdAt) {
+      return false;
+    }
+
+    const createdDay = getReferenceDate(createdAt);
+
+    if (period === "day") {
+      return createdDay.getTime() === today.getTime();
+    }
+
+    if (period === "week") {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      return (
+        createdDay.getTime() >= weekStart.getTime() &&
+        createdDay.getTime() <= weekEnd.getTime()
+      );
+    }
+
+    return (
+      createdDay.getFullYear() === today.getFullYear() &&
+      createdDay.getMonth() === today.getMonth()
+    );
+  });
 }
 
 function normalizeSuggestedQuotationItem(
@@ -301,6 +390,8 @@ export function buildBusinessChatSystemPrompt() {
     "Eres el asistente comercial de Cotizapp.",
     "Responde siempre en español rioplatense claro.",
     "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones y perfil/resumen del negocio.",
+    "Usa meta.currentDate como fecha de referencia para interpretar hoy, esta semana y este mes.",
+    "Si meta.quotationPeriodFilter viene informado, responde usando solo recentQuotations y summary.filteredQuotations para ese período.",
     "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que está fuera de alcance y redirige la conversación a esos módulos de negocio; no actúes como asistente general.",
     "Nunca afirmes que ya creaste, actualizaste o eliminaste datos.",
     "Solo puedes sugerir acciones de escritura para confirmación explícita del usuario.",
@@ -314,8 +405,22 @@ export function buildBusinessChatContext({
   clients,
   catalogItems,
   quotations,
-}: BusinessChatContextInput): BusinessChatContext {
+  quotationPeriodFilter = null,
+  referenceDate = new Date(),
+}: BusinessChatContextInput & {
+  quotationPeriodFilter?: QuotationPeriodFilter | null;
+  referenceDate?: Date;
+}): BusinessChatContext {
+  const scopedQuotations = quotationPeriodFilter
+    ? filterQuotationsByPeriod(quotations, quotationPeriodFilter, referenceDate)
+    : quotations;
+
   return {
+    meta: {
+      currentDate: referenceDate.toISOString().slice(0, 10),
+      timezone: "America/Argentina/Mendoza",
+      quotationPeriodFilter,
+    },
     business: {
       businessName: getTrimmedString(profile?.business_name ?? null),
       industry: getTrimmedString(profile?.industry ?? null),
@@ -326,7 +431,8 @@ export function buildBusinessChatContext({
       totalClients: clients.length,
       totalCatalogItems: catalogItems.length,
       totalQuotations: quotations.length,
-      quotationStatusBreakdown: buildStatusBreakdown(quotations),
+      filteredQuotations: scopedQuotations.length,
+      quotationStatusBreakdown: buildStatusBreakdown(scopedQuotations),
     },
     recentClients: clients.slice(0, MAX_CONTEXT_CLIENTS).map((client) => ({
       id: client.id,
@@ -343,15 +449,18 @@ export function buildBusinessChatContext({
         unit: normalizeCatalogUnit(item.unit),
         price: item.price,
       })),
-    recentQuotations: quotations.slice(0, MAX_CONTEXT_QUOTATIONS).map((quotation) => ({
-      id: quotation.id,
-      number: quotation.number,
-      status: quotation.status,
-      clientName: quotation.client_name,
-      total: quotation.total ?? 0,
-      validUntil: quotation.valid_until,
-      notes: truncateText(getTrimmedString(quotation.notes), MAX_NOTES_LENGTH),
-    })),
+    recentQuotations: scopedQuotations
+      .slice(0, MAX_CONTEXT_QUOTATIONS)
+      .map((quotation) => ({
+        id: quotation.id,
+        number: quotation.number,
+        status: quotation.status,
+        clientName: quotation.client_name,
+        total: quotation.total ?? 0,
+        validUntil: quotation.valid_until,
+        createdAt: quotation.created_at,
+        notes: truncateText(getTrimmedString(quotation.notes), MAX_NOTES_LENGTH),
+      })),
   };
 }
 

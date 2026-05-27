@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Building2, CreditCard, Mail, ScrollText, Sparkles } from "lucide-react";
 
@@ -20,6 +21,8 @@ type BusinessProfileFormProps = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+const PROFILE_CURRENCIES = ["ARS", "USD", "EUR", "MXN", "COP", "CLP", "BRL", "UYU"] as const;
 
 export function BusinessProfileForm({
   profile,
@@ -76,13 +79,29 @@ export function BusinessProfileForm({
 
             <div className="space-y-2">
               <Label htmlFor="currency">Moneda</Label>
-              <Input
+              <select
                 id="currency"
                 name="currency"
-                placeholder="Ej. ARS"
                 defaultValue={(profile?.currency ?? "ARS").toUpperCase()}
                 required
-                autoCapitalize="characters"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {PROFILE_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="tax_id">Número fiscal (CUIT, RFC, NIT, RUT)</Label>
+              <Input
+                id="tax_id"
+                name="tax_id"
+                placeholder="Ej. 30-12345678-9"
+                defaultValue={profile?.tax_id ?? ""}
+                autoComplete="off"
               />
             </div>
           </div>
@@ -179,9 +198,14 @@ export function BusinessProfileForm({
         ) : null}
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4 text-accent-token" />
-            Los cambios impactan el dashboard y los PDFs nuevos.
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-accent-token" />
+              Los cambios impactan el dashboard y los PDFs nuevos.
+            </div>
+            <Button type="button" variant="outline" className="bg-background/75" asChild>
+              <Link href="/onboarding">Volver a ver el tour inicial</Link>
+            </Button>
           </div>
           <Button type="submit" disabled={isLogoUploading}>
             Guardar perfil

@@ -8,6 +8,10 @@ import {
 import { createCatalogItemAction } from "@/app/actions/catalog";
 import { CatalogItemForm } from "@/components/catalogo/catalog-item-form";
 import { CatalogTable } from "@/components/catalogo/catalog-table";
+import {
+  getCatalogCategorySuggestions,
+  getCatalogUnitSuggestions,
+} from "@/lib/catalog-suggestions";
 import { getCatalogItems } from "@/lib/catalog";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
@@ -26,6 +30,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     getCatalogItems(user.id, { search }),
     getProfile(user.id),
   ]);
+  const categorySuggestions = getCatalogCategorySuggestions(items);
+  const unitSuggestions = getCatalogUnitSuggestions(items);
 
   return (
     <div className="space-y-6 pb-20">
@@ -70,6 +76,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
             <CatalogItemForm
               submitLabel="Guardar ítem"
+              categorySuggestions={categorySuggestions}
+              unitSuggestions={unitSuggestions}
               onSubmit={createCatalogItemAction}
             />
           </CardContent>
@@ -79,6 +87,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           items={items}
           search={search}
           currency={profile?.currency ?? null}
+          categorySuggestions={categorySuggestions}
+          unitSuggestions={unitSuggestions}
         />
       </div>
     </div>

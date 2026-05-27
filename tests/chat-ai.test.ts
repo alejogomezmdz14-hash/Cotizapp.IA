@@ -7,8 +7,10 @@ import test from "node:test";
 import {
   buildBusinessChatSystemPrompt,
   buildBusinessChatContext,
+  filterQuotationsByPeriod,
   normalizeBusinessChatResult,
   readChatRequestBody,
+  resolveQuotationPeriodFilter,
 } from "../lib/ai/chat";
 import { getOpenAIClient } from "../lib/ai/openai";
 import { getNextPendingSuggestion } from "../lib/chat/pending-suggestion";
@@ -63,6 +65,35 @@ function createQuotation(id: number, status: Quotation["status"]): Quotation {
   };
 }
 
+test("resolveQuotationPeriodFilter detects day, week and month prompts", () => {
+  assert.equal(resolveQuotationPeriodFilter("¿Cuántas cotizaciones hice hoy?"), "day");
+  assert.equal(resolveQuotationPeriodFilter("Resumen de esta semana"), "week");
+  assert.equal(resolveQuotationPeriodFilter("Cotizaciones del mes actual"), "month");
+  assert.equal(resolveQuotationPeriodFilter("Mostrame el catálogo"), null);
+});
+
+test("filterQuotationsByPeriod scopes quotations to the requested window", () => {
+  const quotations = [
+    createQuotation(1, "draft"),
+    {
+      ...createQuotation(2, "pending"),
+      created_at: "2026-05-01T12:00:00.000Z",
+    },
+    {
+      ...createQuotation(3, "accepted"),
+      created_at: "2026-04-20T12:00:00.000Z",
+    },
+  ];
+
+  const filtered = filterQuotationsByPeriod(
+    quotations,
+    "month",
+    new Date("2026-05-26T12:00:00.000Z"),
+  );
+
+  assert.equal(filtered.length, 2);
+});
+
 test("buildBusinessChatContext limits lists and summarizes account activity", () => {
   const profile: Profile = {
     id: "user-1",
@@ -100,10 +131,13 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
     currency: "ARS",
     contactEmail: "ventas@promat.com",
   });
+  assert.equal(context.meta.currentDate.length, 10);
+  assert.equal(context.meta.quotationPeriodFilter, null);
   assert.deepEqual(context.summary, {
     totalClients: 8,
     totalCatalogItems: 10,
     totalQuotations: 7,
+    filteredQuotations: 7,
     quotationStatusBreakdown: {
       accepted: 1,
       draft: 4,

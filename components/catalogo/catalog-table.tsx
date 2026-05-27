@@ -33,6 +33,8 @@ type CatalogTableProps = {
   items: CatalogItem[];
   search: string;
   currency: string | null;
+  categorySuggestions: string[];
+  unitSuggestions: string[];
 };
 
 function getErrorMessage(error: unknown) {
@@ -43,7 +45,13 @@ function getErrorMessage(error: unknown) {
   return "No se pudo completar la acción.";
 }
 
-export function CatalogTable({ items, search, currency }: CatalogTableProps) {
+export function CatalogTable({
+  items,
+  search,
+  currency,
+  categorySuggestions,
+  unitSuggestions,
+}: CatalogTableProps) {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -223,6 +231,8 @@ export function CatalogTable({ items, search, currency }: CatalogTableProps) {
                     <CatalogItemForm
                       mode="edit"
                       initialValues={item}
+                      categorySuggestions={categorySuggestions}
+                      unitSuggestions={unitSuggestions}
                       submitLabel="Guardar cambios"
                       onCancel={() => setEditingId(null)}
                       onSuccess={() => setEditingId(null)}

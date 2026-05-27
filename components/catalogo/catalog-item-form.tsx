@@ -17,6 +17,8 @@ type CatalogItemFormFields = Pick<
 type CatalogItemFormProps = {
   mode?: "create" | "edit";
   initialValues?: Partial<CatalogItemFormFields>;
+  categorySuggestions?: string[];
+  unitSuggestions?: string[];
   onSubmit: (formData: FormData) => Promise<void>;
   onCancel?: () => void;
   onSuccess?: () => void;
@@ -35,6 +37,8 @@ function getErrorMessage(error: unknown) {
 export function CatalogItemForm({
   mode = "create",
   initialValues,
+  categorySuggestions = [],
+  unitSuggestions = [],
   onSubmit,
   onCancel,
   onSuccess,
@@ -101,10 +105,16 @@ export function CatalogItemForm({
           <Input
             id={`${fieldId}-category`}
             name="category"
+            list={`${fieldId}-category-suggestions`}
             placeholder="Ej. Materiales"
             defaultValue={initialValues?.category ?? ""}
             disabled={isSubmitting}
           />
+          <datalist id={`${fieldId}-category-suggestions`}>
+            {categorySuggestions.map((category) => (
+              <option key={category} value={category} />
+            ))}
+          </datalist>
         </div>
 
         <div className="space-y-2">
@@ -112,10 +122,16 @@ export function CatalogItemForm({
           <Input
             id={`${fieldId}-unit`}
             name="unit"
+            list={`${fieldId}-unit-suggestions`}
             placeholder="Ej. bolsa, m2, unidad"
             defaultValue={initialValues?.unit ?? ""}
             disabled={isSubmitting}
           />
+          <datalist id={`${fieldId}-unit-suggestions`}>
+            {unitSuggestions.map((unit) => (
+              <option key={unit} value={unit} />
+            ))}
+          </datalist>
         </div>
       </div>
 

@@ -102,6 +102,7 @@ export async function saveBusinessProfileAction(formData: FormData) {
         fallbackEmail: user.email ?? null,
         address: getOptionalValue(formData, "address"),
         currency,
+        taxId: getOptionalValue(formData, "tax_id"),
         pdfFooter: getOptionalValue(formData, "pdf_footer"),
         logoPath: undefined,
       }),

@@ -2,6 +2,7 @@ export type Profile = {
   id: string;
   business_name: string | null;
   industry: string | null;
+  tax_id?: string | null;
   logo_url: string | null;
   phone: string | null;
   email: string | null;

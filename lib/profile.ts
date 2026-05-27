@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { normalizeEntityName } from "@/lib/entity-normalization";
 import type { HydratedQuotationBranding, Profile } from "@/types";
 
 type OnboardingProfileUpsertInput = {
@@ -16,9 +17,21 @@ type OnboardingProfileUpsertInput = {
 };
 
 type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
+  taxId?: string | null;
   pdfFooter?: string | null;
   logoPath?: string | null;
 };
+
+const SUPPORTED_PROFILE_CURRENCIES = new Set([
+  "ARS",
+  "USD",
+  "EUR",
+  "MXN",
+  "COP",
+  "CLP",
+  "BRL",
+  "UYU",
+]);
 
 export function isProfileComplete(profile: Profile | null) {
   return Boolean(
@@ -56,7 +69,8 @@ export async function requireUser() {
 
 const PROFILE_BASE_COLUMNS =
   "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
-const PROFILE_EXTENDED_COLUMNS = `${PROFILE_BASE_COLUMNS}, pdf_footer`;
+const PROFILE_TAX_COLUMNS = `${PROFILE_BASE_COLUMNS}, tax_id`;
+const PROFILE_EXTENDED_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer`;
 
 async function fetchProfileRow(
   userId: string,
@@ -81,9 +95,13 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return await fetchProfileRow(userId, PROFILE_EXTENDED_COLUMNS);
   } catch {
     try {
-      return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
+      return await fetchProfileRow(userId, PROFILE_TAX_COLUMNS);
     } catch {
-      throw new Error("No se pudo cargar el perfil.");
+      try {
+        return await fetchProfileRow(userId, PROFILE_BASE_COLUMNS);
+      } catch {
+        throw new Error("No se pudo cargar el perfil.");
+      }
     }
   }
 }
@@ -169,6 +187,16 @@ export function buildOnboardingProfileUpsertInput({
   });
 }
 
+export function normalizeProfileCurrency(currency: string) {
+  const normalizedCurrency = currency.trim().toUpperCase();
+
+  if (!SUPPORTED_PROFILE_CURRENCIES.has(normalizedCurrency)) {
+    throw new Error("Selecciona una moneda válida para el perfil.");
+  }
+
+  return normalizedCurrency;
+}
+
 export function buildBusinessProfileUpsertInput({
   userId,
   businessName,
@@ -178,18 +206,20 @@ export function buildBusinessProfileUpsertInput({
   fallbackEmail,
   address,
   currency,
+  taxId,
   pdfFooter,
   logoPath,
 }: BusinessProfileUpsertInput) {
   return {
     id: userId,
-    business_name: businessName,
-    industry,
+    business_name: normalizeEntityName(businessName),
+    industry: normalizeEntityName(industry),
+    ...(taxId !== undefined ? { tax_id: taxId } : {}),
     ...(logoPath !== undefined ? { logo_url: logoPath } : {}),
     phone,
     email: email ?? fallbackEmail ?? null,
     address,
-    currency: currency.trim().toUpperCase(),
+    currency: normalizeProfileCurrency(currency),
     ...(pdfFooter !== undefined ? { pdf_footer: pdfFooter } : {}),
   };
 }
