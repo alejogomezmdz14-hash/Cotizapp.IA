@@ -178,6 +178,9 @@ type HydrateCompleteQuotationDependencies = {
 type GenerateAndStoreQuotationPdfDependencies = {
   getHydratedQuotation: () => Promise<HydratedQuotation | null>;
   resolveLogoDataUrl: (quotation: HydratedQuotation) => Promise<string | null>;
+  resolveSignatureDataUrl?: (
+    quotation: HydratedQuotation,
+  ) => Promise<string | null>;
   renderPdf: (templateData: QuotationPdfTemplateData) => Promise<Uint8Array>;
   uploadPdf: (input: {
     path: string;
@@ -997,11 +1000,17 @@ export async function generateAndStoreQuotationPdf(
     quotation.quotation.number,
   );
   const previousPdfPath = quotation.output.pdfPath;
-  const logoDataUrl = await dependencies.resolveLogoDataUrl(quotation);
+  const [logoDataUrl, signatureDataUrl] = await Promise.all([
+    dependencies.resolveLogoDataUrl(quotation),
+    dependencies.resolveSignatureDataUrl
+      ? dependencies.resolveSignatureDataUrl(quotation)
+      : Promise.resolve(null),
+  ]);
   const templateData = buildQuotationPdfTemplateData({
     quotation,
     generatedAt,
     logoDataUrl,
+    signatureDataUrl,
   });
   const bytes = await dependencies.renderPdf(templateData);
 
@@ -1058,6 +1067,24 @@ export async function generateQuotationPdfForUser(
           );
 
           return buildProfileLogoDataUrl(logoFile);
+        } catch {
+          return null;
+        }
+      },
+      resolveSignatureDataUrl: async (quotation) => {
+        const signaturePath = quotation.quotation.signature_url?.trim();
+
+        if (!signaturePath) {
+          return null;
+        }
+
+        try {
+          const signatureFile = await downloadFile(
+            STORAGE_BUCKETS.quotationSignatures,
+            signaturePath,
+          );
+
+          return buildProfileLogoDataUrl(signatureFile);
         } catch {
           return null;
         }
@@ -1322,7 +1349,7 @@ export async function getHydratedQuotation(
       const { data, error } = await supabase
         .from("quotations")
         .select(
-          "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, created_at",
+          "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, paid_at, signature_url, created_at",
         )
         .eq("id", quotationId)
         .eq("user_id", userId)
@@ -1384,7 +1411,7 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
   const { data, error } = await supabase
     .from("quotations")
     .select(
-      "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, created_at",
+      "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, paid_at, signature_url, created_at",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });

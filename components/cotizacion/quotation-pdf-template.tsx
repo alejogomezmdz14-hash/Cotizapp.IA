@@ -31,6 +31,7 @@ export type QuotationPdfTemplateData = {
   businessContact: string[];
   customerName: string;
   customerContact: string[];
+  documentTypeLabel: string;
   quotationNumber: string;
   issuedAtLabel: string;
   validUntilLabel: string;
@@ -38,6 +39,7 @@ export type QuotationPdfTemplateData = {
   footerNote: string | null;
   pdfAccentColor: string;
   logoDataUrl: string | null;
+  signatureDataUrl: string | null;
   taxRateLabel: string;
   subtotalLabel: string;
   taxAmountLabel: string;
@@ -56,6 +58,8 @@ type BuildQuotationPdfTemplateDataInput = {
   quotation: HydratedQuotation;
   generatedAt: string;
   logoDataUrl: string | null;
+  signatureDataUrl?: string | null;
+  documentTypeLabel?: string;
 };
 
 type QuotationPdfDocumentProps = {
@@ -95,6 +99,8 @@ export function buildQuotationPdfTemplateData({
   quotation,
   generatedAt,
   logoDataUrl,
+  signatureDataUrl = null,
+  documentTypeLabel = "COTIZACIÓN",
 }: BuildQuotationPdfTemplateDataInput): QuotationPdfTemplateData {
   const subtotal = quotation.quotation.subtotal ?? 0;
   const taxAmount = Math.max((quotation.quotation.total ?? 0) - subtotal, 0);
@@ -113,6 +119,7 @@ export function buildQuotationPdfTemplateData({
       quotation.customer.phone,
       quotation.customer.address,
     ]),
+    documentTypeLabel,
     quotationNumber: quotation.quotation.number,
     issuedAtLabel: formatIssueDateLabel(
       quotation.quotation.created_at,
@@ -125,6 +132,7 @@ export function buildQuotationPdfTemplateData({
     footerNote: normalizeOptionalText(quotation.branding.pdfFooter),
     pdfAccentColor: normalizePdfAccentColor(quotation.branding.pdfAccentColor),
     logoDataUrl,
+    signatureDataUrl,
     taxRateLabel: formatPercentage(quotation.quotation.tax_rate),
     subtotalLabel: formatCurrencyAmount(subtotal, currency),
     taxAmountLabel: formatCurrencyAmount(taxAmount, currency),
@@ -374,6 +382,21 @@ function createPdfStyles(accentColor: string) {
     textAlign: "center",
     marginTop: 4,
   },
+  signatureSection: {
+    marginTop: 18,
+    gap: 6,
+  },
+  signatureLabel: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: MUTED,
+    textTransform: "uppercase",
+  },
+  signatureImage: {
+    width: 180,
+    height: 64,
+    objectFit: "contain",
+  },
   });
 }
 
@@ -407,7 +430,7 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
           </View>
 
           <View style={styles.metaColumn}>
-            <Text style={styles.docTypeLabel}>COTIZACIÓN</Text>
+            <Text style={styles.docTypeLabel}>{data.documentTypeLabel}</Text>
             <Text style={styles.quotationNumber}>{data.quotationNumber}</Text>
             <View style={styles.metaRow}>
               <Text style={styles.metaRowLabel}>Fecha</Text>
@@ -499,6 +522,14 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
           <View style={styles.notesSection}>
             <Text style={styles.notesLabel}>Notas</Text>
             <Text style={styles.notesText}>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        {data.signatureDataUrl ? (
+          <View style={styles.signatureSection}>
+            <Text style={styles.signatureLabel}>Firma del cliente</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={data.signatureDataUrl} style={styles.signatureImage} />
           </View>
         ) : null}
 

@@ -337,6 +337,65 @@ export async function getExpenseReceiptUploadState(receiptPath: string | null) {
   };
 }
 
+type UploadedQuotationSignatureResult = {
+  fileName: string;
+  signaturePath: string;
+  previewUrl: string | null;
+};
+
+export async function uploadQuotationSignatureFromFormData(
+  formData: FormData,
+): Promise<UploadedQuotationSignatureResult> {
+  const { file } = parseLogoUploadFormData(formData);
+  const quotationId = String(formData.get("quotationId") ?? "").trim();
+
+  if (!quotationId) {
+    throw new UploadActionError("Falta la cotización para guardar la firma.", 400);
+  }
+
+  const [{ getCurrentUser }, { createClient }, storageModule, pathsModule] =
+    await Promise.all([
+      import("@/lib/profile"),
+      import("@/lib/supabase/server"),
+      import("@/lib/storage/server"),
+      import("@/lib/storage/paths"),
+    ]);
+
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new UploadActionError("Debes iniciar sesión para subir una firma.", 401);
+  }
+
+  const signaturePath = pathsModule.buildQuotationSignaturePath(
+    user.id,
+    quotationId,
+    file.name,
+  );
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const supabase = await createClient();
+
+  const { error: uploadError } = await supabase.storage
+    .from(storageModule.STORAGE_BUCKETS.quotationSignatures)
+    .upload(signaturePath, fileBuffer, {
+      contentType: file.type || "image/png",
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new UploadActionError("No se pudo subir la firma.", 500);
+  }
+
+  return {
+    fileName: file.name,
+    signaturePath,
+    previewUrl: await buildSignedUrl(
+      storageModule.STORAGE_BUCKETS.quotationSignatures,
+      signaturePath,
+    ),
+  };
+}
+
 export async function uploadExpenseReceiptFromFormData(
   formData: FormData,
 ): Promise<UploadedExpenseReceiptResult> {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
 
-import { QuotationListActions } from "@/components/cotizacion/quotation-list-actions";
+import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -299,11 +299,21 @@ export default async function QuotationsPage() {
                           >
                             {formatStatusLabel(quotation.status)}
                           </span>
+                          {quotation.paid_at ? (
+                            <span className="w-fit rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                              Pagada
+                            </span>
+                          ) : null}
                         </div>
 
                         <div className="space-y-1">
                           <CardTitle className="text-2xl">
-                            {quotation.client_name?.trim() || "Cliente sin asignar"}
+                            <Link
+                              href={`/cotizaciones/${quotation.id}`}
+                              className="hover:text-primary"
+                            >
+                              {quotation.client_name?.trim() || "Cliente sin asignar"}
+                            </Link>
                           </CardTitle>
                           <CardDescription className="max-w-2xl leading-6">
                             {quotation.notes?.trim() ||
@@ -378,11 +388,18 @@ export default async function QuotationsPage() {
                       />
                     ) : null}
 
-                    <QuotationListActions
-                      quotationId={quotation.id}
-                      initialStatus={quotation.status}
-                      reopenHref={reopenDraftHref}
-                    />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button asChild variant="outline" className="bg-background/75">
+                        <Link href={`/cotizaciones/${quotation.id}`}>Ver detalle</Link>
+                      </Button>
+                      <QuotationMoreMenu
+                        quotationId={quotation.id}
+                        quotationNumber={quotation.number}
+                        initialStatus={quotation.status}
+                        paidAt={quotation.paid_at ?? null}
+                        reopenHref={reopenDraftHref}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               );

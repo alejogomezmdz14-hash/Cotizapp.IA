@@ -32,11 +32,16 @@ const EDITABLE_QUOTATION_STATUSES = new Set([
   "rejected",
 ]);
 
-function revalidateQuotationViews() {
+function revalidateQuotationViews(quotationId?: string) {
   revalidatePath("/cotizaciones");
   revalidatePath("/dashboard");
   revalidatePath("/cotizaciones/nueva");
   revalidatePath("/perfil-empresa");
+  revalidatePath("/facturas");
+
+  if (quotationId) {
+    revalidatePath(`/cotizaciones/${quotationId}`);
+  }
 }
 
 export async function createDraftQuotationAction(formData: FormData) {
@@ -502,6 +507,65 @@ export async function duplicateQuotationAction(quotationId: string) {
   return {
     quotationId: duplicatedQuotation.id,
     number: duplicatedQuotation.number,
+  };
+}
+
+export async function toggleQuotationPaidAction(
+  quotationId: string,
+  paid: boolean,
+) {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("quotations")
+    .update({
+      paid_at: paid ? new Date().toISOString() : null,
+    })
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .select("id, paid_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("No se pudo actualizar el estado de pago.");
+  }
+
+  revalidateQuotationViews(quotationId);
+
+  return {
+    paidAt: data.paid_at ?? null,
+  };
+}
+
+export async function saveQuotationSignaturePathAction(
+  quotationId: string,
+  signaturePath: string | null,
+) {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("quotations")
+    .update({
+      signature_url: signaturePath,
+    })
+    .eq("id", quotationId)
+    .eq("user_id", user.id)
+    .select("id, signature_url")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("No se pudo guardar la firma.");
+  }
+
+  revalidateQuotationViews(quotationId);
+
+  const { generateQuotationPdfForUser } = await import("@/lib/quotations");
+  await generateQuotationPdfForUser(user.id, quotationId).catch(() => undefined);
+
+  return {
+    signatureUrl: data.signature_url ?? null,
   };
 }
 

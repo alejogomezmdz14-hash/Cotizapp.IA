@@ -65,7 +65,44 @@ export type Quotation = {
   pdf_generated_at: string | null;
   share_token: string | null;
   sent_at: string | null;
+  paid_at?: string | null;
+  signature_url?: string | null;
   created_at: string | null;
+};
+
+export type Invoice = {
+  id: string;
+  user_id: string;
+  quotation_id: string | null;
+  client_id: string | null;
+  client_name: string | null;
+  invoice_number: string;
+  status: string | null;
+  notes: string | null;
+  subtotal: number | null;
+  tax_rate: number | null;
+  total: number | null;
+  valid_until: string | null;
+  pdf_path: string | null;
+  pdf_generated_at: string | null;
+  share_token: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  signature_url: string | null;
+  created_at: string | null;
+};
+
+export type InvoiceItem = {
+  id: string;
+  invoice_id: string;
+  position: number;
+  catalog_item_id: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total: number;
 };
 
 export type QuotationItem = {
