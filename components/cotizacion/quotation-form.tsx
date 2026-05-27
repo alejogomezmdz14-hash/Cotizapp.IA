@@ -25,6 +25,7 @@ import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
 import {
   getQuotationValidityBounds,
   getQuotationValidityPresetDate,
+  formatDateInputHint,
 } from "@/lib/quotation-validity";
 import { isDraftQuotationStatus } from "@/lib/quotation-status";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudo guardar la cotizacion.";
+  return "No se pudo guardar la cotización.";
 }
 
 function createEmptyItem(id: number): QuotationEditorItem {
@@ -411,18 +412,18 @@ export function QuotationForm({
 
     if (clientMode === "existing" && !selectedClientId) {
       setError(
-        "Selecciona un cliente existente o crea uno nuevo dentro de la cotizacion.",
+        "Selecciona un cliente existente o crea uno nuevo dentro de la cotización.",
       );
       return;
     }
 
     if (clientMode === "inline" && !inlineClient.name.trim()) {
-      setError("Completa los datos del cliente antes de guardar la cotizacion.");
+      setError("Completa los datos del cliente antes de guardar la cotización.");
       return;
     }
 
     if (items.length === 0) {
-      setError("Agrega al menos un item a la cotizacion antes de guardarla.");
+      setError("Agrega al menos un ítem a la cotización antes de guardarla.");
       return;
     }
 
@@ -434,8 +435,8 @@ export function QuotationForm({
       const result = await createDraftQuotationAction(formData);
       setSavedDraft(result);
       toast({
-        title: "Cotizacion guardada",
-        description: `El borrador ${result.number} ya esta listo para seguir con PDF y WhatsApp.`,
+        title: "Cotización guardada",
+        description: `El borrador ${result.number} ya está listo para seguir con PDF y WhatsApp.`,
       });
       router.replace(
         buildNewQuotationPageHref({
@@ -464,8 +465,8 @@ export function QuotationForm({
                 </h3>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
                   {attachmentsReadOnly
-                    ? "Esta cotizacion ya fue compartida. Desde aqui puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
-                    : "Este borrador ya existe. Desde esta vista puedes completar adjuntos, regenerar el PDF o volver al historial sin duplicar informacion."}
+                    ? "Esta cotización ya fue compartida. Desde aquí puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
+                    : "Este borrador ya existe. Desde esta vista puedes completar adjuntos, regenerar el PDF o volver al historial sin duplicar información."}
                 </p>
               </div>
             </div>
@@ -477,7 +478,7 @@ export function QuotationForm({
                 className="bg-background/75"
                 onClick={() => router.replace("/cotizaciones/nueva")}
               >
-                Nueva cotizacion
+                Nueva cotización
               </Button>
               <Button
                 type="button"
@@ -537,10 +538,10 @@ export function QuotationForm({
             </span>
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Arma la cotizacion con una vista mas clara de cada etapa
+                Arma la cotización con una vista más clara de cada etapa
               </h3>
               <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Define cliente, importa conceptos desde factura o catalogo y revisa
+                Define cliente, importa conceptos desde factura o catálogo y revisa
                 el resumen antes de guardar el borrador. Todo queda organizado por
                 bloques para que el flujo se sienta continuo.
               </p>
@@ -573,8 +574,8 @@ export function QuotationForm({
               </div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {items.length === 0
-                  ? "Todavia no agregaste conceptos al borrador."
-                  : `${items.length} item(s) listos para resumir y guardar.`}
+                  ? "Todavía no agregaste conceptos al borrador."
+                  : `${items.length} ítem(s) listos para resumir y guardar.`}
               </p>
             </div>
           </div>
@@ -620,7 +621,7 @@ export function QuotationForm({
                   <div className="space-y-1">
                     <CardTitle className="text-xl">Datos del cliente</CardTitle>
                     <CardDescription className="leading-6">
-                      Reutiliza un cliente guardado o cargalo inline para no cortar
+                      Reutiliza un cliente guardado o cárgalo inline para no cortar
                       el flujo del borrador.
                     </CardDescription>
                   </div>
@@ -758,7 +759,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-accent-token" />
-              Revision del escaneo
+              Revisión del escaneo
             </div>
             <InvoiceItemsReview
               fileName={invoiceScanReview?.fileName ?? null}
@@ -772,7 +773,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3.5 w-3.5 text-accent-token" />
-              Construccion del borrador
+              Construcción del borrador
             </div>
             <QuotationItemsEditor
               items={items}
@@ -821,7 +822,7 @@ export function QuotationForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="valid-until">Valida hasta</Label>
+                    <Label htmlFor="valid-until">Válida hasta</Label>
                     <Input
                       id="valid-until"
                       name="valid_until"
@@ -846,18 +847,19 @@ export function QuotationForm({
                             setError(null);
                           }}
                         >
-                          {days} dias
+                          {days} días
                         </Button>
                       ))}
                     </div>
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Elige una fecha entre {validityBounds.minDate} y {validityBounds.maxDate}.
+                      Elige una fecha entre {formatDateInputHint(validityBounds.minDate)} y{" "}
+                      {formatDateInputHint(validityBounds.maxDate)}.
                     </p>
                   </div>
                 </div>
 
                 <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                  Define aqui condiciones, tiempos o aclaraciones que luego quieras
+                  Define aquí condiciones, tiempos o aclaraciones que luego quieras
                   tener visibles al revisar el borrador.
                 </div>
 
@@ -869,7 +871,7 @@ export function QuotationForm({
                     rows={4}
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
-                    placeholder="Condiciones, tiempos de entrega o cualquier observacion relevante"
+                    placeholder="Condiciones, tiempos de entrega o cualquier observación relevante"
                     disabled={isFormLocked}
                     className={textareaClassName}
                   />

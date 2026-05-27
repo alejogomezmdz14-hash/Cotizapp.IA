@@ -149,7 +149,7 @@ export function LogoUploader({
 
         <div className="flex-1 space-y-3">
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-            Si ya tienes un logo, quedara disponible para el resto de la cuenta en
+            Si ya tienes un logo, quedará disponible para el resto de la cuenta en
             cuanto termine la carga.
           </div>
 
@@ -170,7 +170,7 @@ export function LogoUploader({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Formatos admitidos: PNG, JPG y WEBP. Tamano maximo: 5 MB.
+            Formatos admitidos: PNG, JPG y WEBP. Tamaño máximo: 5 MB.
           </p>
 
           {selectedFile ? (

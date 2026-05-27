@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, FileScan, Layers3, Users2 } from "lucide-react";
 
@@ -19,6 +20,10 @@ import {
   loadDraftQuotationHydrationContext,
 } from "@/lib/quotations";
 import { getProfile, requireUser } from "@/lib/profile";
+
+export const metadata: Metadata = {
+  title: "Cotización | Cotizapp",
+};
 
 type NewQuotationPageProps = {
   searchParams?: {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
 
@@ -23,6 +24,10 @@ import {
   getQuotations,
   isDraftQuotationStatus,
 } from "@/lib/quotations";
+
+export const metadata: Metadata = {
+  title: "Cotizaciones | Cotizapp",
+};
 
 function formatStatusLabel(value: string | null) {
   const normalizedValue = value?.trim().toLowerCase();
@@ -352,7 +357,7 @@ export default async function QuotationsPage() {
                       </div>
                       <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
                         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          Valida hasta
+                          Válida hasta
                         </p>
                         <p className="mt-2 text-lg font-semibold text-foreground">
                           {formatDateOnly(

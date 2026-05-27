@@ -40,8 +40,8 @@ export function ClientPicker({
   disabled = false,
   className,
   title = "Seleccionar cliente",
-  description = "Elige un cliente existente para reutilizar sus datos en la cotizacion.",
-  emptyMessage = "Todavia no hay clientes disponibles para seleccionar.",
+  description = "Elige un cliente existente para reutilizar sus datos en la cotización.",
+  emptyMessage = "Todavía no hay clientes disponibles para seleccionar.",
 }: ClientPickerProps) {
   const [query, setQuery] = useState("");
 
@@ -70,7 +70,7 @@ export function ClientPicker({
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar cliente por nombre, email o telefono"
+          placeholder="Buscar cliente por nombre, email o teléfono"
           className="pl-9"
           disabled={disabled}
         />
@@ -87,15 +87,15 @@ export function ClientPicker({
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-          Todavia no seleccionaste ningun cliente. Haz clic en uno de la lista para
-          usarlo en esta cotizacion.
+          Todavía no seleccionaste ningún cliente. Haz clic en uno de la lista para
+          usarlo en esta cotización.
         </div>
       )}
 
       {filteredClients.length === 0 ? (
         <div className="flex items-center gap-3 rounded-lg border border-dashed border-token bg-surface px-4 py-4 text-sm text-muted-foreground">
           <Users className="h-4 w-4 shrink-0" />
-          <span>{query.trim() ? "No hubo coincidencias para esa busqueda." : emptyMessage}</span>
+          <span>{query.trim() ? "No hubo coincidencias para esa búsqueda." : emptyMessage}</span>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -141,7 +141,7 @@ export function ClientPicker({
             onClick={() => onSelectClient(null)}
             disabled={disabled}
           >
-            Limpiar seleccion
+            Limpiar selección
           </Button>
         ) : null}
 

@@ -68,7 +68,7 @@ export function BusinessProfileForm({
               <Input
                 id="industry"
                 name="industry"
-                placeholder="Ej. Materiales de construccion"
+                placeholder="Ej. Materiales de construcción"
                 defaultValue={profile?.industry ?? ""}
                 required
               />
@@ -80,7 +80,7 @@ export function BusinessProfileForm({
                 id="currency"
                 name="currency"
                 placeholder="Ej. ARS"
-                defaultValue={profile?.currency ?? "ARS"}
+                defaultValue={(profile?.currency ?? "ARS").toUpperCase()}
                 required
                 autoCapitalize="characters"
               />
@@ -97,7 +97,7 @@ export function BusinessProfileForm({
         <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefono</Label>
+              <Label htmlFor="phone">Teléfono</Label>
               <Input
                 id="phone"
                 name="phone"
@@ -121,7 +121,7 @@ export function BusinessProfileForm({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Direccion</Label>
+              <Label htmlFor="address">Dirección</Label>
               <Input
                 id="address"
                 name="address"
@@ -137,11 +137,11 @@ export function BusinessProfileForm({
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           <ScrollText className="h-3.5 w-3.5 text-accent-token" />
-          PDF y pie de pagina
+          PDF y pie de página
         </div>
         <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
           <div className="space-y-2">
-            <Label htmlFor="pdf_footer">Pie de pagina del PDF</Label>
+            <Label htmlFor="pdf_footer">Pie de página del PDF</Label>
             <textarea
               id="pdf_footer"
               name="pdf_footer"

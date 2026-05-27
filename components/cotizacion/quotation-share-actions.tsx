@@ -349,7 +349,7 @@ export function QuotationShareActions({
             asChild
           >
             <a href={sharePath} target="_blank" rel="noreferrer">
-              Ver link publico
+              Ver link público
             </a>
           </Button>
         ) : null}
