@@ -140,10 +140,8 @@ export function CatalogItemForm({
         <Input
           id={`${fieldId}-price`}
           name="price"
-          type="number"
-          min="0.01"
-          step="0.01"
           inputMode="decimal"
+          type="text"
           placeholder="0.00"
           defaultValue={
             typeof initialValues?.price === "number"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PackagePlus, Plus, Search, Trash2 } from "lucide-react";
 
 import {
@@ -66,8 +66,41 @@ function matchesCatalogItem(item: CatalogItem, query: string) {
 }
 
 function parseDecimalValue(rawValue: string) {
-  const parsedValue = Number.parseFloat(rawValue);
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
+  const compactValue = rawValue.trim().replace(/\s+/g, "");
+
+  if (!compactValue) {
+    return 0;
+  }
+
+  // Keep only digits and possible decimal/thousands separators.
+  const sanitizedValue = compactValue.replace(/[^\d,.-]/g, "");
+  const lastCommaIndex = sanitizedValue.lastIndexOf(",");
+  const lastDotIndex = sanitizedValue.lastIndexOf(".");
+
+  let normalizedValue = sanitizedValue;
+
+  if (lastCommaIndex !== -1 && lastDotIndex !== -1) {
+    const decimalSeparator = lastCommaIndex > lastDotIndex ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? /\./g : /,/g;
+    normalizedValue = sanitizedValue
+      .replace(thousandsSeparator, "")
+      .replace(decimalSeparator, ".");
+  } else if (lastCommaIndex !== -1) {
+    const parts = sanitizedValue.split(",");
+    normalizedValue =
+      parts.length > 2
+        ? `${parts.slice(0, -1).join("")}.${parts[parts.length - 1]}`
+        : sanitizedValue.replace(",", ".");
+  }
+
+  // Allow incomplete decimals while typing (e.g. "123."), but no thousands
+  // separators left after normalization.
+  if (!/^\d+(?:\.\d*)?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
 export function QuotationItemsEditor({
@@ -82,6 +115,29 @@ export function QuotationItemsEditor({
 }: QuotationItemsEditorProps) {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [unitPriceTextById, setUnitPriceTextById] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    setUnitPriceTextById((current) => {
+      const next = { ...current };
+
+      for (const item of items) {
+        if (next[item.id] === undefined) {
+          next[item.id] = String(item.unitPrice);
+        }
+      }
+
+      for (const key of Object.keys(next)) {
+        if (!items.some((item) => item.id === key)) {
+          delete next[key];
+        }
+      }
+
+      return next;
+    });
+  }, [items]);
 
   const filteredCatalogItems = useMemo(() => {
     const normalizedSearch = catalogSearch.trim().toLowerCase();
@@ -235,7 +291,7 @@ export function QuotationItemsEditor({
                           value={item.quantity}
                           onChange={(event) =>
                             onUpdateItem(item.id, {
-                              quantity: parseDecimalValue(event.target.value),
+                              quantity: parseDecimalValue(event.target.value) ?? 0,
                             })
                           }
                           disabled={disabled}
@@ -245,17 +301,29 @@ export function QuotationItemsEditor({
                         <Label htmlFor={`${item.id}-price`}>Precio unitario</Label>
                         <Input
                           id={`${item.id}-price`}
-                          type="number"
-                          min="0.01"
-                          step="0.01"
                           inputMode="decimal"
-                          value={item.unitPrice}
-                          onChange={(event) =>
-                            onUpdateItem(item.id, {
-                              unitPrice: parseDecimalValue(event.target.value),
-                            })
-                          }
+                      type="text"
+                      value={unitPriceTextById[item.id] ?? String(item.unitPrice)}
+                      onChange={(event) => {
+                        const rawValue = event.target.value;
+                        setUnitPriceTextById((current) => ({
+                          ...current,
+                          [item.id]: rawValue,
+                        }));
+
+                        const parsedValue = parseDecimalValue(rawValue);
+
+                        if (parsedValue === null) {
+                          return;
+                        }
+
+                        onUpdateItem(item.id, {
+                          unitPrice: parsedValue,
+                        });
+                      }}
                           disabled={disabled}
+                      placeholder="0.00"
+                      spellCheck={false}
                         />
                       </div>
                     </div>

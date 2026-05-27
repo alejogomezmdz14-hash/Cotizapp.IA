@@ -38,7 +38,36 @@ const textareaClassName =
   "flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 function parseDecimalValue(rawValue: string) {
-  const normalizedValue = rawValue.trim().replace(",", ".");
+  const compactValue = rawValue.trim().replace(/\s+/g, "");
+
+  if (!compactValue) {
+    return 0;
+  }
+
+  const sanitizedValue = compactValue.replace(/[^\d,.-]/g, "");
+  const lastCommaIndex = sanitizedValue.lastIndexOf(",");
+  const lastDotIndex = sanitizedValue.lastIndexOf(".");
+
+  let normalizedValue = sanitizedValue;
+
+  if (lastCommaIndex !== -1 && lastDotIndex !== -1) {
+    const decimalSeparator = lastCommaIndex > lastDotIndex ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? /\./g : /,/g;
+    normalizedValue = sanitizedValue
+      .replace(thousandsSeparator, "")
+      .replace(decimalSeparator, ".");
+  } else if (lastCommaIndex !== -1) {
+    const parts = sanitizedValue.split(",");
+    normalizedValue =
+      parts.length > 2
+        ? `${parts.slice(0, -1).join("")}.${parts[parts.length - 1]}`
+        : sanitizedValue.replace(",", ".");
+  }
+
+  if (!/^\d+(?:\.\d*)?$/.test(normalizedValue)) {
+    return 0;
+  }
+
   const parsedValue = Number.parseFloat(normalizedValue);
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
@@ -449,9 +478,7 @@ export function InvoiceItemsReview({
                     <Label htmlFor={`${row.id}-price`}>Precio unitario</Label>
                     <Input
                       id={`${row.id}-price`}
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="text"
                       inputMode="decimal"
                       value={row.unitPrice}
                       onChange={(event) =>
@@ -460,6 +487,8 @@ export function InvoiceItemsReview({
                         })
                       }
                       disabled={disabled || isSavingCatalog || isApplyingQuotation}
+                      placeholder="0.00"
+                      spellCheck={false}
                     />
                   </div>
                 </div>

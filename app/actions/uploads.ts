@@ -1,5 +1,10 @@
 "use server";
 
+import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+
 import {
   UploadActionError,
   getUploadErrorMessage,
@@ -37,6 +42,46 @@ type UploadedInvoiceScanResult = {
   createdAt: string | null;
   status: string | null;
 };
+
+async function convertPdfFirstPageToPngBuffer(pdfBuffer: Buffer) {
+  const { fromPath } = await import("pdf2pic");
+
+  const workDir = join(tmpdir(), `cotizapp-pdf2pic-${randomUUID()}`);
+  const inputPdfPath = join(workDir, "invoice.pdf");
+  const outputDir = join(workDir, "out");
+
+  await fs.mkdir(outputDir, { recursive: true });
+  await fs.writeFile(inputPdfPath, pdfBuffer);
+
+  try {
+    const converter = fromPath(inputPdfPath, {
+      density: 220,
+      format: "png",
+      saveFilename: "page1",
+      savePath: outputDir,
+    });
+
+    // Convert only the first page.
+    const result: unknown = await converter(1);
+
+    const firstResult = Array.isArray(result) ? result[0] : result;
+    const imagePathCandidate =
+      firstResult && typeof firstResult === "object"
+        ? (firstResult as Record<string, unknown>).path
+        : null;
+
+    const imagePath: string | null =
+      typeof imagePathCandidate === "string" ? imagePathCandidate : null;
+
+    if (!imagePath) {
+      throw new Error("No se pudo convertir el PDF a una imagen.");
+    }
+
+    return await fs.readFile(imagePath);
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+}
 
 async function buildSignedUrl(bucket: string, path: string) {
   const { createSignedFileUrl } = await import("@/lib/storage/server");
@@ -172,8 +217,31 @@ export async function uploadInvoiceForScanFromFormData(
   }
 
   const supabase = await createClient();
-  const filePath = pathsModule.buildInvoiceUploadPath(user.id, file.name);
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+  const originalFileName = file.name;
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+
+  let fileNameForStorage = file.name;
+  let contentType = file.type || undefined;
+  let fileBuffer = Buffer.from(await file.arrayBuffer());
+
+  let filePath = pathsModule.buildInvoiceUploadPath(user.id, fileNameForStorage);
+
+  if (isPdf) {
+    try {
+      const pngBuffer = await convertPdfFirstPageToPngBuffer(fileBuffer);
+      fileBuffer = pngBuffer;
+      fileNameForStorage = fileNameForStorage.replace(/\.pdf$/i, ".png");
+      contentType = "image/png";
+      filePath = pathsModule.buildInvoiceUploadPath(user.id, fileNameForStorage);
+    } catch {
+      throw new UploadActionError(
+        "Para escanear facturas en PDF, tomá una foto o screenshot de la factura y subila como imagen.",
+        400,
+      );
+    }
+  }
+
   let uploadedFilePath: string | null = null;
   let createdScanId: string | null = null;
 
@@ -181,7 +249,7 @@ export async function uploadInvoiceForScanFromFormData(
     const { error: uploadError } = await supabase.storage
       .from(storageModule.STORAGE_BUCKETS.invoiceUploads)
       .upload(filePath, fileBuffer, {
-        contentType: file.type || undefined,
+        contentType,
       });
 
     if (uploadError) {
@@ -195,7 +263,7 @@ export async function uploadInvoiceForScanFromFormData(
       .insert({
         user_id: user.id,
         file_path: filePath,
-        file_name: file.name,
+        file_name: originalFileName,
         status: "uploaded",
       })
       .select("id, file_path, file_name, status, created_at")
@@ -210,7 +278,7 @@ export async function uploadInvoiceForScanFromFormData(
     return {
       id: scan.id,
       filePath: scan.file_path,
-      fileName: file.name,
+      fileName: scan.file_name,
       createdAt: scan.created_at,
       status: scan.status,
     };
