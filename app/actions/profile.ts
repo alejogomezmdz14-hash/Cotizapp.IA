@@ -33,6 +33,10 @@ function getOptionalValue(formData: FormData, field: string) {
   return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
+function redirectWithOnboardingError(message: string) {
+  redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+}
+
 export async function saveOnboarding(formData: FormData) {
   const user = await getCurrentUser();
 
@@ -45,32 +49,43 @@ export async function saveOnboarding(formData: FormData) {
   const currency = getRequiredValue(formData, "currency");
 
   if (!businessName || !industry || !currency) {
-    redirect("/onboarding");
+    redirectWithOnboardingError(
+      "Completá nombre del negocio, rubro y moneda antes de continuar.",
+    );
+  }
+
+  let profilePayload: ReturnType<typeof buildOnboardingProfileUpsertInput>;
+
+  try {
+    profilePayload = buildOnboardingProfileUpsertInput({
+      userId: user.id,
+      businessName,
+      industry,
+      phone: getOptionalValue(formData, "phone"),
+      email: getOptionalValue(formData, "email"),
+      fallbackEmail: user.email ?? null,
+      address: getOptionalValue(formData, "address"),
+      currency,
+    });
+  } catch (validationError) {
+    redirectWithOnboardingError(
+      validationError instanceof Error && validationError.message.trim()
+        ? validationError.message
+        : "Revisá los datos del negocio antes de continuar.",
+    );
+    return;
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert(
-      buildOnboardingProfileUpsertInput({
-        userId: user.id,
-        businessName,
-        industry,
-        phone: getOptionalValue(formData, "phone"),
-        email: getOptionalValue(formData, "email"),
-        fallbackEmail: user.email ?? null,
-        address: getOptionalValue(formData, "address"),
-        currency,
-      }),
-      {
-        onConflict: "id",
-      },
-    )
-    .select("id")
-    .single();
+  const { error } = await supabase.from("profiles").upsert(profilePayload, {
+    onConflict: "id",
+  });
 
-  if (error || !data) {
-    throw new Error("No se pudo guardar el onboarding.");
+  if (error) {
+    redirectWithOnboardingError(
+      error.message?.trim() ||
+        "No se pudo guardar el onboarding. Intentá de nuevo en unos segundos.",
+    );
   }
 
   redirect("/onboarding?step=logo");
@@ -99,18 +114,19 @@ export async function completeOnboardingLogoStep() {
     redirect("/onboarding");
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .upsert(
-      {
-        id: user.id,
-        logo_onboarding_completed: true,
-      },
-      { onConflict: "id" },
-    );
+  const { error } = await supabase.from("profiles").upsert(
+    {
+      id: user.id,
+      logo_onboarding_completed: true,
+    },
+    { onConflict: "id" },
+  );
 
   if (error) {
-    throw new Error("No se pudo completar el onboarding del logo.");
+    redirectWithOnboardingError(
+      error.message?.trim() ||
+        "No se pudo completar el paso del logo. Intentá de nuevo.",
+    );
   }
 
   revalidatePath("/dashboard");

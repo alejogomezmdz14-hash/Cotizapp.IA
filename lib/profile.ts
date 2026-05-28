@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEntityName } from "@/lib/entity-normalization";
+import { normalizeProfileCurrency } from "@/lib/profile-currencies";
 import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
 import { normalizePdfTemplate } from "@/lib/pdf-template";
 import type { HydratedQuotationBranding, Profile } from "@/types";
+
+export { PROFILE_CURRENCIES, normalizeProfileCurrency } from "@/lib/profile-currencies";
 
 type OnboardingProfileUpsertInput = {
   userId: string;
@@ -27,17 +30,6 @@ type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
   logoPath?: string | null;
   logoOnboardingCompleted?: boolean;
 };
-
-const SUPPORTED_PROFILE_CURRENCIES = new Set([
-  "ARS",
-  "USD",
-  "EUR",
-  "MXN",
-  "COP",
-  "CLP",
-  "BRL",
-  "UYU",
-]);
 
 export function isProfileComplete(profile: Profile | null) {
   const hasBusinessBasics = Boolean(
@@ -216,16 +208,6 @@ export function buildOnboardingProfileUpsertInput({
     // un logo ya completado por el usuario (o su carga previa).
     logoOnboardingCompleted: undefined,
   });
-}
-
-export function normalizeProfileCurrency(currency: string) {
-  const normalizedCurrency = currency.trim().toUpperCase();
-
-  if (!SUPPORTED_PROFILE_CURRENCIES.has(normalizedCurrency)) {
-    throw new Error("Selecciona una moneda válida para el perfil.");
-  }
-
-  return normalizedCurrency;
 }
 
 export function buildBusinessProfileUpsertInput({

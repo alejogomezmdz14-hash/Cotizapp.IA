@@ -6,6 +6,7 @@ import { saveOnboarding } from "@/app/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PROFILE_CURRENCIES } from "@/lib/profile-currencies";
 import type { Profile } from "@/types";
 
 type OnboardingFormProps = {
@@ -56,14 +57,19 @@ export function OnboardingForm({
 
             <div className="space-y-2">
               <Label htmlFor="currency">Moneda</Label>
-              <Input
+              <select
                 id="currency"
                 name="currency"
-                placeholder="Ej. MXN"
-                defaultValue={profile?.currency ?? "MXN"}
+                defaultValue={(profile?.currency ?? "ARS").toUpperCase()}
                 required
-                autoCapitalize="characters"
-              />
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {PROFILE_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

@@ -28,12 +28,16 @@ const onboardingHighlights = [
 type OnboardingPageProps = {
   searchParams?: {
     step?: string;
+    error?: string;
   };
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
   const user = await requireUser();
   const profile = await getProfile(user.id);
+  const onboardingError = searchParams?.error?.trim() || null;
 
   let step = searchParams?.step === "logo" ? "logo" : "business";
 
@@ -131,6 +135,12 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
                   </p>
                 </div>
               </div>
+
+              {onboardingError ? (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {onboardingError}
+                </p>
+              ) : null}
 
               <OnboardingForm
                 profile={profile}

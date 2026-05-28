@@ -39,6 +39,7 @@ export async function GET(request: Request) {
     const { error: insertError } = await supabase.from("profiles").insert({
       id: user.id,
       email: user.email ?? null,
+      logo_onboarding_completed: false,
     });
 
     if (insertError) {

@@ -9,6 +9,7 @@ import { LogoUploader } from "@/components/uploads/logo-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PROFILE_CURRENCIES } from "@/lib/profile-currencies";
 import type { Profile } from "@/types";
 
 type BusinessProfileFormProps = {
@@ -21,8 +22,6 @@ type BusinessProfileFormProps = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
-const PROFILE_CURRENCIES = ["ARS", "USD", "EUR", "MXN", "COP", "CLP", "BRL", "UYU"] as const;
 
 export function BusinessProfileForm({
   profile,
