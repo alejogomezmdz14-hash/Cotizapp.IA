@@ -79,22 +79,33 @@ export function ClientForm({
   }
 
   return (
-    <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
+    <form
+      className={cn(
+        "space-y-4 rounded-[12px] border border-token bg-surface p-6",
+        className,
+      )}
+      onSubmit={handleSubmit}
+    >
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-name`}>Nombre</Label>
+        <Label className="text-muted-foreground" htmlFor={`${fieldId}-name`}>
+          Nombre
+        </Label>
         <Input
           id={`${fieldId}-name`}
           name="name"
           placeholder="Ej. Constructora Andina"
           defaultValue={initialValues?.name ?? ""}
           disabled={isSubmitting}
+          className="border-token bg-background/80"
           required
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-email`}>Email</Label>
+          <Label className="text-muted-foreground" htmlFor={`${fieldId}-email`}>
+            Email
+          </Label>
           <Input
             id={`${fieldId}-email`}
             name="email"
@@ -102,11 +113,14 @@ export function ClientForm({
             placeholder="cliente@empresa.com"
             defaultValue={initialValues?.email ?? ""}
             disabled={isSubmitting}
+            className="border-token bg-background/80"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-phone`}>Teléfono</Label>
+          <Label className="text-muted-foreground" htmlFor={`${fieldId}-phone`}>
+            Teléfono
+          </Label>
           <Input
             id={`${fieldId}-phone`}
             name="phone"
@@ -114,13 +128,16 @@ export function ClientForm({
             placeholder="Ej: +54 9 11 1234 5678"
             defaultValue={initialValues?.phone ?? ""}
             disabled={isSubmitting}
+            className="border-token bg-background/80"
             minLength={8}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-address`}>Dirección</Label>
+        <Label className="text-muted-foreground" htmlFor={`${fieldId}-address`}>
+          Dirección
+        </Label>
         <textarea
           id={`${fieldId}-address`}
           name="address"
@@ -128,7 +145,7 @@ export function ClientForm({
           placeholder="Dirección o referencia de entrega"
           defaultValue={initialValues?.address ?? ""}
           disabled={isSubmitting}
-          className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-28 w-full rounded-md border border-token bg-background/80 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 

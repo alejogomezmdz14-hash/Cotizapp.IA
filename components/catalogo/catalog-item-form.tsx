@@ -86,22 +86,33 @@ export function CatalogItemForm({
   }
 
   return (
-    <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
+    <form
+      className={cn(
+        "space-y-4 rounded-[12px] border border-token bg-surface p-6",
+        className,
+      )}
+      onSubmit={handleSubmit}
+    >
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-name`}>Nombre</Label>
+        <Label className="text-muted-foreground" htmlFor={`${fieldId}-name`}>
+          Nombre
+        </Label>
         <Input
           id={`${fieldId}-name`}
           name="name"
           placeholder="Ej. Cemento portland x 50 kg"
           defaultValue={initialValues?.name ?? ""}
           disabled={isSubmitting}
+          className="border-token bg-background/80"
           required
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-category`}>Categoría</Label>
+          <Label className="text-muted-foreground" htmlFor={`${fieldId}-category`}>
+            Categoría
+          </Label>
           <Input
             id={`${fieldId}-category`}
             name="category"
@@ -109,6 +120,7 @@ export function CatalogItemForm({
             placeholder="Elegí o escribí una categoría"
             defaultValue={initialValues?.category ?? ""}
             disabled={isSubmitting}
+            className="border-token bg-background/80"
           />
           <datalist id={`${fieldId}-category-suggestions`}>
             {categorySuggestions.map((category) => (
@@ -118,7 +130,9 @@ export function CatalogItemForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${fieldId}-unit`}>Unidad</Label>
+          <Label className="text-muted-foreground" htmlFor={`${fieldId}-unit`}>
+            Unidad
+          </Label>
           <Input
             id={`${fieldId}-unit`}
             name="unit"
@@ -126,6 +140,7 @@ export function CatalogItemForm({
             placeholder="Elegí o escribí una unidad"
             defaultValue={initialValues?.unit ?? ""}
             disabled={isSubmitting}
+            className="border-token bg-background/80"
           />
           <datalist id={`${fieldId}-unit-suggestions`}>
             {unitSuggestions.map((unit) => (
@@ -136,7 +151,9 @@ export function CatalogItemForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-price`}>Precio</Label>
+        <Label className="text-muted-foreground" htmlFor={`${fieldId}-price`}>
+          Precio
+        </Label>
         <Input
           id={`${fieldId}-price`}
           name="price"
@@ -149,12 +166,15 @@ export function CatalogItemForm({
               : ""
           }
           disabled={isSubmitting}
+          className="border-token bg-background/80"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${fieldId}-description`}>Descripción</Label>
+        <Label className="text-muted-foreground" htmlFor={`${fieldId}-description`}>
+          Descripción
+        </Label>
         <textarea
           id={`${fieldId}-description`}
           name="description"
@@ -162,7 +182,7 @@ export function CatalogItemForm({
           placeholder="Detalle breve del producto o servicio"
           defaultValue={initialValues?.description ?? ""}
           disabled={isSubmitting}
-          className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-28 w-full rounded-md border border-token bg-background/80 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 

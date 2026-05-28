@@ -88,13 +88,6 @@ const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 const sectionCardClassName = "shell-panel overflow-hidden shadow-none";
 const validityPresets = [30, 60, 90] as const;
-const quotationFlowSteps = [
-  { id: 1, label: "Cliente" },
-  { id: 2, label: "Ítems" },
-  { id: 3, label: "Escaneo" },
-  { id: 4, label: "Ajustes" },
-] as const;
-
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -668,62 +661,6 @@ export function QuotationForm({
       />
       <input type="hidden" name="items_payload" value={itemsPayload} />
 
-      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
-        <div className="space-y-5">
-          <div className="space-y-3">
-            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Flujo de trabajo
-            </span>
-            <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Flujo de cotización
-            </h3>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Users2 className="h-4 w-4 text-accent-token" />
-                Cliente activo
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {clientSnapshotLabel}
-              </p>
-            </div>
-            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <ReceiptText className="h-4 w-4 text-accent-token" />
-                Factura AI
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {invoiceSnapshotLabel}
-              </p>
-            </div>
-            <div className="rounded-[1.5rem] border border-token bg-background/75 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <FileText className="h-4 w-4 text-accent-token" />
-                Items actuales
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {items.length === 0
-                  ? "Todavía no agregaste conceptos al borrador."
-                  : `${items.length} ítem(s) listos para resumir y guardar.`}
-              </p>
-            </div>
-          </div>
-
-          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {quotationFlowSteps.map((entry) => (
-              <li
-                key={entry.id}
-                className="rounded-[1.5rem] border border-token bg-background/75 px-4 py-3"
-              >
-                <p className="text-sm font-semibold text-foreground">{entry.label}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
       {error ? (
         <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
@@ -752,7 +689,7 @@ export function QuotationForm({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.78fr)] xl:items-start">
         <div className="space-y-5 lg:space-y-6">
-          <div className="space-y-3">
+          <div id="paso-cliente" className="space-y-3 scroll-mt-24">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <Users2 className="h-3.5 w-3.5 text-accent-token" />
                 Cliente
@@ -885,7 +822,7 @@ export function QuotationForm({
             </Card>
           </div>
 
-          <div className="space-y-3">
+          <div id="paso-items" className="space-y-3 scroll-mt-24">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3.5 w-3.5 text-accent-token" />
                 Ítems
@@ -902,7 +839,7 @@ export function QuotationForm({
             />
           </div>
 
-          <div className="space-y-3">
+          <div id="paso-escaneo" className="space-y-3 scroll-mt-24">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
@@ -962,7 +899,7 @@ export function QuotationForm({
             )}
           </div>
 
-          <div className="space-y-3">
+          <div id="paso-ajustes" className="space-y-3 scroll-mt-24">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
                 Ajustes
@@ -1086,7 +1023,7 @@ export function QuotationForm({
             </div>
             <div className="rounded-[1.5rem] border border-token bg-background/75 p-4 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Factura AI
+                Escanear factura
               </p>
               <p className="mt-2 text-sm font-medium text-foreground">
                 {invoiceSnapshotLabel}
