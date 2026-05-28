@@ -1,0 +1,33 @@
+---
+description: CRÍTICO — único proyecto Vercel válido para Cotizapp
+alwaysApply: true
+---
+
+# Vercel: proyecto único (CRÍTICO)
+
+**EL ÚNICO PROYECTO REAL EN VERCEL ES `cotizapp-ia`.**
+
+- Producción: https://cotizapp.lat (alias de `cotizapp-ia`)
+- URL Vercel del proyecto: https://cotizapp-ia.vercel.app
+
+## Prohibido
+
+- **NUNCA** crear, vincular ni desplegar a otro proyecto Vercel (`cotizapp`, `landing-cotizapp`, `landig-cotizapp`, ni ningún nombre nuevo).
+- **NUNCA** ejecutar `vercel deploy` sin confirmar que el directorio está linkeado a `cotizapp-ia`.
+- **NUNCA** ejecutar `vercel link` sin `--project cotizapp-ia`.
+- **NUNCA** sugerir al usuario que use un proyecto distinto para producción.
+
+## Deploy correcto
+
+Desde la raíz del repo (app Next.js):
+
+```bash
+npx vercel link --project cotizapp-ia --yes
+npx vercel deploy --prod --yes
+```
+
+O solo **push a `main`** en GitHub si el repo ya está conectado a `cotizapp-ia` en Vercel (preferido).
+
+Antes de cualquier deploy manual, verificar `.vercel/project.json` → `"projectName": "cotizapp-ia"`.
+
+Si el CLI muestra otro proyecto (ej. `cotizapp-beige`, `alejogomezmdz14-hashs-projects/cotizapp`), **detener** y re-vincular a `cotizapp-ia`.

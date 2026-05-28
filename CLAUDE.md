@@ -169,6 +169,16 @@ Clientes, Catálogo, Gastos, Chat IA, Ajustes (abajo), Cerrar sesión (abajo).
 - Server actions en /app/actions/
 - Tipos en /types/index.ts
 
+## Deploy en Vercel (CRÍTICO)
+
+**EL ÚNICO PROYECTO REAL EN VERCEL ES `cotizapp-ia`.**
+
+- Producción: https://cotizapp.lat
+- No crear ni desplegar a `cotizapp`, `landing-cotizapp` ni ningún otro proyecto.
+- Deploy preferido: push a `main` (Git conectado a `cotizapp-ia`).
+- Deploy manual: solo `vercel link --project cotizapp-ia` y luego `vercel deploy --prod`.
+- Antes de deploy manual, verificar `.vercel/project.json` → `projectName: cotizapp-ia`.
+
 ## Variables de entorno requeridas
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -178,6 +188,7 @@ OPENAI_VISION_MODEL=gpt-4o
 NEXT_PUBLIC_APP_URL=https://cotizapp-ia.vercel.app
 
 ## Lo que NO hacer
+- **No desplegar ni vincular a ningún proyecto Vercel que no sea `cotizapp-ia`**
 - No mostrar /facturas en ninguna parte de la UI hasta nuevo aviso
 - No mostrar el costo ni el margen en el PDF — es información privada
 - No usar páginas /api para cosas que Supabase puede hacer directo
