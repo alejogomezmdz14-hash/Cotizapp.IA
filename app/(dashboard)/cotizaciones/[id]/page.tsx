@@ -25,6 +25,10 @@ import { getProfile, requireUser } from "@/lib/profile";
 import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { getQuotationSignaturePreviewUrl } from "@/lib/quotation-signatures";
 import {
+  formatQuotationStatusLabel,
+  getQuotationStatusBadgeClassName,
+} from "@/lib/quotation-status";
+import {
   buildQuotationStatusHistory,
   formatQuotationStatusHistoryLine,
 } from "@/lib/quotation-status-history";
@@ -38,42 +42,6 @@ import {
 export const metadata: Metadata = {
   title: "Detalle de cotización | Cotizapp",
 };
-
-function formatStatusLabel(value: string | null) {
-  const normalizedValue = value?.trim().toLowerCase();
-
-  switch (normalizedValue) {
-    case "draft":
-      return "Borrador";
-    case "pending":
-      return "Enviada";
-    case "accepted":
-      return "Aceptada";
-    case "rejected":
-      return "Rechazada";
-    case "expired":
-      return "Vencida";
-    default:
-      return normalizedValue
-        ? normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1)
-        : "Sin estado";
-  }
-}
-
-function getStatusBadgeClassName(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "accepted":
-      return "border-primary/40 bg-primary/10 text-primary";
-    case "rejected":
-      return "border-destructive/40 bg-destructive/10 text-destructive";
-    case "pending":
-      return "border-token bg-surface-2 text-foreground";
-    case "expired":
-      return "border-token bg-background text-muted-foreground";
-    default:
-      return "border-token bg-background text-foreground";
-  }
-}
 
 type QuotationDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -136,9 +104,9 @@ export default async function QuotationDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(quotation.status)}`}
+              className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(quotation.status)}`}
             >
-              {formatStatusLabel(quotation.status)}
+              {formatQuotationStatusLabel(quotation.status)}
             </span>
             {isExpired ? (
               <span className="w-fit rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">

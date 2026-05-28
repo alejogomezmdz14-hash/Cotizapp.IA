@@ -17,7 +17,10 @@ const QUOTATION_OUTPUT_COLUMNS =
 const QUOTATION_EXTENDED_COLUMNS =
   "id, user_id, client_id, client_name, number, status, notes, subtotal, tax_rate, total, valid_until, pdf_path, pdf_generated_at, share_token, sent_at, paid_at, signature_url, created_at";
 
+const QUOTATION_SHARE_EXPIRY_COLUMNS = `${QUOTATION_EXTENDED_COLUMNS}, share_token_expires_at`;
+
 const QUOTATION_SELECT_FALLBACKS = [
+  QUOTATION_SHARE_EXPIRY_COLUMNS,
   QUOTATION_EXTENDED_COLUMNS,
   QUOTATION_OUTPUT_COLUMNS,
   QUOTATION_CORE_COLUMNS,
@@ -50,21 +53,32 @@ export function normalizeQuotationListRow(row: QuotationRow): Quotation {
     pdf_path: row.pdf_path ?? null,
     pdf_generated_at: row.pdf_generated_at ?? null,
     share_token: row.share_token ?? null,
+    share_token_expires_at:
+      (row as { share_token_expires_at?: string | null }).share_token_expires_at ?? null,
     sent_at: row.sent_at ?? null,
     accepted_at: row.accepted_at ?? null,
     rejected_at: row.rejected_at ?? null,
   };
 }
 
-export async function fetchUserQuotations(userId: string): Promise<Quotation[]> {
+export async function fetchUserQuotations(
+  userId: string,
+  options?: { limit?: number },
+): Promise<Quotation[]> {
   const supabase = await createClient();
 
   for (const columns of QUOTATION_SELECT_FALLBACKS) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("quotations")
       .select(columns)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
+
+    if (options?.limit && options.limit > 0) {
+      query = query.limit(options.limit);
+    }
+
+    const { data, error } = await query;
 
     if (!error) {
       return ((data ?? []) as unknown as QuotationRow[]).map((row) =>

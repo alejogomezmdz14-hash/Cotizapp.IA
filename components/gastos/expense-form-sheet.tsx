@@ -387,7 +387,7 @@ export function ExpenseFormSheet({
                 type="button"
                 variant="outline"
                 className="bg-background/75"
-                disabled={isUploadingReceipt || isScanning || isPending}
+                disabled={isUploadingReceipt || isScanning || isSubmitting}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="mr-2 h-4 w-4" />

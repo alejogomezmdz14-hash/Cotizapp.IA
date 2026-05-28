@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ToastProvider>{children}</ToastProvider>
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>

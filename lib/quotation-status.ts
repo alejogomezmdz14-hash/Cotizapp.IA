@@ -44,3 +44,35 @@ export function canHydrateQuotationEditorStatus(value: string | null) {
 export function isDraftQuotationStatus(value: string | null) {
   return normalizeQuotationStatus(value) === DRAFT_QUOTATION_STATUS;
 }
+
+export function formatQuotationStatusLabel(value: string | null) {
+  switch (normalizeQuotationStatus(value)) {
+    case "draft":
+      return "Borrador";
+    case "pending":
+      return "Enviada";
+    case "accepted":
+      return "Aceptada";
+    case "rejected":
+      return "Rechazada";
+    case "expired":
+      return "Vencida";
+    default:
+      return "Sin estado";
+  }
+}
+
+export function getQuotationStatusBadgeClassName(value: string | null) {
+  switch (normalizeQuotationStatus(value)) {
+    case "accepted":
+      return "border-primary/40 bg-primary/10 text-primary";
+    case "rejected":
+      return "border-destructive/40 bg-destructive/10 text-destructive";
+    case "pending":
+      return "border-token bg-surface-2 text-foreground";
+    case "expired":
+      return "border-destructive/40 bg-destructive/10 text-destructive";
+    default:
+      return "border-token bg-background text-foreground";
+  }
+}

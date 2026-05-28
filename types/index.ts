@@ -68,6 +68,7 @@ export type Quotation = {
   pdf_path: string | null;
   pdf_generated_at: string | null;
   share_token: string | null;
+  share_token_expires_at?: string | null;
   sent_at: string | null;
   accepted_at?: string | null;
   rejected_at?: string | null;

@@ -321,6 +321,29 @@ export async function deleteAccountAction() {
   }
 
   const supabase = await createClient();
+  const ownedTables = [
+    "quotation_attachments",
+    "quotation_items",
+    "quotations",
+    "invoice_scans",
+    "expenses",
+    "catalog_items",
+    "clients",
+  ] as const;
+
+  for (const table of ownedTables) {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error && error.code !== "42P01") {
+      throw new Error(
+        "No se pudieron eliminar todos los datos de la cuenta. Intentá de nuevo.",
+      );
+    }
+  }
+
   const { error: deleteError } = await supabase
     .from("profiles")
     .delete()

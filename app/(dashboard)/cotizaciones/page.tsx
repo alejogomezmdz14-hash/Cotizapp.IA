@@ -12,30 +12,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getProfile, requireUser } from "@/lib/profile";
+import { formatQuotationStatusLabel } from "@/lib/quotation-status";
 import { getQuotations, isDraftQuotationStatus } from "@/lib/quotations";
 
 export const metadata: Metadata = {
   title: "Cotizaciones | Cotizapp",
 };
-
-function formatStatusLabel(value: string | null) {
-  const normalizedValue = value?.trim().toLowerCase();
-
-  switch (normalizedValue) {
-    case "draft":
-      return "Borrador";
-    case "pending":
-      return "Enviada";
-    case "accepted":
-      return "Aceptada";
-    case "rejected":
-      return "Rechazada";
-    default:
-      return normalizedValue
-        ? normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1)
-        : "Sin estado";
-  }
-}
 
 export default async function QuotationsPage() {
   const user = await requireUser();
@@ -49,7 +31,7 @@ export default async function QuotationsPage() {
   const activeStatuses = new Map<string, number>();
 
   for (const quotation of quotations) {
-    const label = formatStatusLabel(quotation.status);
+    const label = formatQuotationStatusLabel(quotation.status);
     activeStatuses.set(label, (activeStatuses.get(label) ?? 0) + 1);
   }
 

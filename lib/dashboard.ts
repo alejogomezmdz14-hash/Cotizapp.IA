@@ -139,8 +139,7 @@ async function getDashboardQuotationMetricsFallback(userId: string) {
       (status === "pending" || status === "sent") &&
       Number.isFinite(createdAt) &&
       createdAt >= monthStartMs &&
-      createdAt < nextMonthStartMs &&
-      !row.sent_at
+      createdAt < nextMonthStartMs
     ) {
       pendingQuotations += 1;
     }

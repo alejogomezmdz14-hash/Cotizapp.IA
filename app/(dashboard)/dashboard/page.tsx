@@ -25,35 +25,11 @@ import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
+import {
+  formatQuotationStatusLabel,
+  getQuotationStatusBadgeClassName,
+} from "@/lib/quotation-status";
 import { cn } from "@/lib/utils";
-
-function formatStatusLabel(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "draft":
-      return "Borrador";
-    case "pending":
-      return "Enviada";
-    case "accepted":
-      return "Aceptada";
-    case "rejected":
-      return "Rechazada";
-    default:
-      return "Sin estado";
-  }
-}
-
-function getStatusBadgeClassName(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "accepted":
-      return "border-primary/40 bg-primary/10 text-primary";
-    case "rejected":
-      return "border-destructive/40 bg-destructive/10 text-destructive";
-    case "pending":
-      return "border-token bg-surface-2 text-foreground";
-    default:
-      return "border-token bg-background text-foreground";
-  }
-}
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -61,7 +37,7 @@ export default async function DashboardPage() {
   const currency = profile?.currency ?? null;
   const [stats, quotations] = await Promise.all([
     getDashboardStats(user.id, currency).catch(() => EMPTY_DASHBOARD_STATS),
-    getQuotations(user.id).catch(() => []),
+    getQuotations(user.id, { limit: 5 }).catch(() => []),
   ]);
   const { quotationMetricCards } = buildDashboardPageCards(
     stats,
@@ -288,11 +264,11 @@ export default async function DashboardPage() {
                         {quotation.number}
                       </span>
                       <span
-                        className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(
+                        className={`w-fit rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(
                           quotation.status,
                         )}`}
                       >
-                        {formatStatusLabel(quotation.status)}
+                        {formatQuotationStatusLabel(quotation.status)}
                       </span>
                     </div>
                     <div>

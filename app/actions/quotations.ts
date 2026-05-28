@@ -213,7 +213,7 @@ export async function updateDraftQuotationAction(formData: FormData) {
   const supabase = await createClient();
   const { data: existingQuotation, error: existingError } = await supabase
     .from("quotations")
-    .select("id, status")
+    .select("id, status, client_id")
     .eq("id", quotationId.trim())
     .eq("user_id", user.id)
     .maybeSingle();
@@ -261,21 +261,38 @@ export async function updateDraftQuotationAction(formData: FormData) {
   let clientName = sanitizedValues.inlineClient?.name ?? null;
 
   if (sanitizedValues.inlineClient) {
-    const { data, error } = await supabase
-      .from("clients")
-      .insert({
-        user_id: user.id,
-        ...sanitizedValues.inlineClient,
-      })
-      .select("id, name")
-      .single();
+    if (existingQuotation.client_id) {
+      const { data, error } = await supabase
+        .from("clients")
+        .update(sanitizedValues.inlineClient)
+        .eq("id", existingQuotation.client_id)
+        .eq("user_id", user.id)
+        .select("id, name")
+        .maybeSingle();
 
-    if (error || !data) {
-      throw new Error("No se pudo crear el cliente de la cotización.");
+      if (error || !data) {
+        throw new Error("No se pudo actualizar el cliente de la cotización.");
+      }
+
+      clientId = data.id;
+      clientName = data.name;
+    } else {
+      const { data, error } = await supabase
+        .from("clients")
+        .insert({
+          user_id: user.id,
+          ...sanitizedValues.inlineClient,
+        })
+        .select("id, name")
+        .single();
+
+      if (error || !data) {
+        throw new Error("No se pudo crear el cliente de la cotización.");
+      }
+
+      clientId = data.id;
+      clientName = data.name;
     }
-
-    clientId = data.id;
-    clientName = data.name;
   } else if (clientId) {
     const { data, error } = await supabase
       .from("clients")
@@ -530,7 +547,7 @@ export async function updateQuotationStatusAction(
   const supabase = await createClient();
   const { data: quotationData, error: quotationError } = await supabase
     .from("quotations")
-    .select("id, sent_at")
+    .select("id, sent_at, accepted_at, rejected_at")
     .eq("id", quotationId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -544,13 +561,21 @@ export async function updateQuotationStatusAction(
     normalizedStatus === "draft"
       ? null
       : quotationData.sent_at ?? nowIso;
+  const acceptedAt =
+    normalizedStatus === "accepted"
+      ? quotationData.accepted_at ?? nowIso
+      : quotationData.accepted_at ?? null;
+  const rejectedAt =
+    normalizedStatus === "rejected"
+      ? quotationData.rejected_at ?? nowIso
+      : quotationData.rejected_at ?? null;
   const { data, error } = await supabase
     .from("quotations")
     .update({
       status: normalizedStatus,
       sent_at: sentAt,
-      accepted_at: normalizedStatus === "accepted" ? nowIso : null,
-      rejected_at: normalizedStatus === "rejected" ? nowIso : null,
+      accepted_at: acceptedAt,
+      rejected_at: rejectedAt,
     })
     .eq("id", quotationId)
     .eq("user_id", user.id)
@@ -793,21 +818,81 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
     validUntil: string | null;
   } | null = null;
 
+  async function selectQuotationForShare(targetQuotationId: string) {
+    const columnVariants = [
+      "id, number, status, pdf_path, share_token, share_token_expires_at, sent_at, client_id, client_name, total, valid_until",
+      "id, number, status, pdf_path, share_token, sent_at, client_id, client_name, total, valid_until",
+    ];
+
+    for (const columns of columnVariants) {
+      const { data, error } = await supabase
+        .from("quotations")
+        .select(columns)
+        .eq("id", targetQuotationId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!error) {
+        return data as
+          | (Record<string, unknown> & {
+              id: string;
+              number: string;
+              status: string | null;
+              pdf_path: string | null;
+              share_token: string | null;
+              share_token_expires_at?: string | null;
+              sent_at: string | null;
+              client_id: string | null;
+              client_name: string | null;
+              total: number | string | null;
+              valid_until: string | null;
+            })
+          | null;
+      }
+    }
+
+    throw new Error("No se pudo cargar la cotización para compartir.");
+  }
+
+  async function persistShareState(values: {
+    shareToken: string;
+    shareTokenExpiresAt: string;
+    status: string;
+    sentAt: string;
+  }) {
+    const fullPayload = {
+      share_token: values.shareToken,
+      share_token_expires_at: values.shareTokenExpiresAt,
+      status: values.status,
+      sent_at: values.sentAt,
+    };
+    const legacyPayload = {
+      share_token: values.shareToken,
+      status: values.status,
+      sent_at: values.sentAt,
+    };
+
+    for (const payload of [fullPayload, legacyPayload]) {
+      const { data, error } = await supabase
+        .from("quotations")
+        .update(payload)
+        .eq("id", quotationId)
+        .eq("user_id", user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (!error && data) {
+        return;
+      }
+    }
+
+    throw new Error("No se pudo guardar el estado de envío de la cotización.");
+  }
+
   const result = await confirmQuotationWhatsappShare(
     {
       getQuotation: async (targetQuotationId) => {
-        const { data, error } = await supabase
-          .from("quotations")
-          .select(
-            "id, number, status, pdf_path, share_token, sent_at, client_id, client_name, total, valid_until",
-          )
-          .eq("id", targetQuotationId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          throw new Error("No se pudo cargar la cotización para compartir.");
-        }
+        const data = await selectQuotationForShare(targetQuotationId);
 
         if (!data) {
           return null;
@@ -854,27 +939,12 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
           status: normalizeQuotationStatus(data.status),
           pdfPath: data.pdf_path,
           shareToken: data.share_token,
+          shareTokenExpiresAt: data.share_token_expires_at ?? null,
           sentAt: data.sent_at,
           clientPhone,
         };
       },
-      persistShareState: async (values) => {
-        const { data, error } = await supabase
-          .from("quotations")
-          .update({
-            share_token: values.shareToken,
-            status: values.status,
-            sent_at: values.sentAt,
-          })
-          .eq("id", quotationId)
-          .eq("user_id", user.id)
-          .select("id")
-          .maybeSingle();
-
-        if (error || !data) {
-          throw new Error("No se pudo guardar el estado de envío de la cotización.");
-        }
-      },
+      persistShareState,
     },
     {
       quotationId,

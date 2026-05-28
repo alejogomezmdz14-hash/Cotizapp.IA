@@ -14,7 +14,11 @@ import { formatDisplayName } from "@/lib/entity-normalization";
 import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import { getDraftQuotationEditorHref } from "@/lib/quotation-editor-links";
-import { isDraftQuotationStatus } from "@/lib/quotation-status";
+import {
+  formatQuotationStatusLabel,
+  getQuotationStatusBadgeClassName,
+  isDraftQuotationStatus,
+} from "@/lib/quotation-status";
 import { cn } from "@/lib/utils";
 import type { Quotation } from "@/types";
 
@@ -32,34 +36,6 @@ const statusFilters: Array<{ id: StatusFilter; label: string }> = [
   { id: "accepted", label: "Aceptada" },
   { id: "rejected", label: "Rechazada" },
 ];
-
-function formatStatusLabel(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "draft":
-      return "Borrador";
-    case "pending":
-      return "Enviada";
-    case "accepted":
-      return "Aceptada";
-    case "rejected":
-      return "Rechazada";
-    default:
-      return "Sin estado";
-  }
-}
-
-function getStatusBadgeClassName(value: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "accepted":
-      return "border-primary/40 bg-primary/10 text-primary";
-    case "rejected":
-      return "border-destructive/40 bg-destructive/10 text-destructive";
-    case "pending":
-      return "border-token bg-surface-2 text-foreground";
-    default:
-      return "border-token bg-background text-foreground";
-  }
-}
 
 export function QuotationsList({ quotations, currency }: QuotationsListProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -213,9 +189,9 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-xs ${getStatusBadgeClassName(quotation.status)}`}
+                          className={`rounded-full border px-2 py-0.5 text-xs ${getQuotationStatusBadgeClassName(quotation.status)}`}
                         >
-                          {formatStatusLabel(quotation.status)}
+                          {formatQuotationStatusLabel(quotation.status)}
                         </span>
                         {isExpired ? (
                           <span className="rounded-full border border-destructive/50 bg-destructive/15 px-2 py-0.5 text-xs text-destructive">
@@ -268,9 +244,9 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                         {quotation.number}
                       </span>
                       <span
-                        className={`rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeClassName(quotation.status)}`}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(quotation.status)}`}
                       >
-                        {formatStatusLabel(quotation.status)}
+                        {formatQuotationStatusLabel(quotation.status)}
                       </span>
                       {isExpired ? (
                         <span className="rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">

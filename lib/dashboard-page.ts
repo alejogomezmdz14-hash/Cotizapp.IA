@@ -57,7 +57,7 @@ export function buildDashboardPageCards(
   const quotationMetricCards: DashboardQuotationMetricCard[] = [
     {
       id: "totalQuotedThisMonth",
-      title: "Cotizado este mes",
+      title: "Aceptado este mes",
       value: formatCurrencyAmount(acceptedQuotedThisMonth, currency),
       description: "Suma de cotizaciones aceptadas del mes actual.",
       href: "/cotizaciones",

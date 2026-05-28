@@ -35,7 +35,7 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
   assert.deepEqual(
     sections.quotationMetricCards.map((card) => card.title),
     [
-      "Cotizado este mes",
+      "Aceptado este mes",
       "Enviadas",
       "Aceptadas",
       "Pendientes",

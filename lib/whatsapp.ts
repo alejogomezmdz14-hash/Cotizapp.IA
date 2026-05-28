@@ -1,3 +1,43 @@
+type CountryCodeRule = {
+  code: string;
+  nationalLength: number;
+  buildInternational: (digits: string) => string;
+};
+
+const LATAM_COUNTRY_RULES: CountryCodeRule[] = [
+  { code: "54", nationalLength: 10, buildInternational: (digits) => `549${digits}` },
+  { code: "56", nationalLength: 9, buildInternational: (digits) => `56${digits}` },
+  { code: "52", nationalLength: 10, buildInternational: (digits) => `52${digits}` },
+  { code: "57", nationalLength: 10, buildInternational: (digits) => `57${digits}` },
+  { code: "51", nationalLength: 9, buildInternational: (digits) => `51${digits}` },
+  { code: "598", nationalLength: 8, buildInternational: (digits) => `598${digits}` },
+  { code: "591", nationalLength: 8, buildInternational: (digits) => `591${digits}` },
+  { code: "595", nationalLength: 9, buildInternational: (digits) => `595${digits}` },
+  { code: "593", nationalLength: 9, buildInternational: (digits) => `593${digits}` },
+];
+
+function normalizeInternationalDigits(digits: string) {
+  if (/^549\d{10}$/.test(digits)) {
+    return digits;
+  }
+
+  if (/^54\d{10}$/.test(digits)) {
+    return `549${digits.slice(2)}`;
+  }
+
+  for (const rule of LATAM_COUNTRY_RULES) {
+    if (digits.startsWith(rule.code)) {
+      const expectedLength = rule.code.length + rule.nationalLength;
+
+      if (digits.length === expectedLength) {
+        return digits;
+      }
+    }
+  }
+
+  return /^[1-9]\d{7,14}$/.test(digits) ? digits : null;
+}
+
 export function normalizePhoneForWhatsApp(phone: string | null) {
   if (!phone) {
     return null;
@@ -8,6 +48,16 @@ export function normalizePhoneForWhatsApp(phone: string | null) {
 
   if (!digitsOnly) {
     return null;
+  }
+
+  const isExplicitInternational =
+    trimmedPhone.startsWith("+") || trimmedPhone.startsWith("00");
+
+  if (isExplicitInternational) {
+    const stripped = trimmedPhone.startsWith("+")
+      ? digitsOnly
+      : digitsOnly.slice(2);
+    return normalizeInternationalDigits(stripped);
   }
 
   if (/^549\d{10}$/.test(digitsOnly)) {
@@ -26,27 +76,11 @@ export function normalizePhoneForWhatsApp(phone: string | null) {
     return `549${digitsOnly}`;
   }
 
-  const normalizedInternationalPhone = trimmedPhone.startsWith("+")
-    ? digitsOnly
-    : trimmedPhone.startsWith("00")
-      ? digitsOnly.slice(2)
-      : null;
-
-  if (!normalizedInternationalPhone) {
-    return null;
+  if (/^\d{9}$/.test(digitsOnly)) {
+    return `549${digitsOnly.slice(-9)}`;
   }
 
-  if (/^549\d{10}$/.test(normalizedInternationalPhone)) {
-    return normalizedInternationalPhone;
-  }
-
-  if (/^54\d{10}$/.test(normalizedInternationalPhone)) {
-    return `549${normalizedInternationalPhone.slice(2)}`;
-  }
-
-  return /^[1-9]\d{7,14}$/.test(normalizedInternationalPhone)
-    ? normalizedInternationalPhone
-    : null;
+  return normalizeInternationalDigits(digitsOnly);
 }
 
 export function getWhatsAppSharePhoneState(phone: string | null) {

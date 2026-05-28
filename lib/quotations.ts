@@ -210,16 +210,45 @@ type ConfirmQuotationWhatsappShareDependencies = {
     status: QuotationStatus | null;
     pdfPath: string | null;
     shareToken: string | null;
+    shareTokenExpiresAt: string | null;
     sentAt: string | null;
     clientPhone: string | null;
   } | null>;
   persistShareState: (values: {
     shareToken: string;
+    shareTokenExpiresAt: string;
     status: QuotationStatus;
     sentAt: string;
   }) => Promise<void>;
   createShareToken?: () => string;
 };
+
+export const QUOTATION_SHARE_TOKEN_TTL_DAYS = 90;
+
+function buildShareTokenExpiry(now: Date) {
+  const expiresAt = new Date(now.getTime());
+  expiresAt.setUTCDate(
+    expiresAt.getUTCDate() + QUOTATION_SHARE_TOKEN_TTL_DAYS,
+  );
+  return expiresAt.toISOString();
+}
+
+export function isShareTokenExpired(
+  shareTokenExpiresAt: string | null | undefined,
+  now: Date = new Date(),
+) {
+  if (!shareTokenExpiresAt) {
+    return false;
+  }
+
+  const expiresAt = Date.parse(shareTokenExpiresAt);
+
+  if (!Number.isFinite(expiresAt)) {
+    return false;
+  }
+
+  return expiresAt <= now.getTime();
+}
 
 type GetSharedQuotationPdfDependencies = {
   getSharedQuotation: (shareToken: string) => Promise<{
@@ -826,23 +855,34 @@ export async function confirmQuotationWhatsappShare(
     throw new Error("Genera el PDF antes de compartir la cotización.");
   }
 
+  const now = input.now ?? new Date();
+  const existingExpiryIsValid =
+    quotation.shareToken !== null &&
+    quotation.shareTokenExpiresAt !== null &&
+    !isShareTokenExpired(quotation.shareTokenExpiresAt, now);
+
   const shareToken =
-    quotation.shareToken ??
-    dependencies.createShareToken?.() ??
-    globalThis.crypto.randomUUID();
+    existingExpiryIsValid && quotation.shareToken
+      ? quotation.shareToken
+      : dependencies.createShareToken?.() ?? globalThis.crypto.randomUUID();
+  const shareTokenExpiresAt = existingExpiryIsValid
+    ? quotation.shareTokenExpiresAt ?? buildShareTokenExpiry(now)
+    : buildShareTokenExpiry(now);
   const shareStatus =
     quotation.status && quotation.status !== DRAFT_QUOTATION_STATUS
       ? quotation.status
       : "pending";
-  const sentAt = quotation.sentAt ?? (input.now ?? new Date()).toISOString();
+  const sentAt = quotation.sentAt ?? now.toISOString();
   const needsPersistence =
     shareToken !== quotation.shareToken ||
+    shareTokenExpiresAt !== quotation.shareTokenExpiresAt ||
     shareStatus !== quotation.status ||
     sentAt !== quotation.sentAt;
 
   if (needsPersistence) {
     await dependencies.persistShareState({
       shareToken,
+      shareTokenExpiresAt,
       status: shareStatus,
       sentAt,
     });
@@ -852,6 +892,7 @@ export async function confirmQuotationWhatsappShare(
     quotationId: quotation.id,
     quotationNumber: quotation.number,
     shareToken,
+    shareTokenExpiresAt,
     sharePath: buildQuotationSharePath(shareToken),
     shareStatus,
     sentAt,
@@ -1389,6 +1430,9 @@ export async function getHydratedQuotation(
   });
 }
 
-export async function getQuotations(userId: string): Promise<Quotation[]> {
-  return fetchUserQuotations(userId);
+export async function getQuotations(
+  userId: string,
+  options?: { limit?: number },
+): Promise<Quotation[]> {
+  return fetchUserQuotations(userId, options);
 }

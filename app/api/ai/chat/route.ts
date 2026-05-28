@@ -7,11 +7,19 @@ import {
   resolveQuotationPeriodFilter,
   runBusinessChat,
 } from "@/lib/ai/chat";
+import {
+  buildChatRateLimitMessage,
+  consumeChatRateLimit,
+} from "@/lib/ai/rate-limit";
 import { getCatalogItems } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { getCurrentUser, getProfile } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
 import type { ChatConversationMessage } from "@/types";
+
+const CHAT_CONTEXT_QUOTATION_LIMIT = 30;
+const CHAT_CONTEXT_CLIENT_LIMIT = 30;
+const CHAT_CONTEXT_CATALOG_LIMIT = 50;
 
 const MAX_MESSAGES = 10;
 const MAX_MESSAGE_LENGTH = 1500;
@@ -90,6 +98,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const rateLimit = consumeChatRateLimit(user.id);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            buildChatRateLimitMessage(rateLimit) ??
+            "Demasiadas consultas al chat. Probá más tarde.",
+        },
+        {
+          status: 429,
+          headers: rateLimit.retryInSeconds
+            ? { "Retry-After": String(rateLimit.retryInSeconds) }
+            : undefined,
+        },
+      );
+    }
+
     const body = await readChatRequestBody(request);
     const messages = normalizeMessages(body.messages);
     const latestMessage = messages.at(-1);
@@ -106,9 +132,13 @@ export async function POST(request: Request) {
     }
 
     const [clients, catalogItems, quotations, profile] = await Promise.all([
-      getClients(user.id),
-      getCatalogItems(user.id),
-      getQuotations(user.id),
+      getClients(user.id).then((rows) =>
+        rows.slice(0, CHAT_CONTEXT_CLIENT_LIMIT),
+      ),
+      getCatalogItems(user.id).then((rows) =>
+        rows.slice(0, CHAT_CONTEXT_CATALOG_LIMIT),
+      ),
+      getQuotations(user.id, { limit: CHAT_CONTEXT_QUOTATION_LIMIT }),
       getProfile(user.id),
     ]);
     const quotationPeriodFilter = resolveQuotationPeriodFilter(

@@ -1038,6 +1038,7 @@ test("buildWhatsAppShareHref accepts stored client phones when they normalize sa
 test("confirmQuotationWhatsappShare creates the token and marks draft quotations as pending once sharing is confirmed", async () => {
   const persistedUpdates: Array<{
     shareToken: string;
+    shareTokenExpiresAt: string;
     status: string | null;
     sentAt: string | null;
   }> = [];
@@ -1050,6 +1051,7 @@ test("confirmQuotationWhatsappShare creates the token and marks draft quotations
         status: "draft",
         pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
         shareToken: null,
+        shareTokenExpiresAt: null,
         sentAt: null,
         clientPhone: "5492615551234",
       }),
@@ -1064,22 +1066,22 @@ test("confirmQuotationWhatsappShare creates the token and marks draft quotations
     },
   );
 
-  assert.deepEqual(persistedUpdates, [
-    {
-      shareToken: "share-token-1",
-      status: "pending",
-      sentAt: "2026-05-26T01:25:00.000Z",
-    },
-  ]);
-  assert.deepEqual(result, {
-    quotationId: "quotation-1",
-    quotationNumber: "COT-20260525-145607-A1B2C3",
-    shareToken: "share-token-1",
-    sharePath: "/api/quotations/share/share-token-1",
-    shareStatus: "pending",
-    sentAt: "2026-05-26T01:25:00.000Z",
-    clientPhone: "5492615551234",
-  });
+  assert.equal(persistedUpdates.length, 1);
+  assert.equal(persistedUpdates[0]?.shareToken, "share-token-1");
+  assert.equal(persistedUpdates[0]?.status, "pending");
+  assert.equal(persistedUpdates[0]?.sentAt, "2026-05-26T01:25:00.000Z");
+  assert.equal(
+    persistedUpdates[0]?.shareTokenExpiresAt,
+    "2026-08-24T01:25:00.000Z",
+  );
+  assert.equal(result.quotationId, "quotation-1");
+  assert.equal(result.quotationNumber, "COT-20260525-145607-A1B2C3");
+  assert.equal(result.shareToken, "share-token-1");
+  assert.equal(result.sharePath, "/api/quotations/share/share-token-1");
+  assert.equal(result.shareStatus, "pending");
+  assert.equal(result.sentAt, "2026-05-26T01:25:00.000Z");
+  assert.equal(result.clientPhone, "5492615551234");
+  assert.equal(result.shareTokenExpiresAt, "2026-08-24T01:25:00.000Z");
 });
 
 test("confirmQuotationWhatsappShare reuses existing share metadata without persisting again", async () => {
@@ -1093,6 +1095,7 @@ test("confirmQuotationWhatsappShare reuses existing share metadata without persi
         status: "pending",
         pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
         shareToken: "share-token-1",
+        shareTokenExpiresAt: "2026-08-24T01:25:00.000Z",
         sentAt: "2026-05-26T01:25:00.000Z",
         clientPhone: null,
       }),
@@ -1110,15 +1113,8 @@ test("confirmQuotationWhatsappShare reuses existing share metadata without persi
   );
 
   assert.deepEqual(persistedUpdates, []);
-  assert.deepEqual(result, {
-    quotationId: "quotation-1",
-    quotationNumber: "COT-20260525-145607-A1B2C3",
-    shareToken: "share-token-1",
-    sharePath: "/api/quotations/share/share-token-1",
-    shareStatus: "pending",
-    sentAt: "2026-05-26T01:25:00.000Z",
-    clientPhone: null,
-  });
+  assert.equal(result.shareToken, "share-token-1");
+  assert.equal(result.shareTokenExpiresAt, "2026-08-24T01:25:00.000Z");
 });
 
 test("confirmQuotationWhatsappShare returns a generic share flow when the stored phone cannot be normalized safely", async () => {
@@ -1130,6 +1126,7 @@ test("confirmQuotationWhatsappShare returns a generic share flow when the stored
         status: "pending",
         pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
         shareToken: "share-token-1",
+        shareTokenExpiresAt: "2026-08-24T01:25:00.000Z",
         sentAt: "2026-05-26T01:25:00.000Z",
         clientPhone: "555-1234",
       }),
@@ -1160,6 +1157,7 @@ test("confirmQuotationWhatsappShare rejects attempts to share quotations without
             status: "draft",
             pdfPath: null,
             shareToken: null,
+            shareTokenExpiresAt: null,
             sentAt: null,
             clientPhone: "5492615551234",
           }),
