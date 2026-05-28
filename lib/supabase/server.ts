@@ -6,6 +6,16 @@ function getSupabaseServerEnv() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
   if (!url || !anonKey) {
+    const isProductionBuild =
+      process.env.NEXT_PHASE === "phase-production-build";
+
+    if (isProductionBuild) {
+      return {
+        url: "https://placeholder.supabase.co",
+        anonKey: "placeholder-anon-key",
+      };
+    }
+
     throw new Error(
       "Falta configurar NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     );

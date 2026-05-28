@@ -6,6 +6,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { resolveDashboardBranding } from "@/lib/dashboard-branding";
 import { getProfile, isProfileComplete, requireUser } from "@/lib/profile";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: Readonly<{
