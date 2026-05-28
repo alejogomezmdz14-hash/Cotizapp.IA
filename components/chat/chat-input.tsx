@@ -10,7 +10,6 @@ import {
 import { Loader2, Mic, SendHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type BrowserSpeechRecognition,
   type SpeechRecognitionEventLike,
@@ -28,9 +27,6 @@ type ChatInputProps = {
 };
 
 type VoiceState = "idle" | "listening" | "processing";
-
-const textareaClassName =
-  "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 const PERMISSION_DENIED_MESSAGE =
   "Habilitá el micrófono en tu navegador para usar esta función";
@@ -394,7 +390,7 @@ export function ChatInput({
     onChange(nextValue);
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter" || event.shiftKey) {
       return;
     }
@@ -422,130 +418,79 @@ export function ChatInput({
   }, []);
 
   return (
-    <Card className="shell-panel overflow-hidden shadow-none">
-      <CardHeader className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-xl">Escribí tu consulta</CardTitle>
-            <CardDescription className="leading-6">
-              Puedes pedir contexto del negocio, ayuda para armar una cotización o
-              dictar con el micrófono en tiempo real.
-            </CardDescription>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Modo seguro
-          </div>
+    <div className="border-t border-token bg-[#0F1117] px-4 py-3 sm:px-5">
+      <div className="flex items-center gap-2 rounded-full bg-[#1A1D27] px-2 py-2">
+        <div className="shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            aria-label={
+              voiceState === "listening"
+                ? "Detener dictado"
+                : voiceState === "processing"
+                  ? "Transcribiendo audio"
+                  : "Iniciar dictado por voz"
+            }
+            aria-pressed={voiceState === "listening"}
+            disabled={isLoading || voiceState === "processing"}
+            onClick={handleMicToggle}
+            className={cn(
+              "h-10 w-10 rounded-full border-token bg-transparent p-0",
+              voiceState === "listening" &&
+                "animate-pulse border-red-500/50 bg-red-500/15 text-red-600 hover:bg-red-500/20 dark:text-red-300",
+              permissionDenied && voiceState === "idle" && "border-destructive/40",
+            )}
+          >
+            {voiceState === "processing" ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Mic className="h-5 w-5" />
+            )}
+          </Button>
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4">
-          {isListening && !usesWhisperFallback ? (
-            <div
-              role="textbox"
-              aria-label="Dictado en tiempo real"
-              aria-live="polite"
-              className={cn(textareaClassName, "whitespace-pre-wrap")}
-            >
-              {committedDictation ? <span>{committedDictation}</span> : null}
-              {committedDictation && interimTranscript ? <span> </span> : null}
-              {interimTranscript ? (
-                <span className="italic text-muted-foreground">{interimTranscript}</span>
-              ) : !committedDictation ? (
-                <span className="italic text-muted-foreground/70">
-                  Empezá a hablar…
-                </span>
-              ) : null}
-            </div>
+        <div className="min-w-0 flex-1">
+          <input
+            type="text"
+            value={
+              isListening && !usesWhisperFallback
+                ? joinTranscriptParts(committedDictation, interimTranscript)
+                : value
+            }
+            onChange={(event) => handleValueChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Escribí o hablá..."
+            disabled={isInputDisabled}
+            className="h-10 w-full rounded-full bg-transparent px-3 text-sm text-white outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+
+        <Button
+          type="button"
+          onClick={onSubmit}
+          disabled={isLoading || isVoiceBusy || !value.trim()}
+          className="h-10 w-10 rounded-full bg-[#00E5A0] p-0 text-black hover:bg-[#00C984]"
+          aria-label="Enviar mensaje"
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <textarea
-              value={value}
-              onChange={(event) => handleValueChange(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ej. Necesito un borrador para Cliente 2 con 20 bolsas de cemento y envío en 48 horas."
-              disabled={isInputDisabled}
-              className={textareaClassName}
-            />
+            <SendHorizontal className="h-5 w-5" />
           )}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {[
-            "Consultar historial de cotizaciones",
-            "Pedir un borrador sugerido",
-            "Revisar precios del catálogo",
-          ].map((hint) => (
-            <span
-              key={hint}
-              className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground"
-            >
-              {hint}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Enter para enviar, Shift + Enter para salto de línea, o el micrófono
-              para dictar en tiempo real.
-            </p>
-
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                aria-label={
-                  voiceState === "listening"
-                    ? "Detener dictado"
-                    : voiceState === "processing"
-                      ? "Transcribiendo audio"
-                      : "Iniciar dictado por voz"
-                }
-                aria-pressed={voiceState === "listening"}
-                disabled={isLoading || voiceState === "processing"}
-                onClick={handleMicToggle}
-                className={cn(
-                  "h-12 min-h-12 w-12 min-w-12 shrink-0 rounded-full p-0 sm:h-11 sm:w-11",
-                  voiceState === "listening" &&
-                    "animate-pulse border-red-500/50 bg-red-500/15 text-red-600 hover:bg-red-500/20 dark:text-red-300",
-                  permissionDenied && voiceState === "idle" && "border-destructive/40",
-                )}
-              >
-                {voiceState === "processing" ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Mic className="h-5 w-5" />
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                onClick={onSubmit}
-                disabled={isLoading || isVoiceBusy || !value.trim()}
-                className="min-h-12 sm:min-h-10"
-              >
-                <SendHorizontal className="mr-2 h-4 w-4" />
-                {isLoading ? "Consultando..." : "Enviar mensaje"}
-              </Button>
-            </div>
-          </div>
-
-          {voiceState === "listening" ? (
-            <p className="text-sm font-medium text-red-600 dark:text-red-300">
-              {usesWhisperFallback
-                ? "Grabando… tocá el micrófono de nuevo para transcribir"
-                : "Escuchando…"}
-            </p>
-          ) : null}
-
-          {voiceError ? (
-            <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {voiceError}
-            </p>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+        </Button>
+      </div>
+      {voiceError ? (
+        <p className="mt-2 rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {voiceError}
+        </p>
+      ) : null}
+      {voiceState === "listening" ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {usesWhisperFallback
+            ? "Grabando... tocá el micrófono de nuevo para transcribir"
+            : "Escuchando..."}
+        </p>
+      ) : null}
+    </div>
   );
 }
