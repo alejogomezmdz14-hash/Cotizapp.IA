@@ -1,16 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-  if (!url || !anonKey) {
-    return null;
-  }
-
-  return { url, anonKey };
-}
+import {
+  getSupabaseEnv,
+  supabaseCookieOptions,
+} from "@/lib/supabase/config";
 
 export async function middleware(request: NextRequest) {
   const supabaseEnv = getSupabaseEnv();
@@ -27,6 +21,7 @@ export async function middleware(request: NextRequest) {
   });
 
   const supabase = createServerClient(supabaseEnv.url, supabaseEnv.anonKey, {
+    cookieOptions: supabaseCookieOptions,
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -1,8 +1,25 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
-import { getProfileForQuotation, isProfileComplete } from "@/lib/profile";
-import { createClient } from "@/lib/supabase/server";
+import { isProfileComplete } from "@/lib/profile";
+import {
+  getSupabaseEnv,
+  supabaseCookieOptions,
+} from "@/lib/supabase/config";
 import type { Profile } from "@/types";
+
+function redirectWithSessionCookies(
+  url: URL,
+  sessionResponse: NextResponse,
+) {
+  const redirectResponse = NextResponse.redirect(url);
+
+  sessionResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+
+  return redirectResponse;
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -11,12 +28,34 @@ export async function GET(request: Request) {
   const dashboardUrl = new URL("/dashboard", request.url);
 
   const code = requestUrl.searchParams.get("code");
+  const env = getSupabaseEnv();
 
-  if (!code) {
+  if (!code || !env) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const supabase = await createClient();
+  let sessionResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(env.url, env.anonKey, {
+    cookieOptions: supabaseCookieOptions,
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
+
+        sessionResponse = NextResponse.next({ request });
+
+        cookiesToSet.forEach(({ name, value, options }) => {
+          sessionResponse.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
     code,
   );
@@ -33,7 +72,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const existingProfile = await getProfileForQuotation(user.id);
+  const { data: existingProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, business_name, industry, logo_onboarding_completed")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    return NextResponse.redirect(loginUrl);
+  }
 
   if (!existingProfile) {
     const { error: insertError } = await supabase.from("profiles").insert({
@@ -46,12 +93,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    return NextResponse.redirect(onboardingUrl);
+    return redirectWithSessionCookies(onboardingUrl, sessionResponse);
   }
 
   if (!isProfileComplete(existingProfile as Profile | null)) {
-    return NextResponse.redirect(onboardingUrl);
+    return redirectWithSessionCookies(onboardingUrl, sessionResponse);
   }
 
-  return NextResponse.redirect(dashboardUrl);
+  return redirectWithSessionCookies(dashboardUrl, sessionResponse);
 }
