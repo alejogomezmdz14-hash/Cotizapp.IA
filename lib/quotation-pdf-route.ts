@@ -18,6 +18,21 @@ type RouteContext = {
   }>;
 };
 
+function shouldAttemptRegeneration(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes("aún no fue generado") ||
+    message.includes("aun no fue generado") ||
+    message.includes("object not found") ||
+    message.includes("not found")
+  );
+}
+
 function getErrorResponse(error: unknown, fallbackMessage: string) {
   const message =
     error instanceof Error && error.message.trim()
@@ -103,10 +118,22 @@ export function createQuotationPdfRouteHandlers(
           );
         }
 
-        const result = await dependencies.getStoredQuotationPdfForUser(
-          user.id,
-          quotationId,
-        );
+        let result;
+        try {
+          result = await dependencies.getStoredQuotationPdfForUser(
+            user.id,
+            quotationId,
+          );
+        } catch (error) {
+          if (!shouldAttemptRegeneration(error)) {
+            throw error;
+          }
+
+          result = await dependencies.generateQuotationPdfForUser(
+            user.id,
+            quotationId,
+          );
+        }
 
         const url = new URL(request.url);
         const shouldDownload = url.searchParams.get("download") === "1";
