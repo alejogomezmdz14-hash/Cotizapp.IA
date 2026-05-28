@@ -38,8 +38,11 @@ export async function uploadFile({
   });
 
   if (error) {
+    console.error("[storage][upload] failed", { bucket, path, message: error.message });
     throw error;
   }
+
+  console.info("[storage][upload] ok", { bucket, path, bytes: normalizedBody.length });
 }
 
 export async function downloadFile(bucket: string, path: string) {
@@ -47,11 +50,15 @@ export async function downloadFile(bucket: string, path: string) {
   const { data, error } = await supabase.storage.from(bucket).download(path);
 
   if (error) {
+    console.error("[storage][download] failed", { bucket, path, message: error.message });
     throw error;
   }
 
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  console.info("[storage][download] ok", { bucket, path, bytes: bytes.length });
+
   return {
-    bytes: new Uint8Array(await data.arrayBuffer()),
+    bytes,
     contentType: data.type || null,
   };
 }

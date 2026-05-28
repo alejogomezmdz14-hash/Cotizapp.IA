@@ -9,6 +9,14 @@ import {
 type QuotationPdfRouteDependencies = {
   getCurrentUser: typeof getCurrentUser;
   generateQuotationPdfForUser: typeof generateQuotationPdfForUser;
+  renderQuotationPdfForUser?: (
+    userId: string,
+    quotationId: string,
+  ) => Promise<{
+    fileName: string;
+    generatedAt: string;
+    bytes: Uint8Array;
+  }>;
   getStoredQuotationPdfForUser: typeof getStoredQuotationPdfForUser;
 };
 
@@ -118,21 +126,64 @@ export function createQuotationPdfRouteHandlers(
           );
         }
 
+        console.info("[quotation-pdf][GET] start", {
+          quotationId,
+          userId: user.id,
+        });
+
         let result;
         try {
           result = await dependencies.getStoredQuotationPdfForUser(
             user.id,
             quotationId,
           );
+          console.info("[quotation-pdf][GET] loaded stored pdf", {
+            quotationId,
+            userId: user.id,
+            fileName: result.fileName,
+            bytes: result.bytes.length,
+          });
         } catch (error) {
           if (!shouldAttemptRegeneration(error)) {
             throw error;
           }
 
-          result = await dependencies.generateQuotationPdfForUser(
-            user.id,
+          console.warn("[quotation-pdf][GET] stored pdf unavailable, trying regeneration", {
             quotationId,
-          );
+            userId: user.id,
+            reason: error instanceof Error ? error.message : "unknown",
+          });
+
+          try {
+            result = await dependencies.generateQuotationPdfForUser(
+              user.id,
+              quotationId,
+            );
+            console.info("[quotation-pdf][GET] regenerated and stored pdf", {
+              quotationId,
+              userId: user.id,
+              fileName: result.fileName,
+              bytes: result.bytes.length,
+            });
+          } catch (regenerationError) {
+            if (!dependencies.renderQuotationPdfForUser) {
+              throw regenerationError;
+            }
+
+            console.error("[quotation-pdf][GET] storage regeneration failed, using direct fallback", {
+              quotationId,
+              userId: user.id,
+              reason:
+                regenerationError instanceof Error
+                  ? regenerationError.message
+                  : "unknown",
+            });
+
+            result = await dependencies.renderQuotationPdfForUser(
+              user.id,
+              quotationId,
+            );
+          }
         }
 
         const url = new URL(request.url);
@@ -141,6 +192,9 @@ export function createQuotationPdfRouteHandlers(
 
         return buildPdfResponse(result, disposition);
       } catch (error) {
+        console.error("[quotation-pdf][GET] failed", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
         return getErrorResponse(error, "No se pudo descargar el PDF de la cotización.");
       }
     },
@@ -172,13 +226,26 @@ export function createQuotationPdfRouteHandlers(
           );
         }
 
+        console.info("[quotation-pdf][POST] generating", {
+          quotationId,
+          userId: user.id,
+        });
         const result = await dependencies.generateQuotationPdfForUser(
           user.id,
           quotationId,
         );
+        console.info("[quotation-pdf][POST] generated", {
+          quotationId,
+          userId: user.id,
+          fileName: result.fileName,
+          bytes: result.bytes.length,
+        });
 
         return buildPdfResponse(result, "attachment");
       } catch (error) {
+        console.error("[quotation-pdf][POST] failed", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
         return getErrorResponse(error, "No se pudo generar el PDF de la cotización.");
       }
     },

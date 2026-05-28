@@ -93,6 +93,14 @@ export function QuotationShareActions({
 
   const shareStatusLabel = getShareStatusLabel(shareStatus, sentAt);
 
+  function handleOpenPdf() {
+    const openedWindow = window.open(pdfViewUrl, "_blank", "noopener,noreferrer");
+
+    if (!openedWindow) {
+      window.location.href = pdfViewUrl;
+    }
+  }
+
   async function resolveNormalizedSharePhone() {
     setIsLoadingRecipient(true);
 
@@ -329,11 +337,9 @@ export function QuotationShareActions({
               type="button"
               variant="outline"
               className="border-token bg-background text-foreground"
-              asChild
+              onClick={handleOpenPdf}
             >
-              <a href={pdfViewUrl} target="_blank" rel="noreferrer">
-                Ver PDF
-              </a>
+              Ver PDF
             </Button>
 
             <Button
@@ -342,7 +348,7 @@ export function QuotationShareActions({
               className="border-token bg-background text-foreground"
               asChild
             >
-              <a href={pdfDownloadUrl}>
+              <a href={pdfDownloadUrl} download>
                 Descargar PDF
               </a>
             </Button>

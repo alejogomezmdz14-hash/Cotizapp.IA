@@ -1052,6 +1052,12 @@ export async function generateAndStoreQuotationPdf(
     signatureDataUrl,
   });
   const bytes = await dependencies.renderPdf(templateData);
+  console.info("[quotation-pdf] rendered", {
+    quotationId: input.quotationId,
+    userId: input.userId,
+    bytes: bytes.length,
+    path,
+  });
 
   await dependencies.uploadPdf({
     path,
@@ -1082,6 +1088,77 @@ export async function generateAndStoreQuotationPdf(
     generatedAt,
     bytes,
     shareToken: quotation.output.shareToken,
+  };
+}
+
+export async function renderQuotationPdfForUser(
+  userId: string,
+  quotationId: string,
+) {
+  const quotation = await getHydratedQuotation(userId, quotationId);
+
+  if (!quotation) {
+    throw new Error("La cotización no existe o no te pertenece.");
+  }
+
+  const generatedAt = new Date().toISOString();
+  const fileName = buildQuotationPdfFileName(quotation.quotation.number);
+  const [logoDataUrl, signatureDataUrl] = await Promise.all([
+    (async () => {
+      if (!quotation.branding.logoPath) {
+        return null;
+      }
+
+      try {
+        const logoFile = await downloadFile(
+          STORAGE_BUCKETS.businessAssets,
+          quotation.branding.logoPath,
+        );
+
+        return buildProfileLogoDataUrl(logoFile);
+      } catch {
+        return null;
+      }
+    })(),
+    (async () => {
+      const signaturePath = quotation.quotation.signature_url?.trim();
+
+      if (!signaturePath) {
+        return null;
+      }
+
+      try {
+        const signatureFile = await downloadFile(
+          STORAGE_BUCKETS.quotationSignatures,
+          signaturePath,
+        );
+
+        return buildProfileLogoDataUrl(signatureFile);
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+  const templateData = buildQuotationPdfTemplateData({
+    quotation,
+    generatedAt,
+    logoDataUrl,
+    signatureDataUrl,
+  });
+  const buffer = await renderToBuffer(createQuotationPdfDocument(templateData));
+  const bytes = new Uint8Array(buffer);
+
+  console.info("[quotation-pdf] direct render fallback", {
+    quotationId,
+    userId,
+    bytes: bytes.length,
+    fileName,
+  });
+
+  return {
+    fileName,
+    generatedAt,
+    bytes,
   };
 }
 
