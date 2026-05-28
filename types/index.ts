@@ -338,9 +338,20 @@ export type ChatCatalogPriceUpdateAction = {
   reason: string | null;
 };
 
+export type ChatExpenseCreateAction = {
+  type: "expense_create";
+  description: string;
+  amount: number;
+  currency: string;
+  category: string;
+  date: string;
+  notes: string | null;
+};
+
 export type ChatSuggestedAction =
   | ChatDraftQuotationCreateAction
-  | ChatCatalogPriceUpdateAction;
+  | ChatCatalogPriceUpdateAction
+  | ChatExpenseCreateAction;
 
 export type ChatReplyPayload = {
   reply: string;

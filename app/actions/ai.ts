@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import { assertCatalogPriceSuggestionIsCurrent } from "@/lib/ai/catalog-price-updates";
 import { normalizeCatalogUnit } from "@/lib/catalog";
+import { normalizeExpenseCategory, normalizeExpenseDateInput } from "@/lib/expenses";
 import { requireUser } from "@/lib/profile";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import {
@@ -17,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   ChatCatalogPriceUpdateAction,
   ChatDraftQuotationCreateAction,
+  ChatExpenseCreateAction,
   ChatSuggestedQuotationItem,
 } from "@/types";
 
@@ -188,6 +190,37 @@ function normalizeCatalogPriceSuggestion(
     currentPrice: parseDecimal(input.currentPrice) ?? 0,
     suggestedPrice,
     reason: getTrimmedString(input.reason),
+  };
+}
+
+function normalizeExpenseCreateSuggestion(input: unknown): ChatExpenseCreateAction {
+  if (!isRecord(input) || input.type !== "expense_create") {
+    throw new Error("La sugerencia de gasto no es válida.");
+  }
+
+  const description = getTrimmedString(input.description);
+  const amount = parseDecimal(input.amount);
+  const currency = getTrimmedString(input.currency) ?? "ARS";
+  const category = normalizeExpenseCategory(getTrimmedString(input.category) ?? "Otro");
+  const date = normalizeExpenseDateInput(getTrimmedString(input.date) ?? null);
+  const notes = getTrimmedString(input.notes);
+
+  if (!description) {
+    throw new Error("La sugerencia no incluye una descripción válida.");
+  }
+
+  if (amount === null || amount <= 0) {
+    throw new Error("La sugerencia no incluye un monto válido.");
+  }
+
+  return {
+    type: "expense_create",
+    description,
+    amount,
+    currency,
+    category,
+    date,
+    notes,
   };
 }
 
@@ -421,4 +454,40 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
   revalidateAiViews();
 
   return result;
+}
+
+export async function confirmExpenseCreateSuggestionAction(input: unknown) {
+  const user = await requireUser();
+  const suggestion = normalizeExpenseCreateSuggestion(input);
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      user_id: user.id,
+      description: suggestion.description,
+      amount: suggestion.amount,
+      currency: suggestion.currency,
+      category: suggestion.category,
+      date: suggestion.date,
+      notes: suggestion.notes,
+    })
+    .select("id, description, amount, currency, category, date")
+    .single();
+
+  if (error || !data) {
+    throw new Error("No se pudo guardar el gasto sugerido.");
+  }
+
+  revalidateAiViews();
+  revalidatePath("/gastos");
+
+  return {
+    expenseId: String(data.id),
+    description: String(data.description),
+    amount: parseDecimal(data.amount) ?? suggestion.amount,
+    currency: String(data.currency),
+    category: String(data.category),
+    date: String(data.date),
+  };
 }

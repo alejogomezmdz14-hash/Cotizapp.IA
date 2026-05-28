@@ -4,6 +4,7 @@ import { getExpenses, normalizeExpenseCategory } from "@/lib/expenses";
 import type {
   CatalogItem,
   ChatConversationMessage,
+  ChatExpenseCreateAction,
   ChatReplyPayload,
   ChatSuggestedAction,
   ChatSuggestedQuotationItem,
@@ -585,6 +586,31 @@ function normalizeSuggestedAction(
     };
   }
 
+  if (type === "expense_create") {
+    const description = getTrimmedString(input.description);
+    const amount = parseDecimal(input.amount);
+    const currency = getTrimmedString(input.currency) ?? "ARS";
+    const category = normalizeExpenseCategory(getTrimmedString(input.category) ?? "Otro");
+    const date = getTrimmedString(input.date) ?? new Date().toISOString().slice(0, 10);
+    const notes = getTrimmedString(input.notes);
+
+    if (!description || amount === null || amount <= 0) {
+      return null;
+    }
+
+    const suggestion: ChatExpenseCreateAction = {
+      type,
+      description,
+      amount,
+      currency,
+      category,
+      date,
+      notes,
+    };
+
+    return suggestion;
+  }
+
   return null;
 }
 
@@ -622,18 +648,23 @@ export async function readChatRequestBody(
 export function buildBusinessChatSystemPrompt() {
   return [
     "Eres el asistente comercial de Cotizapp.",
-    "Responde siempre en español rioplatense claro.",
+    "Responde siempre en español rioplatense, tono directo y simple.",
     "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones, gastos y perfil/resumen del negocio.",
-    "Tenés acceso a los gastos del negocio. Podés consultar gastos del mes, por categoría y calcular ganancia neta (cotizaciones aceptadas - gastos). No podés crear ni eliminar gastos desde el chat.",
+    "Tenés herramientas reales para crear cotizaciones borrador, registrar gastos, consultar resumen y buscar clientes.",
     "Usa expenses del contexto para responder cuánto gastó el usuario, el mayor gasto, el último gasto y la ganancia neta del período.",
     "Usa meta.currentDate como fecha de referencia para interpretar hoy, esta semana y este mes.",
     "Si meta.quotationPeriodFilter viene informado, responde usando solo recentQuotations, summary.filteredQuotations y expenses del mismo período.",
+    "Si te piden crear una cotización o registrar un gasto, primero devolvé preview claro en reply y suggestedAction con la acción propuesta.",
+    "Nunca escribas en la base sin confirmación explícita del usuario.",
+    "Si falta información crítica, pedila con una pregunta corta (por ejemplo: ¿Para qué cliente? o ¿Qué monto?).",
+    "Si el usuario pregunta por resumen, respondé con métricas concretas del mes usando summary y expenses.",
+    "Si el usuario pregunta por un cliente específico, buscá coincidencias en recentClients y respondé directo.",
     "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que está fuera de alcance y redirige la conversación a esos módulos de negocio; no actúes como asistente general.",
     "Nunca afirmes que ya creaste, actualizaste o eliminaste datos.",
-    "Nunca crees ni elimines gastos; solo consultalos.",
-    "Solo puedes sugerir acciones de escritura para confirmación explícita del usuario.",
+    "Solo podés sugerir acciones de escritura para confirmación explícita del usuario.",
     "Si no hace falta proponer una acción, devuelve suggestedAction como null.",
-    "Las únicas acciones permitidas son draft_quotation_create y catalog_price_update.",
+    "Las acciones permitidas son draft_quotation_create, expense_create y catalog_price_update.",
+    "Cuando propongas guardar, cerrá reply con: ¿Confirmo y lo guardo?",
   ].join(" ");
 }
 

@@ -325,6 +325,36 @@ test("normalizeBusinessChatResult keeps only safe catalog price updates", () => 
   });
 });
 
+test("normalizeBusinessChatResult keeps a valid expense create suggestion", () => {
+  const result = normalizeBusinessChatResult(
+    {
+      reply: "Te dejo el gasto listo para confirmar.",
+      suggestedAction: {
+        type: "expense_create",
+        description: " Carga de combustible ",
+        amount: "2000,50",
+        currency: "ARS",
+        category: "Combustible",
+        date: "2026-05-27",
+      },
+    },
+    {
+      clients: [],
+      catalogItems: [],
+    },
+  );
+
+  assert.deepEqual(result.suggestedAction, {
+    type: "expense_create",
+    description: "Carga de combustible",
+    amount: 2000.5,
+    currency: "ARS",
+    category: "Combustible",
+    date: "2026-05-27",
+    notes: null,
+  });
+});
+
 test("normalizeBusinessChatResult uses canonical client data for existing client suggestions", () => {
   const result = normalizeBusinessChatResult(
     {
@@ -501,11 +531,9 @@ test("buildBusinessChatSystemPrompt keeps the assistant inside the business scop
 
   assert.match(prompt, /solo dentro de este alcance/i);
   assert.match(prompt, /clientes, catálogo, cotizaciones, gastos y perfil/i);
-  assert.match(
-    prompt,
-    /Tenés acceso a los gastos del negocio\. Podés consultar gastos del mes/i,
-  );
-  assert.match(prompt, /No podés crear ni eliminar gastos desde el chat/i);
+  assert.match(prompt, /herramientas reales/i);
+  assert.match(prompt, /nunca escribas en la base sin confirmación explícita/i);
+  assert.match(prompt, /draft_quotation_create, expense_create y catalog_price_update/i);
   assert.match(prompt, /rechaza.*fuera de alcance/i);
 });
 

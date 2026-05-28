@@ -3,8 +3,13 @@
 import { useRef, useState } from "react";
 import { Bot, Circle } from "lucide-react";
 
+import {
+  confirmDraftQuotationSuggestionAction,
+  confirmExpenseCreateSuggestionAction,
+} from "@/app/actions/ai";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
 import type { ChatReplyPayload, ChatRole, ChatSuggestedAction } from "@/types";
 
@@ -27,13 +32,43 @@ async function getJsonResponse<T>(response: Response): Promise<T> {
   }
 }
 
+const CONFIRM_REGEX = /^(si|sí|dale|confirma|confirmá|ok|de una|mandale)\b/i;
+const CANCEL_REGEX = /^(no|cancel(a|á)|descarta|dejalo|dejalo)\b/i;
+
+function buildSuggestionPreview(suggestion: ChatSuggestedAction) {
+  if (suggestion.type === "draft_quotation_create") {
+    const lines = suggestion.items
+      .slice(0, 4)
+      .map(
+        (item) =>
+          `- ${item.name}: ${item.quantity} ${item.unit} x ${formatCurrencyAmount(item.unitPrice, "ARS")}`,
+      );
+
+    return [
+      "Preview de cotización:",
+      `Cliente: ${suggestion.clientName ?? "Cliente nuevo"}`,
+      ...lines,
+      "¿Guardamos esta cotización?",
+    ].join("\n");
+  }
+
+  if (suggestion.type === "expense_create") {
+    return [
+      "Preview de gasto:",
+      `Gasto: ${suggestion.category} — ${formatCurrencyAmount(suggestion.amount, suggestion.currency)} — ${suggestion.date}`,
+      `Descripción: ${suggestion.description}`,
+      "¿Confirmo y lo guardo?",
+    ].join("\n");
+  }
+
+  return "Tengo una acción sugerida lista para confirmar. ¿La ejecuto?";
+}
+
 export function ChatShell() {
   const nextMessageIdRef = useRef(1);
   const [messages, setMessages] = useState<ChatUiMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [, setPendingSuggestion] = useState<ChatSuggestedAction | null>(
-    null,
-  );
+  const [pendingSuggestion, setPendingSuggestion] = useState<ChatSuggestedAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function createMessage(role: ChatRole, content: string): ChatUiMessage {
@@ -56,13 +91,62 @@ export function ChatShell() {
     }
 
     const userMessage = createMessage("user", content);
+
+    setMessages((currentMessages) => [...currentMessages, userMessage]);
+    setInputValue("");
+
+    if (pendingSuggestion && CONFIRM_REGEX.test(content)) {
+      setIsSubmitting(true);
+      try {
+        if (pendingSuggestion.type === "draft_quotation_create") {
+          const result = await confirmDraftQuotationSuggestionAction(pendingSuggestion);
+          setMessages((currentMessages) => [
+            ...currentMessages,
+            createMessage(
+              "assistant",
+              `Listo. Guardé la cotización ${result.number}. La podés ver en /cotizaciones/nueva?quotationId=${result.quotationId}`,
+            ),
+          ]);
+        } else if (pendingSuggestion.type === "expense_create") {
+          const result = await confirmExpenseCreateSuggestionAction(pendingSuggestion);
+          setMessages((currentMessages) => [
+            ...currentMessages,
+            createMessage(
+              "assistant",
+              `Listo. Registré el gasto "${result.description}" por ${formatCurrencyAmount(result.amount, result.currency)} en ${result.category}.`,
+            ),
+          ]);
+        }
+        setPendingSuggestion(null);
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : "No se pudo confirmar la acción.";
+        setMessages((currentMessages) => [
+          ...currentMessages,
+          createMessage("assistant", `No pude confirmarlo: ${message}`),
+        ]);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    if (pendingSuggestion && CANCEL_REGEX.test(content)) {
+      setPendingSuggestion(null);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("assistant", "Perfecto, descarté esa acción."),
+      ]);
+      return;
+    }
+
     const requestMessages = [...messages, userMessage].map((message) => ({
       role: message.role,
       content: message.content,
     }));
 
-    setMessages((currentMessages) => [...currentMessages, userMessage]);
-    setInputValue("");
     setPendingSuggestion(getNextPendingSuggestion({ type: "submit" }));
     setIsSubmitting(true);
 
@@ -86,12 +170,17 @@ export function ChatShell() {
         ...currentMessages,
         createMessage("assistant", payload.reply),
       ]);
-      setPendingSuggestion(
-        getNextPendingSuggestion({
-          type: "response",
-          suggestedAction: payload.suggestedAction,
-        }),
-      );
+      const nextSuggestion = getNextPendingSuggestion({
+        type: "response",
+        suggestedAction: payload.suggestedAction,
+      });
+      setPendingSuggestion(nextSuggestion);
+      if (nextSuggestion) {
+        setMessages((currentMessages) => [
+          ...currentMessages,
+          createMessage("assistant", buildSuggestionPreview(nextSuggestion)),
+        ]);
+      }
     } catch (error) {
       const message =
         error instanceof Error && error.message.trim()
