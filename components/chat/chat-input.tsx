@@ -90,6 +90,9 @@ export function ChatInput({
   const interimTranscriptRef = useRef("");
   const shouldRestartRecognitionRef = useRef(false);
   const isListeningRef = useRef(false);
+  const recognitionRestartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -110,6 +113,10 @@ export function ChatInput({
   const stopRecognition = useCallback(() => {
     shouldRestartRecognitionRef.current = false;
     isListeningRef.current = false;
+    if (recognitionRestartTimeoutRef.current) {
+      clearTimeout(recognitionRestartTimeoutRef.current);
+      recognitionRestartTimeoutRef.current = null;
+    }
     recognitionRef.current?.stop();
     recognitionRef.current = null;
   }, []);
@@ -306,6 +313,10 @@ export function ChatInput({
         isListeningRef.current = false;
         setVoiceState("idle");
         commitDictation();
+        if (recognitionRestartTimeoutRef.current) {
+          clearTimeout(recognitionRestartTimeoutRef.current);
+          recognitionRestartTimeoutRef.current = null;
+        }
         recognitionRef.current = null;
         return;
       }
@@ -315,15 +326,20 @@ export function ChatInput({
         return;
       }
 
-      try {
-        recognition.start();
-      } catch {
-        shouldRestartRecognitionRef.current = false;
-        isListeningRef.current = false;
-        setVoiceState("idle");
-        commitDictation();
-        recognitionRef.current = null;
+      if (recognitionRestartTimeoutRef.current) {
+        clearTimeout(recognitionRestartTimeoutRef.current);
       }
+      recognitionRestartTimeoutRef.current = setTimeout(() => {
+        try {
+          recognition.start();
+        } catch {
+          shouldRestartRecognitionRef.current = false;
+          isListeningRef.current = false;
+          setVoiceState("idle");
+          commitDictation();
+          recognitionRef.current = null;
+        }
+      }, 250);
     };
 
     recognitionRef.current = recognition;
@@ -390,6 +406,10 @@ export function ChatInput({
   useEffect(() => {
     return () => {
       shouldRestartRecognitionRef.current = false;
+      if (recognitionRestartTimeoutRef.current) {
+        clearTimeout(recognitionRestartTimeoutRef.current);
+        recognitionRestartTimeoutRef.current = null;
+      }
       recognitionRef.current?.abort();
       recognitionRef.current = null;
 
