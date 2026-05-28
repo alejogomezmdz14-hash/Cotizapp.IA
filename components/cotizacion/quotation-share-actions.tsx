@@ -79,6 +79,7 @@ export function QuotationShareActions({
     () => `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
     [quotationId],
   );
+  const pdfDownloadUrl = useMemo(() => `${pdfViewUrl}?download=1`, [pdfViewUrl]);
 
   const publicShareUrl = useMemo(() => {
     if (!shareToken) {
@@ -341,7 +342,7 @@ export function QuotationShareActions({
               className="border-token bg-background text-foreground"
               asChild
             >
-              <a href={pdfViewUrl} download>
+              <a href={pdfDownloadUrl}>
                 Descargar PDF
               </a>
             </Button>

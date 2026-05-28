@@ -39,15 +39,18 @@ function getErrorResponse(error: unknown, fallbackMessage: string) {
   );
 }
 
-function buildPdfResponse(result: {
+function buildPdfResponse(
+  result: {
   fileName: string;
   bytes: Uint8Array;
-}) {
+},
+  disposition: "inline" | "attachment",
+) {
   return new Response(Buffer.from(result.bytes), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${result.fileName}"`,
+      "Content-Disposition": `${disposition}; filename="${result.fileName}"`,
       "Cache-Control": "no-store",
     },
   });
@@ -72,7 +75,7 @@ export function createQuotationPdfRouteHandlers(
   dependencies: QuotationPdfRouteDependencies,
 ) {
   return {
-    GET: async (_request: Request, context: RouteContext) => {
+    GET: async (request: Request, context: RouteContext) => {
       try {
         const user = await requireRouteUser(dependencies);
 
@@ -105,7 +108,11 @@ export function createQuotationPdfRouteHandlers(
           quotationId,
         );
 
-        return buildPdfResponse(result);
+        const url = new URL(request.url);
+        const shouldDownload = url.searchParams.get("download") === "1";
+        const disposition = shouldDownload ? "attachment" : "inline";
+
+        return buildPdfResponse(result, disposition);
       } catch (error) {
         return getErrorResponse(error, "No se pudo descargar el PDF de la cotización.");
       }
@@ -143,7 +150,7 @@ export function createQuotationPdfRouteHandlers(
           quotationId,
         );
 
-        return buildPdfResponse(result);
+        return buildPdfResponse(result, "attachment");
       } catch (error) {
         return getErrorResponse(error, "No se pudo generar el PDF de la cotización.");
       }
