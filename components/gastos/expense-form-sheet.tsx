@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, ScanLine, Upload } from "lucide-react";
 
 import {
@@ -57,9 +57,8 @@ export function ExpenseFormSheet({
   defaultCurrency,
   onSaved,
 }: ExpenseFormSheetProps) {
-  const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [description, setDescription] = useState("");
@@ -206,39 +205,40 @@ export function ExpenseFormSheet({
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
-    startTransition(async () => {
-      try {
-        const finalReceiptPath = await uploadReceipt(false);
-        const payload = {
-          description,
-          amount,
-          currency,
-          category,
-          date,
-          notes,
-          receipt_path: finalReceiptPath,
-        };
+    try {
+      const finalReceiptPath = await uploadReceipt(false);
+      const payload = {
+        description,
+        amount,
+        currency,
+        category,
+        date,
+        notes,
+        receipt_path: finalReceiptPath,
+      };
 
-        if (isEditing && expense) {
-          await updateExpenseFromInput(expense.id, payload);
-        } else {
-          await createExpenseFromInput(payload);
-        }
-
-        onSaved();
-        onOpenChange(false);
-      } catch (submitError) {
-        setError(
-          submitError instanceof Error
-            ? submitError.message
-            : "No se pudo guardar el gasto.",
-        );
+      if (isEditing && expense) {
+        await updateExpenseFromInput(expense.id, payload);
+      } else {
+        await createExpenseFromInput(payload);
       }
-    });
+
+      onSaved();
+      onOpenChange(false);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "No se pudo guardar el gasto.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -253,7 +253,6 @@ export function ExpenseFormSheet({
         </SheetHeader>
 
         <form
-          ref={formRef}
           onSubmit={handleSubmit}
           className="mt-6 space-y-5 pb-8"
         >
@@ -359,7 +358,7 @@ export function ExpenseFormSheet({
               type="file"
               accept="image/png,image/jpeg,image/webp,application/pdf"
               className="hidden"
-              disabled={isUploadingReceipt || isScanning || isPending}
+              disabled={isUploadingReceipt || isScanning || isSubmitting}
               onChange={(event) => {
                 setSelectedFile(event.target.files?.[0] ?? null);
                 setScanPreview(null);
@@ -402,7 +401,7 @@ export function ExpenseFormSheet({
                 disabled={
                   isUploadingReceipt ||
                   isScanning ||
-                  isPending ||
+                  isSubmitting ||
                   (!selectedFile && !receiptPath)
                 }
                 onClick={handleScanReceipt}
@@ -484,16 +483,16 @@ export function ExpenseFormSheet({
               variant="outline"
               className="bg-background/75"
               onClick={() => onOpenChange(false)}
-              disabled={isPending}
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={isPending || isUploadingReceipt}
+              disabled={isSubmitting || isUploadingReceipt}
             >
-              {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar gasto"}
+              {isSubmitting ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar gasto"}
             </Button>
           </div>
         </form>
