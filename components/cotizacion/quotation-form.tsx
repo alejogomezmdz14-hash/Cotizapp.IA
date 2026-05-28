@@ -674,16 +674,9 @@ export function QuotationForm({
             <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               Flujo de trabajo
             </span>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Arma la cotización con una vista más clara de cada etapa
-              </h3>
-              <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Define cliente, importa conceptos desde factura o catálogo y revisa
-                el resumen antes de guardar el borrador. Todo queda organizado por
-                bloques para que el flujo se sienta continuo.
-              </p>
-            </div>
+            <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Flujo de cotización
+            </h3>
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
@@ -724,10 +717,7 @@ export function QuotationForm({
                 key={entry.id}
                 className="rounded-[1.5rem] border border-token bg-background/75 px-4 py-3"
               >
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Paso {entry.id}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{entry.label}</p>
+                <p className="text-sm font-semibold text-foreground">{entry.label}</p>
               </li>
             ))}
           </ol>
@@ -765,7 +755,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <Users2 className="h-3.5 w-3.5 text-accent-token" />
-              Paso 1 · Cliente
+                Cliente
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-3">
@@ -898,7 +888,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3.5 w-3.5 text-accent-token" />
-              Paso 2 · Ítems
+                Ítems
             </div>
             <QuotationItemsEditor
               items={items}
@@ -916,7 +906,7 @@ export function QuotationForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
-                Paso 3 · Escaneo (opcional)
+                Escaneo
               </div>
               {!scanSectionExpanded ? (
                 <Button
@@ -975,7 +965,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
-              Paso 4 · Ajustes finales
+                Ajustes
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-1">

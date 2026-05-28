@@ -191,10 +191,6 @@ export default async function DashboardPage() {
           <h3 className="text-xl font-semibold tracking-tight">
             Resumen financiero del mes
           </h3>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Compará lo cotizado, facturado y gastado para entender tu margen del
-            mes en curso.
-          </p>
         </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -146,7 +146,7 @@ export function QuotationSummary({
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
             <div className="mb-2 flex items-center gap-2 text-foreground">
               <ShieldCheck className="h-4 w-4 text-accent-token" />
-              Guardado controlado
+              Guardar borrador
             </div>
             Al guardar se crea una cotización en estado borrador, lista para sumar
             adjuntos y preparar la salida por PDF o WhatsApp.
@@ -175,7 +175,7 @@ export function QuotationSummary({
             ? "Guardando borrador..."
             : isSaved
               ? "Borrador guardado"
-              : "Guardar cotización"}
+              : "Guardar borrador"}
         </Button>
       </CardContent>
     </Card>

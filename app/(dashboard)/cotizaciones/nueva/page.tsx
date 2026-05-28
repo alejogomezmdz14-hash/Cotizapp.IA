@@ -85,11 +85,6 @@ export default async function NewQuotationPage({
                   ? "Revisa el borrador y termina el material de salida"
                   : "Crear cotización borrador con un flujo más claro"}
               </h2>
-              <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                {draftAlreadyCreated
-                  ? "El contenido principal ya está bloqueado, pero sigues teniendo a mano adjuntos, PDF y acciones de compartir desde una superficie más ordenada."
-                  : "Elige o crea un cliente, suma ítems manuales, del catálogo o desde factura escaneada y revisa el total antes de guardar."}
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">

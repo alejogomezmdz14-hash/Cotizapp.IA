@@ -1,8 +1,6 @@
 import {
-  Bell,
   Building2,
   Heart,
-  Info,
   Palette,
   Settings,
   User,
@@ -11,7 +9,6 @@ import {
 import packageJson from "@/package.json";
 import { AppearanceSettingsForm } from "@/components/settings/appearance-settings-form";
 import { AccountSettingsPanel } from "@/components/settings/account-settings-panel";
-import { NotificationSettingsPanel } from "@/components/settings/notification-settings-panel";
 import { SettingsSectionCard } from "@/components/settings/settings-section-card";
 import { getProfile, requireUser } from "@/lib/profile";
 
@@ -39,8 +36,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               Configuración de tu cuenta
             </h2>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-              Gestioná perfil, empresa, apariencia, notificaciones y opciones de
-              cuenta desde un solo lugar.
+              Gestioná perfil, empresa, apariencia y cuenta desde un solo lugar.
             </p>
           </div>
         </div>
@@ -75,15 +71,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </SettingsSectionCard>
 
         <SettingsSectionCard
-          title="Notificaciones"
-          description="Preferencias de recordatorios y resúmenes (en desarrollo)."
-          icon={Bell}
-          className="lg:col-span-2"
-        >
-          <NotificationSettingsPanel />
-        </SettingsSectionCard>
-
-        <SettingsSectionCard
           title="Cuenta"
           description="Email de acceso, cierre de sesión y eliminación de cuenta."
           icon={User}
@@ -91,31 +78,17 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         >
           <AccountSettingsPanel email={user.email ?? null} />
         </SettingsSectionCard>
-
-        <SettingsSectionCard
-          title="Acerca de"
-          description="Información de la app y enlaces legales."
-          icon={Info}
-          className="lg:col-span-2"
-        >
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">Versión:</span>{" "}
-              {packageJson.version}
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-              <span className="text-accent-token">Términos y condiciones (próximamente)</span>
-              <span className="text-accent-token">
-                Política de privacidad (próximamente)
-              </span>
-            </div>
-            <p className="flex items-center gap-1.5 text-foreground">
-              Hecho con <Heart className="h-4 w-4 fill-red-500 text-red-500" /> por
-              Cotizapp.IA
-            </p>
-          </div>
-        </SettingsSectionCard>
       </div>
+
+      <footer className="rounded-md border border-token/80 bg-background/70 px-4 py-3 text-xs text-muted-foreground">
+        <p>
+          Versión {packageJson.version} · Términos y condiciones · Política de privacidad
+        </p>
+        <p className="mt-1 flex items-center gap-1.5 text-foreground">
+          Hecho con <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" /> por
+          Cotizapp.IA
+        </p>
+      </footer>
     </div>
   );
 }
