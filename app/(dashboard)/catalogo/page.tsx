@@ -44,8 +44,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             Productos y servicios disponibles
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Gestiona tu catálogo real para reutilizar productos y servicios en
-            futuras cotizaciones sin volver a cargarlos cada vez.
+            Guardá tus productos y servicios para usarlos rápido al cotizar.
           </p>
         </div>
       </section>
@@ -55,8 +54,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <CardHeader className="space-y-3">
             <CardTitle className="text-xl">Nuevo ítem</CardTitle>
             <CardDescription>
-              Carga nombre, categoría, unidad, descripción y precio para dejar
-              este ítem listo para reutilizarlo en cotizaciones.
+              Completá los datos del producto o servicio.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -65,12 +63,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 Precio de referencia
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Los importes se guardan como valores numéricos y luego se
-                muestran con tu moneda configurada, por ejemplo{" "}
+                Ingresá el número sin símbolos. Se va a mostrar como{" "}
                 <span className="font-semibold text-foreground">
                   {formatCurrencyAmount(1250, profile?.currency ?? null)}
                 </span>
-                .
+                {" "}según tu moneda.
               </p>
             </div>
 

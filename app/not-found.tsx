@@ -41,9 +41,8 @@ export default async function NotFound() {
                   Esa página no existe en Cotizapp
                 </h1>
                 <p className="mx-auto max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  La ruta que intentaste abrir no está disponible o ya cambió. Puedes
-                  volver al dashboard, revisar tus cotizaciones o crear una nueva sin
-                  perder la navegación principal.
+                  La página no existe o fue movida. Podés volver al inicio o crear
+                  una cotización nueva.
                 </p>
               </div>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">

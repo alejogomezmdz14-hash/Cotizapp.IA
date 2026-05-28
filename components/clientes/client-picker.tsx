@@ -41,7 +41,7 @@ export function ClientPicker({
   disabled = false,
   className,
   title = "Seleccionar cliente",
-  description = "Elige un cliente existente para reutilizar sus datos en la cotización.",
+  description = "Elegí un cliente existente para usar sus datos en la cotización.",
   emptyMessage = "Todavía no hay clientes disponibles para seleccionar.",
 }: ClientPickerProps) {
   const [query, setQuery] = useState("");

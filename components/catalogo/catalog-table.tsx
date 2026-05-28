@@ -115,10 +115,9 @@ export function CatalogTable({
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl">Listado real del catálogo</CardTitle>
+              <CardTitle className="text-xl">Tus productos y servicios</CardTitle>
               <CardDescription>
-                Busca por nombre, descripción, categoría o unidad y edita cada
-                ítem sin salir del panel.
+                Buscá por nombre, categoría o unidad.
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -175,7 +174,7 @@ export function CatalogTable({
             <CardDescription>
               {normalizedSearch
                 ? `Proba con otro termino. Filtro actual: "${normalizedSearch}".`
-                : "Cuando cargues tu primer producto o servicio, aparecerá acá listo para reutilizarlo en nuevas cotizaciones."}
+                : "Cuando cargues tu primer producto o servicio, aparecerá acá listo para usarlo en nuevas cotizaciones."}
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -31,11 +31,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         </span>
         <div className="space-y-2">
           <h2 className="text-3xl font-semibold tracking-tight">
-            Base de clientes cargados
+            Tus clientes
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Consulta los contactos disponibles para reutilizarlos en tus
-            cotizaciones y seguir su actividad.
+            Encontrá a tus clientes y usalos directamente al armar una cotización.
           </p>
         </div>
       </section>
@@ -45,8 +44,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
           <CardHeader className="space-y-2">
             <CardTitle className="text-xl">Nuevo cliente</CardTitle>
             <CardDescription>
-              Carga nombre, contacto y dirección para reutilizar este cliente en
-              futuras cotizaciones.
+              Guardá los datos del cliente para usarlo en tus cotizaciones.
             </CardDescription>
           </CardHeader>
           <CardContent>

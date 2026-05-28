@@ -243,7 +243,7 @@ export function QuotationShareActions({
         <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {pdfGeneratedAt
-            ? "Revisá el PDF, descargalo si hace falta y compartilo por WhatsApp cuando estés conforme."
+            ? "Revisá el PDF y compartilo por WhatsApp."
             : "Generá el PDF primero. Después vas a poder verlo, descargarlo y compartirlo."}
         </p>
       </div>

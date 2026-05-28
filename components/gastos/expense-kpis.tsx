@@ -36,7 +36,7 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
     {
       title: "Cantidad de gastos",
       value: String(stats.expenseCount),
-      description: "Movimientos cargados en el mes actual.",
+      description: "Gastos ingresados este mes.",
       icon: Hash,
       accent: "border-token bg-background/80 text-foreground",
     },

@@ -48,9 +48,6 @@ function SidebarNavLink({
         >
           {item.label}
         </span>
-        <span className="block truncate text-[11px] text-[#6B7280]">
-          {active ? "Sección actual" : "Acceso directo"}
-        </span>
       </div>
     </Link>
   );
@@ -73,10 +70,6 @@ export function Sidebar() {
         </Link>
 
         <div className="flex min-h-0 flex-1 flex-col px-[10px] pb-4">
-          <p className="shrink-0 px-2 pb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-[#54545C]">
-            Navegación
-          </p>
-
           <div className="flex min-h-0 flex-1 flex-col">
             <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
               {sidebarNavItems.map((item) => (

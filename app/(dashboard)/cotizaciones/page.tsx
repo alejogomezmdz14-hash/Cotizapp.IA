@@ -66,11 +66,10 @@ export default async function QuotationsPage() {
 
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Historial comercial con mejor lectura y acciones más claras
+                Tus cotizaciones
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Sigue tus borradores, revisa cotizaciones pendientes y vuelve al
-                flujo correcto sin perder contexto de montos, fechas ni estado.
+                Revisá tus borradores y cotizaciones enviadas en un solo lugar.
               </p>
             </div>
 
@@ -90,7 +89,7 @@ export default async function QuotationsPage() {
                 {quotations.length}
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Cotizaciones visibles entre borradores y etapas de seguimiento.
+                Todas tus cotizaciones, en cualquier estado.
               </p>
             </div>
             <div className="rounded-md border border-token bg-background/60 p-4 shadow-none">
@@ -101,7 +100,7 @@ export default async function QuotationsPage() {
                 {draftCount}
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Espacios listos para retomar y terminar antes de compartir.
+                Borradores sin enviar todavía.
               </p>
             </div>
           </div>
@@ -115,12 +114,8 @@ export default async function QuotationsPage() {
               Vista general
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
-              Estado operativo de tus cotizaciones
+              Resumen por estado
             </h3>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Resume rápido el volumen de trabajo y los estados presentes antes de
-              entrar a cada cotización.
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -157,8 +152,7 @@ export default async function QuotationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                Incluye borradores guardados y cotizaciones que ya avanzaron a
-                seguimiento.
+                Borradores y cotizaciones enviadas en total.
               </p>
             </CardContent>
           </Card>
@@ -178,8 +172,7 @@ export default async function QuotationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                Retoma una cotización guardada cuando quieras seguir cargando ítems
-                o adjuntos.
+                Podés editarlos y enviarlos cuando quieras.
               </p>
             </CardContent>
           </Card>
@@ -199,8 +192,7 @@ export default async function QuotationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                La mezcla actual de estados ayuda a priorizar seguimiento,
-                reenvíos o edición.
+                Distintos estados activos en este momento.
               </p>
             </CardContent>
           </Card>
@@ -217,8 +209,7 @@ export default async function QuotationsPage() {
               Tus cotizaciones recientes
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Filtrá por estado, buscá por cliente o número y elegí entre vista de
-              tarjetas o tabla compacta.
+              Filtrá por estado o buscá por cliente. Cambiá entre tarjetas o tabla.
             </p>
           </div>
 

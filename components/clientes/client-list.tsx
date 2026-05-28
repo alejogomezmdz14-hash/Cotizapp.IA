@@ -124,10 +124,9 @@ export function ClientList({ clients, search }: ClientListProps) {
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xl">Listado real de clientes</CardTitle>
+              <CardTitle className="text-xl">Clientes</CardTitle>
               <CardDescription>
-                Busca por nombre, email o teléfono y gestiona cada ficha sin salir
-                del panel.
+                Buscá por nombre, email o teléfono.
               </CardDescription>
             </div>
             <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -177,7 +176,7 @@ export function ClientList({ clients, search }: ClientListProps) {
             <CardDescription>
               {normalizedSearch
                 ? `Proba con otro nombre, email o teléfono. Búsqueda actual: "${normalizedSearch}".`
-                : "Cuando registres tu primer cliente, aparecerá en este listado para reutilizarlo en nuevas cotizaciones."}
+                : "Cuando registres tu primer cliente, aparecerá en este listado para usarlo en nuevas cotizaciones."}
             </CardDescription>
           </CardHeader>
           <CardContent>

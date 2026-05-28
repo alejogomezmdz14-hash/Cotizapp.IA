@@ -815,7 +815,7 @@ export function QuotationForm({
                     onCreateClient={activateInlineClientMode}
                     allowClear
                     disabled={isFormLocked}
-                    description="Selecciona un cliente guardado para reutilizar sus datos en esta cotización."
+                    description="Seleccioná un cliente guardado para usar sus datos en esta cotización."
                     emptyMessage="Todavía no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
                   />
                 ) : (
