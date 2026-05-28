@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { isProfileComplete } from "@/lib/profile";
 import {
@@ -21,7 +21,7 @@ function redirectWithSessionCookies(
   return redirectResponse;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const loginUrl = new URL("/login", request.url);
   const onboardingUrl = new URL("/onboarding", request.url);
