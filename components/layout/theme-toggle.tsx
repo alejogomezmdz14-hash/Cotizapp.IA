@@ -33,7 +33,7 @@ export function ThemeToggle() {
       type="button"
       size="icon"
       variant="outline"
-      className="rounded-[1rem] border-white/15 bg-white/5 text-header hover:bg-white/10 hover:text-header"
+      className="h-9 w-9 rounded-md border-white/10 bg-white/5 text-header hover:bg-white/10 hover:text-header"
       onClick={handleToggle}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
