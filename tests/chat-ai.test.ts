@@ -532,6 +532,9 @@ test("buildBusinessChatSystemPrompt keeps the assistant inside the business scop
   assert.match(prompt, /solo dentro de este alcance/i);
   assert.match(prompt, /clientes, catálogo, cotizaciones, gastos y perfil/i);
   assert.match(prompt, /herramientas reales/i);
+  assert.match(prompt, /UNA sola pregunta/i);
+  assert.match(prompt, /Máximo 1 pregunta de seguimiento/i);
+  assert.match(prompt, /fecha = hoy y moneda = la del perfil/i);
   assert.match(prompt, /nunca escribas en la base sin confirmación explícita/i);
   assert.match(prompt, /draft_quotation_create, expense_create y catalog_price_update/i);
   assert.match(prompt, /rechaza.*fuera de alcance/i);
