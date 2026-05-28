@@ -1,6 +1,5 @@
-const CACHE_NAME = "cotizapp-shell-v1";
+const CACHE_NAME = "cotizapp-shell-v2";
 const SHELL_ASSETS = [
-  "/",
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
@@ -44,6 +43,11 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/_next/data/") ||
     url.pathname.startsWith("/auth/")
   ) {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match("/")));
     return;
   }
 

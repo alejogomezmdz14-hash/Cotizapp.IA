@@ -1,15 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Bot,
-  FileText,
-  ListChecks,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { Bot, Circle } from "lucide-react";
 
 import {
   confirmCatalogPriceUpdateAction,
@@ -17,7 +10,6 @@ import {
 } from "@/app/actions/ai";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
 import type { ChatReplyPayload, ChatRole, ChatSuggestedAction } from "@/types";
@@ -26,6 +18,7 @@ type ChatUiMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  createdAt: string;
 };
 
 type ChatFeedback = {
@@ -51,14 +44,7 @@ async function getJsonResponse<T>(response: Response): Promise<T> {
 export function ChatShell() {
   const router = useRouter();
   const nextMessageIdRef = useRef(1);
-  const [messages, setMessages] = useState<ChatUiMessage[]>([
-    {
-      id: "message-0",
-      role: "assistant",
-      content:
-        "Hola. Puedo ayudarte a revisar clientes, catálogo y cotizaciones, y también proponer borradores o cambios de precio. Cualquier escritura queda siempre pendiente de tu confirmación.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatUiMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [pendingSuggestion, setPendingSuggestion] = useState<ChatSuggestedAction | null>(
     null,
@@ -66,15 +52,6 @@ export function ChatShell() {
   const [feedback, setFeedback] = useState<ChatFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const assistantMessageCount = messages.filter(
-    (message) => message.role === "assistant",
-  ).length;
-  const userMessageCount = messages.filter((message) => message.role === "user").length;
-  const pendingSuggestionLabel = pendingSuggestion
-    ? pendingSuggestion.type === "draft_quotation_create"
-      ? "Borrador pendiente de confirmación"
-      : "Cambio de precio pendiente"
-    : "Sin sugerencias pendientes";
 
   function createMessage(role: ChatRole, content: string): ChatUiMessage {
     const id = `message-${nextMessageIdRef.current}`;
@@ -84,6 +61,7 @@ export function ChatShell() {
       id,
       role,
       content,
+      createdAt: new Date().toISOString(),
     };
   }
 
@@ -212,154 +190,37 @@ export function ChatShell() {
   }
 
   return (
-    <div className="space-y-5 pb-20 lg:space-y-6">
-      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
-          <div className="space-y-5">
-            <div className="space-y-3">
-              <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Chat IA comercial
-              </span>
-              <div className="space-y-2">
-                <CardTitle className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Un espacio conversacional con mejor jerarquía y confirmación visible
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-sm leading-7 sm:text-base">
-                  Consulta el negocio, prepara borradores o revisa precios desde un
-                  workspace más claro, con el historial y la zona de acciones
-                  separadas del contexto operativo.
-                </CardDescription>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {["Clientes", "Catálogo", "Cotizaciones", "Confirmación manual"].map(
-                (label) => (
-                  <span
-                    key={label}
-                    className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
-                  >
-                    {label}
-                  </span>
-                ),
-              )}
-            </div>
+    <div className="flex h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-[1.75rem] border border-token bg-[#0F1117]">
+      <header className="sticky top-0 z-20 flex items-center border-b border-token bg-[#0F1117] px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00E5A0] text-black">
+            <Bot className="h-5 w-5" />
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-[1.75rem] border border-token bg-background/80 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Mensajes del asistente
-              </p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight">
-                {assistantMessageCount}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Respuestas generadas dentro de esta conversación.
-              </p>
-            </div>
-            <div className="rounded-[1.75rem] border border-token bg-background/60 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Estado actual
-              </p>
-              <p className="mt-3 text-sm font-semibold tracking-tight text-foreground">
-                {pendingSuggestionLabel}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Cualquier cambio sugerido queda visible hasta que lo confirmes o lo
-                descartes.
-              </p>
-            </div>
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-white">Asistente Cotizapp</p>
+            <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Circle className="h-2.5 w-2.5 fill-[#00E5A0] text-[#00E5A0]" />
+              En línea
+            </p>
           </div>
         </div>
-      </section>
+      </header>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-        <div className="space-y-5">
-          <ChatMessageList
-            messages={messages}
-            pendingSuggestion={pendingSuggestion}
-            isConfirming={isConfirming}
-            feedback={feedback}
-            onConfirmSuggestion={handleConfirmSuggestion}
-            onDismissSuggestion={handleDismissSuggestion}
-          />
+      <ChatMessageList
+        messages={messages}
+        pendingSuggestion={pendingSuggestion}
+        isConfirming={isConfirming}
+        feedback={feedback}
+        onConfirmSuggestion={handleConfirmSuggestion}
+        onDismissSuggestion={handleDismissSuggestion}
+      />
 
-          <ChatInput
-            value={inputValue}
-            isLoading={isSubmitting}
-            onChange={setInputValue}
-            onSubmit={handleSubmit}
-          />
-        </div>
-
-        <div className="space-y-4 xl:sticky xl:top-6">
-          <Card className="shell-panel overflow-hidden shadow-none">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-xl">Contexto del workspace</CardTitle>
-              <CardDescription className="leading-6">
-                El chat opera sobre datos reales, pero la escritura siempre se
-                confirma aparte.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex gap-2">
-                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>
-                  {assistantMessageCount}{" "}
-                  {assistantMessageCount === 1
-                    ? "mensaje del asistente"
-                    : "mensajes del asistente"}{" "}
-                  y {userMessageCount} tuyos en la sesión actual.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>{pendingSuggestionLabel}.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shell-panel overflow-hidden shadow-none">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-xl">Reglas del asistente</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>Toda respuesta sale en español y toda escritura requiere confirmación.</p>
-              </div>
-              <div className="flex gap-2">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
-                <p>Puede sugerir borradores de cotización y ajustes puntuales de catálogo.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shell-panel overflow-hidden shadow-none">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-xl">Siguiente acción</CardTitle>
-              <CardDescription className="leading-6">
-                Usa el chat para explorar y luego confirma el cambio desde el bloque
-                correspondiente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
-                <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                  <FileText className="h-4 w-4 text-accent-token" />
-                  Recomendación actual
-                </div>
-                <p>{pendingSuggestionLabel}.</p>
-                <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  Confirma desde el hilo
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <ChatInput
+        value={inputValue}
+        isLoading={isSubmitting}
+        onChange={setInputValue}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }
