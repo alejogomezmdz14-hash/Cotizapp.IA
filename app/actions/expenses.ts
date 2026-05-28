@@ -15,6 +15,17 @@ import { getProfile, requireUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import type { Expense, ExpenseMonthGroup, ExpenseMonthStats } from "@/types";
 
+export type ExpenseUpsertInput = {
+  description: string;
+  amount: string;
+  category?: string;
+  date: string;
+  currency?: string;
+  receipt_path?: string | null;
+  receipt_url?: string | null;
+  notes?: string | null;
+};
+
 function revalidateExpenseViews() {
   revalidatePath("/gastos");
   revalidatePath("/dashboard");
@@ -83,6 +94,47 @@ function buildExpensePayload(formData: FormData, defaultCurrency: string) {
   };
 }
 
+function buildExpensePayloadFromInput(
+  input: ExpenseUpsertInput,
+  defaultCurrency: string,
+) {
+  const description = input.description.trim();
+  const amountRaw = input.amount.trim();
+  const category = normalizeExpenseCategory(
+    (input.category?.trim() || "Otro"),
+  );
+  const date = normalizeExpenseDateInput(input.date.trim());
+  const currency = normalizeExpenseCurrency(
+    input.currency?.trim() || defaultCurrency,
+    defaultCurrency,
+  );
+  const amount = parseExpenseAmountInput(amountRaw);
+  const receiptPath =
+    input.receipt_path?.trim() ||
+    input.receipt_url?.trim() ||
+    null;
+  const notes = input.notes?.trim() || null;
+
+  if (!description) {
+    throw new Error("Ingresá una descripción para el gasto.");
+  }
+
+  if (amount === null || amount <= 0) {
+    throw new Error("Ingresá un monto válido mayor a cero.");
+  }
+
+  return {
+    description,
+    amount,
+    currency,
+    category,
+    date,
+    receipt_url: receiptPath,
+    receipt_path: receiptPath,
+    notes,
+  };
+}
+
 export async function createExpense(formData: FormData) {
   const user = await requireUser();
   const defaultCurrency = await getDefaultExpenseCurrency(user.id);
@@ -101,10 +153,48 @@ export async function createExpense(formData: FormData) {
   revalidateExpenseViews();
 }
 
+export async function createExpenseFromInput(input: ExpenseUpsertInput) {
+  const user = await requireUser();
+  const defaultCurrency = await getDefaultExpenseCurrency(user.id);
+  const payload = buildExpensePayloadFromInput(input, defaultCurrency);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("expenses").insert({
+    user_id: user.id,
+    ...payload,
+  });
+
+  if (error) {
+    throw new Error("No se pudo guardar el gasto.");
+  }
+
+  revalidateExpenseViews();
+}
+
 export async function updateExpense(id: string, formData: FormData) {
   const user = await requireUser();
   const defaultCurrency = await getDefaultExpenseCurrency(user.id);
   const payload = buildExpensePayload(formData, defaultCurrency);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("expenses")
+    .update(payload)
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
+
+  if (error || !data?.length) {
+    throw new Error("No se pudo actualizar el gasto.");
+  }
+
+  revalidateExpenseViews();
+}
+
+export async function updateExpenseFromInput(id: string, input: ExpenseUpsertInput) {
+  const user = await requireUser();
+  const defaultCurrency = await getDefaultExpenseCurrency(user.id);
+  const payload = buildExpensePayloadFromInput(input, defaultCurrency);
 
   const supabase = await createClient();
   const { data, error } = await supabase

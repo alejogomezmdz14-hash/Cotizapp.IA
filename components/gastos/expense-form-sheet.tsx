@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, ScanLine, Upload } from "lucide-react";
 
-import { createExpense, updateExpense } from "@/app/actions/expenses";
+import {
+  createExpenseFromInput,
+  updateExpenseFromInput,
+} from "@/app/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -210,18 +213,20 @@ export function ExpenseFormSheet({
     startTransition(async () => {
       try {
         const finalReceiptPath = await uploadReceipt(false);
-        const formData = new FormData(event.currentTarget);
-
-        formData.set("currency", currency);
-
-        if (finalReceiptPath) {
-          formData.set("receipt_path", finalReceiptPath);
-        }
+        const payload = {
+          description,
+          amount,
+          currency,
+          category,
+          date,
+          notes,
+          receipt_path: finalReceiptPath,
+        };
 
         if (isEditing && expense) {
-          await updateExpense(expense.id, formData);
+          await updateExpenseFromInput(expense.id, payload);
         } else {
-          await createExpense(formData);
+          await createExpenseFromInput(payload);
         }
 
         onSaved();
