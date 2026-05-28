@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Clock3, FilePlus2, Layers3, ReceiptText } from "lucide-react";
+import { ArrowRight, Clock3, Layers3, ReceiptText } from "lucide-react";
 
 import { QuotationsList } from "@/components/cotizacion/quotations-list";
 import { Button } from "@/components/ui/button";
@@ -195,12 +195,6 @@ export default async function QuotationsPage() {
             </p>
           </div>
 
-          <Button asChild variant="outline" className="bg-background/75">
-            <Link href="/cotizaciones/nueva">
-              <FilePlus2 className="mr-2 h-4 w-4" />
-              Crear borrador
-            </Link>
-          </Button>
         </div>
 
         <QuotationsList

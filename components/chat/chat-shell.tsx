@@ -18,6 +18,7 @@ import {
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
 import type { ChatReplyPayload, ChatRole, ChatSuggestedAction } from "@/types";
 
@@ -176,9 +177,10 @@ export function ChatShell() {
         setFeedback({
           tone: "success",
           title: "Precio actualizado",
-          description: `${result.itemName} paso de $${result.previousPrice.toLocaleString(
-            "es-AR",
-          )} a $${result.updatedPrice.toLocaleString("es-AR")}.`,
+          description: `${result.itemName} pasó de ${formatCurrencyAmount(
+            result.previousPrice,
+            "ARS",
+          )} a ${formatCurrencyAmount(result.updatedPrice, "ARS")}.`,
           href: "/catalogo",
           hrefLabel: "Ver catálogo",
         });

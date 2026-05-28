@@ -5,6 +5,7 @@ import { BadgeDollarSign, Bot, CheckCircle2, FileText, Loader2, User2, XCircle }
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import type { ChatRole, ChatSuggestedAction } from "@/types";
 
 type ChatUiMessage = {
@@ -31,10 +32,7 @@ type ChatMessageListProps = {
 };
 
 function formatMoney(value: number) {
-  return value.toLocaleString("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return formatCurrencyAmount(value, "ARS");
 }
 
 export function ChatMessageList({
@@ -177,7 +175,7 @@ export function ChatMessageList({
                       >
                         <p className="font-medium text-foreground">{item.name}</p>
                         <p className="text-muted-foreground">
-                          {item.quantity} x {item.unit} a ${formatMoney(item.unitPrice)}
+                          {item.quantity} x {item.unit} a {formatMoney(item.unitPrice)}
                         </p>
                       </div>
                     ))}
@@ -192,10 +190,10 @@ export function ChatMessageList({
                     </span>
                   </p>
                   <p className="text-muted-foreground">
-                    Precio actual: ${formatMoney(pendingSuggestion.currentPrice)}
+                    Precio actual: {formatMoney(pendingSuggestion.currentPrice)}
                   </p>
                   <p className="text-muted-foreground">
-                    Precio sugerido: ${formatMoney(pendingSuggestion.suggestedPrice)}
+                    Precio sugerido: {formatMoney(pendingSuggestion.suggestedPrice)}
                   </p>
                   {pendingSuggestion.reason ? (
                     <p className="text-muted-foreground">{pendingSuggestion.reason}</p>

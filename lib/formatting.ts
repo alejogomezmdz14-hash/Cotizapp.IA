@@ -42,22 +42,12 @@ export function formatCurrencyAmount(
 ) {
   const amount = value ?? 0;
   const currencyCode = getCurrencyCode(currency);
+  const formattedAmount = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 
-  try {
-    return new Intl.NumberFormat("es", {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return new Intl.NumberFormat("es", {
-      style: "currency",
-      currency: DEFAULT_CURRENCY,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  }
+  return `${formattedAmount} ${currencyCode}`;
 }
 
 export function formatExpenseAmount(
