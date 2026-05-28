@@ -30,7 +30,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="space-y-4">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             <Settings className="h-3.5 w-3.5" />
             Ajustes
           </span>

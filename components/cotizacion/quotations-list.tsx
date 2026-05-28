@@ -92,12 +92,11 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
     });
   }, [quotations, searchQuery, statusFilter]);
 
-  const summaryCardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const summaryCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   if (quotations.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
+      <div className="rounded-md border border-dashed border-token bg-background/60 px-5 py-10 text-center">
         <p className="text-lg font-semibold text-foreground">
           Todavía no creaste cotizaciones
         </p>
@@ -151,7 +150,7 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
             type="button"
             onClick={() => setStatusFilter(filter.id)}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium transition",
+              "rounded-full border px-3 py-1 text-[11px] font-medium transition",
               statusFilter === filter.id
                 ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground"
                 : "border-token/80 bg-background/70 text-muted-foreground hover:text-foreground",
@@ -163,11 +162,11 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
       </div>
 
       {filteredQuotations.length === 0 ? (
-        <p className="rounded-[1.5rem] border border-dashed border-token px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed border-token px-4 py-8 text-center text-sm text-muted-foreground">
           No hay cotizaciones que coincidan con el filtro.
         </p>
       ) : viewMode === "table" ? (
-        <div className="overflow-x-auto rounded-[1.75rem] border border-token bg-background/70">
+        <div className="overflow-x-auto rounded-md border border-token bg-background/70">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-token/80 text-xs uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
@@ -258,14 +257,14 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                 href={detailHref}
                 className={cn(
                   summaryCardClassName,
-                  "block rounded-[1.75rem] border p-5 transition hover:border-[rgb(var(--accent-rgb)/0.28)]",
+              "block rounded-md border p-5 transition hover:border-[rgb(var(--accent-rgb)/0.28)]",
                   isExpired && "!border-destructive/50 !bg-destructive/5",
                 )}
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                         {quotation.number}
                       </span>
                       <span

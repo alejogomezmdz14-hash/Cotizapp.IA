@@ -25,14 +25,13 @@ export default async function FacturasPage() {
     getProfile(user.id),
   ]);
 
-  const cardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const cardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
     <div className="space-y-6 pb-20">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="ui-shell-kicker">
             Facturas
           </p>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -48,7 +47,7 @@ export default async function FacturasPage() {
       </section>
 
       {invoices.length === 0 ? (
-        <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
+        <div className="rounded-md border border-dashed border-token bg-background/60 px-5 py-10 text-center">
           <p className="text-lg font-semibold text-foreground">
             Todavía no generaste facturas
           </p>
@@ -63,7 +62,7 @@ export default async function FacturasPage() {
             <Card key={invoice.id} className={cardClassName}>
               <CardHeader className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                     {invoice.invoice_number}
                   </span>
                   <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -79,7 +78,7 @@ export default async function FacturasPage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="ui-shell-kicker">
                     Total
                   </p>
                   <p className="mt-1 text-xl font-semibold">

@@ -1,14 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
 
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta-sans",
+  variable: "--font-inter-tight",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
 });
 
 export const metadata: Metadata = {
@@ -37,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={plusJakartaSans.variable}>
+      <body className={`${interTight.variable} ${jetBrainsMono.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

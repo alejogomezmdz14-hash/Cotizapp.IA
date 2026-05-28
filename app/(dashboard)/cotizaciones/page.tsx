@@ -53,15 +53,14 @@ export default async function QuotationsPage() {
     activeStatuses.set(label, (activeStatuses.get(label) ?? 0) + 1);
   }
 
-  const summaryCardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const summaryCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">
-            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Cotizaciones
             </span>
 
@@ -83,8 +82,8 @@ export default async function QuotationsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-[1.75rem] border border-token bg-background/80 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-md border border-token bg-background/80 p-4 shadow-none">
+              <p className="ui-shell-kicker">
                 Total cargadas
               </p>
               <p className="mt-3 text-3xl font-semibold tracking-tight">
@@ -94,8 +93,8 @@ export default async function QuotationsPage() {
                 Cotizaciones visibles entre borradores y etapas de seguimiento.
               </p>
             </div>
-            <div className="rounded-[1.75rem] border border-token bg-background/60 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-md border border-token bg-background/60 p-4 shadow-none">
+              <p className="ui-shell-kicker">
                 Borradores activos
               </p>
               <p className="mt-3 text-3xl font-semibold tracking-tight">
@@ -112,7 +111,7 @@ export default async function QuotationsPage() {
       <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="ui-shell-kicker">
               Vista general
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
@@ -211,7 +210,7 @@ export default async function QuotationsPage() {
       <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="ui-shell-kicker">
               Historial detallado
             </p>
             <h3 className="text-xl font-semibold tracking-tight">

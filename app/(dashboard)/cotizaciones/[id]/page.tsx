@@ -114,8 +114,7 @@ export default async function QuotationDetailPage({
   );
   const canShareQuotation =
     isDraftQuotationStatus(quotation.status) || quotation.status === "pending";
-  const cardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const cardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
     <div className="space-y-6 pb-20">
@@ -128,7 +127,7 @@ export default async function QuotationDetailPage({
             </Link>
           </Button>
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="ui-shell-kicker">
               Cotizaciones / Detalle
             </p>
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -190,8 +189,8 @@ export default async function QuotationDetailPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-md border border-token/80 bg-background/70 p-4">
+                  <p className="ui-shell-kicker">
                     Subtotal
                   </p>
                   <p className="mt-2 text-lg font-semibold">
@@ -201,8 +200,8 @@ export default async function QuotationDetailPage({
                     )}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-md border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
+                  <p className="ui-shell-kicker">
                     Total
                   </p>
                   <p className="mt-2 text-lg font-semibold">
@@ -212,16 +211,16 @@ export default async function QuotationDetailPage({
                     )}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-md border border-token/80 bg-background/70 p-4">
+                  <p className="ui-shell-kicker">
                     Impuesto
                   </p>
                   <p className="mt-2 text-lg font-semibold">
                     {quotation.tax_rate ?? 0}%
                   </p>
                 </div>
-                <div className="rounded-2xl border border-token/80 bg-background/70 p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-md border border-token/80 bg-background/70 p-4">
+                  <p className="ui-shell-kicker">
                     Válida hasta
                   </p>
                   <p className="mt-2 text-lg font-semibold">
@@ -262,7 +261,7 @@ export default async function QuotationDetailPage({
                 hydrated.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col gap-2 rounded-2xl border border-token/80 bg-background/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2 rounded-md border border-token/80 bg-background/70 p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <p className="font-medium text-foreground">{item.name}</p>

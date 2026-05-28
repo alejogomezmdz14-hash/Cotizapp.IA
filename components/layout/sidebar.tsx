@@ -27,10 +27,10 @@ function SidebarNavLink({
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-3 rounded-md border-l-2 py-2 pl-3 pr-3 text-[13px] transition",
+        "group relative flex items-center gap-3 rounded-md border-l-2 py-1.5 pl-3 pr-3 text-[13px] transition",
         active
           ? "border-sidebar-active bg-[rgba(255,255,255,0.06)] text-white"
-          : "border-transparent text-[#C9D1D9] hover:bg-[rgba(255,255,255,0.04)] hover:text-white",
+          : "border-transparent text-[#C9D1D9] hover:bg-[rgba(255,255,255,0.04)] hover:text-[#F2F2F4]",
       )}
     >
       <Icon
@@ -43,7 +43,7 @@ function SidebarNavLink({
         <span
           className={cn(
             "block truncate font-medium",
-            active ? "text-white" : "text-[#C9D1D9] group-hover:text-white",
+            active ? "text-white" : "text-[#C9D1D9] group-hover:text-[#F2F2F4]",
           )}
         >
           {item.label}
@@ -62,18 +62,18 @@ export function Sidebar() {
   const activeHref = getActiveNavHref(pathname, allNavItems);
 
   return (
-    <aside className="hidden w-[18.5rem] shrink-0 border-r border-[rgba(255,255,255,0.06)] bg-sidebar lg:block">
+    <aside className="hidden w-[220px] shrink-0 border-r border-[rgba(255,255,255,0.07)] bg-sidebar lg:block">
       <div className="sticky top-0 flex h-screen flex-col">
         <Link
           href="/dashboard"
-          className="flex shrink-0 justify-start bg-transparent px-5 pb-5 pt-6"
+          className="flex shrink-0 justify-start bg-transparent px-[18px] pb-3 pt-5"
           aria-label="Ir al inicio de Cotizapp"
         >
-          <CotizappLogo variant="on-dark" width={132} priority />
+          <CotizappLogo variant="on-dark" width={126} priority />
         </Link>
 
-        <div className="flex min-h-0 flex-1 flex-col px-3 pb-4">
-          <p className="shrink-0 px-3 pb-3 text-[10px] font-medium uppercase tracking-[0.08em] text-[#8B8FA8]">
+        <div className="flex min-h-0 flex-1 flex-col px-[10px] pb-4">
+          <p className="shrink-0 px-2 pb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-[#54545C]">
             Navegación
           </p>
 
@@ -88,7 +88,7 @@ export function Sidebar() {
               ))}
             </nav>
 
-            <div className="shrink-0 space-y-0.5 border-t border-[rgba(255,255,255,0.06)] pt-3">
+            <div className="shrink-0 space-y-0.5 border-t border-[rgba(255,255,255,0.07)] pt-3">
               {sidebarFooterNavItems.map((item) => (
                 <SidebarNavLink
                   key={item.href}

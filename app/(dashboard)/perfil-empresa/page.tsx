@@ -29,7 +29,7 @@ export default async function BusinessProfilePage({
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:items-end">
           <div className="space-y-5">
-            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Perfil de empresa
             </span>
             <div className="space-y-3">
@@ -63,7 +63,7 @@ export default async function BusinessProfilePage({
             ].map(({ title, description, icon: Icon }) => (
               <div
                 key={title}
-                className="rounded-[1.75rem] border border-token bg-background/80 p-4 shadow-sm"
+                className="rounded-md border border-token bg-background/80 p-4 shadow-none"
               >
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-token/80 bg-background text-accent-token">
                   <Icon className="h-4 w-4" />

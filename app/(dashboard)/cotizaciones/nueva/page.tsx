@@ -68,15 +68,14 @@ export default async function NewQuotationPage({
     ]);
   const draftAlreadyCreated =
     Boolean(draftHydration.draftQuotation) && !editorState;
-  const summaryCardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const summaryCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">
-            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Nueva cotización
             </span>
 
@@ -97,7 +96,7 @@ export default async function NewQuotationPage({
               {["Cliente", "Factura", "Items", "Resumen"].map((step) => (
                 <span
                   key={step}
-                  className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                  className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
                 >
                   {step}
                 </span>

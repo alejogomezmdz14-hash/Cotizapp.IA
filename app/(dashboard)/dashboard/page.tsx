@@ -107,17 +107,15 @@ export default async function DashboardPage() {
           : "Sin gastos registrados",
     },
   ];
-  const panelClassName =
-    "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
-  const statCardClassName =
-    "!rounded-[1.75rem] !border-token !bg-background/75 !shadow-[0_20px_45px_-32px_rgba(15,17,23,0.45)]";
+  const panelClassName = "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
+  const statCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="ui-shell-kicker">
               Métricas clave
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
@@ -211,7 +209,7 @@ export default async function DashboardPage() {
 
       <section className={panelClassName}>
         <div className="mb-5 space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="ui-shell-kicker">
             Este mes
           </p>
           <h3 className="text-xl font-semibold tracking-tight">
@@ -225,11 +223,8 @@ export default async function DashboardPage() {
 
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {monthlySummary.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4"
-            >
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <div key={item.label} className="rounded-md border border-token/80 bg-background/70 p-4">
+              <p className="ui-shell-kicker">
                 {item.label}
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-tight">
@@ -242,7 +237,7 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        <div className="rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-5">
+        <div className="rounded-md border border-token/80 bg-background/70 p-4 sm:p-5">
           <p className="mb-4 text-sm font-medium text-foreground">
             Cotizaciones vs gastos (últimos 6 meses)
           </p>
@@ -256,7 +251,7 @@ export default async function DashboardPage() {
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="ui-shell-kicker">
               Recientes
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
@@ -289,7 +284,7 @@ export default async function DashboardPage() {
                 <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                         {quotation.number}
                       </span>
                       <span

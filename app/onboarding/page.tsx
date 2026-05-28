@@ -77,7 +77,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
           <section className="order-2 shell-panel-strong shell-highlight flex flex-col justify-between gap-6 p-6 sm:p-8 lg:order-1">
             <div className="space-y-4">
-              <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                 Onboarding
               </span>
               <div className="space-y-3">
@@ -96,7 +96,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               {onboardingHighlights.map(({ title, description, icon: Icon }) => (
                 <div
                   key={title}
-                  className="rounded-[1.75rem] border border-token bg-background/70 px-4 py-4"
+                  className="rounded-md border border-token bg-background/70 px-4 py-4"
                 >
                   <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-token/80 bg-background text-accent-token">
                     <Icon className="h-4 w-4" />
@@ -109,7 +109,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               ))}
             </div>
 
-            <div className="rounded-[1.75rem] border border-token bg-background/70 px-4 py-4 text-sm text-muted-foreground">
+            <div className="rounded-md border border-token bg-background/70 px-4 py-4 text-sm text-muted-foreground">
               <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
                 <BadgeCheck className="h-4 w-4 text-accent-token" />
                 Qué vas a dejar listo
@@ -122,7 +122,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
           <section className="order-1 shell-panel-strong p-6 sm:p-8 lg:order-2">
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
               <div className="space-y-3">
-                <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   Datos del negocio
                 </span>
                 <div className="space-y-2">

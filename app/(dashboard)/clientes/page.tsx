@@ -26,7 +26,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   return (
     <div className="space-y-6 pb-20">
       <section className="space-y-3">
-        <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Clientes
         </span>
         <div className="space-y-2">
