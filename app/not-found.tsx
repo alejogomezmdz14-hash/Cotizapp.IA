@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
@@ -7,9 +8,51 @@ import { Button } from "@/components/ui/button";
 import { resolveDashboardBranding } from "@/lib/dashboard-branding";
 import { getCurrentUser, getProfile, isProfileComplete } from "@/lib/profile";
 
+function PublicNotFound() {
+  return (
+    <main className="shell-backdrop flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <section className="shell-panel-strong w-full max-w-lg space-y-5 border border-token p-6 text-center sm:p-8">
+        <span className="inline-flex rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Error 404
+        </span>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Esa página no existe
+          </h1>
+          <p className="text-sm leading-6 text-muted-foreground">
+            La página no existe o fue movida.
+          </p>
+        </div>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild>
+            <Link href="/">Ir al inicio</Link>
+          </Button>
+          <Button asChild variant="outline" className="bg-background/75">
+            <Link href="/sign-in">Iniciar sesión</Link>
+          </Button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export default async function NotFound() {
-  const user = await getCurrentUser();
-  const profile = user ? await getProfile(user.id).catch(() => null) : null;
+  const { userId } = await auth();
+
+  if (!userId) {
+    return <PublicNotFound />;
+  }
+
+  let user = null;
+  let profile = null;
+
+  try {
+    user = await getCurrentUser();
+    profile = user ? await getProfile(user.id).catch(() => null) : null;
+  } catch {
+    return <PublicNotFound />;
+  }
+
   const branding = isProfileComplete(profile)
     ? await resolveDashboardBranding(profile).catch(() => ({
         businessName: profile?.business_name ?? null,

@@ -7,6 +7,8 @@ export default function SignUpPage() {
         routing="path"
         path="/sign-up"
         signInUrl="/sign-in"
+        forceRedirectUrl="/onboarding"
+        fallbackRedirectUrl="/onboarding"
         appearance={{
           elements: {
             rootBox: "mx-auto w-full max-w-md",

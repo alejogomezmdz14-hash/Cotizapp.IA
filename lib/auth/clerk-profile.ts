@@ -34,18 +34,16 @@ export async function ensureProfileForClerkUser(clerkId: string) {
     null;
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .insert({
-      clerk_id: clerkId,
-      email,
-      logo_onboarding_completed: false,
-    })
-    .select("*")
-    .single();
+  const { data, error } = await supabase.rpc("ensure_clerk_profile", {
+    p_clerk_id: clerkId,
+    p_email: email,
+  });
 
   if (error) {
-    throw error;
+    console.error("[clerk-profile] ensure_clerk_profile:", error.message);
+    throw new Error(
+      "No pudimos preparar tu cuenta. Verificá que la integración Clerk + Supabase esté activa en ambos dashboards.",
+    );
   }
 
   return data as Profile;
