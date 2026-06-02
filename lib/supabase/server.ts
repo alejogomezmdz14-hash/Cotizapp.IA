@@ -1,16 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-import {
-  getSupabaseEnv,
-  supabaseCookieOptions,
-} from "@/lib/supabase/config";
-
 function getSupabaseServerEnv() {
-  const env = getSupabaseEnv();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
-  if (env) {
-    return env;
+  if (url && anonKey) {
+    return { url, anonKey };
   }
 
   const isProductionBuild =
@@ -33,7 +29,6 @@ export async function createClient() {
   const cookieStore = cookies();
 
   return createServerClient(url, anonKey, {
-    cookieOptions: supabaseCookieOptions,
     cookies: {
       getAll() {
         return cookieStore.getAll();

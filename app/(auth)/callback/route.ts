@@ -2,10 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isProfileComplete } from "@/lib/profile";
-import {
-  getSupabaseEnv,
-  supabaseCookieOptions,
-} from "@/lib/supabase/config";
 import type { Profile } from "@/types";
 
 function redirectWithSessionCookies(
@@ -28,16 +24,16 @@ export async function GET(request: NextRequest) {
   const dashboardUrl = new URL("/dashboard", request.url);
 
   const code = requestUrl.searchParams.get("code");
-  const env = getSupabaseEnv();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
-  if (!code || !env) {
+  if (!code || !supabaseUrl || !supabaseAnonKey) {
     return NextResponse.redirect(loginUrl);
   }
 
   let sessionResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(env.url, env.anonKey, {
-    cookieOptions: supabaseCookieOptions,
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
