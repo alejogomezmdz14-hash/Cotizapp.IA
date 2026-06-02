@@ -88,8 +88,7 @@ export function ClientPicker({
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-          Todavía no seleccionaste ningún cliente. Haz clic en uno de la lista para
-          usarlo en esta cotización.
+          Todavía no elegiste un cliente. Tocá uno de la lista de abajo para agregarlo.
         </div>
       )}
 

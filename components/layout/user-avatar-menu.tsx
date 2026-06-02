@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Building2, User } from "lucide-react";
+import { Building2, Settings, User } from "lucide-react";
+
+import { SignOutButton } from "@/components/layout/sign-out-button";
 
 import {
   DropdownMenu,
@@ -68,6 +70,15 @@ export function UserAvatarMenu({
             <Building2 className="h-4 w-4" />
             Mi empresa
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/ajustes" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Ajustes
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <SignOutButton menuItem className="text-foreground" />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -124,11 +124,11 @@ export function CatalogTable({
               <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {resultLabel}
               </span>
-              <span className="rounded-full border border-token/80 px-3 py-1 text-xs text-muted-foreground">
-                {normalizedSearch
-                  ? `Filtro: "${normalizedSearch}"`
-                  : "Sin filtros"}
-              </span>
+              {normalizedSearch ? (
+                <span className="rounded-full border border-token/80 px-3 py-1 text-xs text-muted-foreground">
+                  Filtrar: &quot;{normalizedSearch}&quot;
+                </span>
+              ) : null}
             </div>
           </div>
 

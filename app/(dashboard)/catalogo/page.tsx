@@ -13,7 +13,6 @@ import {
   getCatalogUnitSuggestions,
 } from "@/lib/catalog-suggestions";
 import { getCatalogItems } from "@/lib/catalog";
-import { formatCurrencyAmount } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
 
 type CatalogPageProps = {
@@ -52,7 +51,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <Card className="border-token bg-surface shadow-sm">
           <CardHeader className="space-y-3">
-            <CardTitle className="text-xl">Nuevo ítem</CardTitle>
+            <CardTitle className="text-xl">Agregar producto o servicio</CardTitle>
             <CardDescription>
               Completá los datos del producto o servicio.
             </CardDescription>
@@ -63,16 +62,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                 Precio de referencia
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Ingresá el número sin símbolos. Se va a mostrar como{" "}
-                <span className="font-semibold text-foreground">
-                  {formatCurrencyAmount(1250, profile?.currency ?? null)}
-                </span>
-                {" "}según tu moneda.
+                Ingresá el precio (solo números). Ejemplo: 1250
               </p>
             </div>
 
             <CatalogItemForm
-              submitLabel="Guardar ítem"
+              submitLabel="Guardar en mi catálogo"
               categorySuggestions={categorySuggestions}
               unitSuggestions={unitSuggestions}
               onSubmit={createCatalogItemAction}

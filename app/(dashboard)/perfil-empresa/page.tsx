@@ -34,11 +34,11 @@ export default async function BusinessProfilePage({
             </span>
             <div className="space-y-3">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Centraliza la identidad que aparece en cada cotización
+                Configurá cómo te ven tus clientes en cada cotización
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Actualiza nombre comercial, logo, datos de contacto, moneda y el pie
-                del PDF desde una sola pantalla conectada con el resto del flujo.
+                Actualizá nombre comercial, logo, datos de contacto, moneda y el pie
+                del PDF desde una sola pantalla.
               </p>
             </div>
           </div>
@@ -46,7 +46,7 @@ export default async function BusinessProfilePage({
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
             {[
               {
-                title: "Branding",
+                title: "Tu logo y nombre",
                 description: "Logo y nombre visibles en dashboard y PDF.",
                 icon: Building2,
               },
@@ -56,7 +56,7 @@ export default async function BusinessProfilePage({
                 icon: ScrollText,
               },
               {
-                title: "Activos",
+                title: "Archivos guardados",
                 description: "El logo queda disponible para las nuevas cotizaciones.",
                 icon: ImageIcon,
               },

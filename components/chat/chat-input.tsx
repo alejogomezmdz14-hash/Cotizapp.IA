@@ -459,7 +459,7 @@ export function ChatInput({
             }
             onChange={(event) => handleValueChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribí o hablá..."
+            placeholder="Escribí tu pregunta o tocá el micrófono"
             disabled={isInputDisabled}
             className="h-10 w-full rounded-full bg-transparent px-3 text-sm text-white outline-none placeholder:text-muted-foreground"
           />

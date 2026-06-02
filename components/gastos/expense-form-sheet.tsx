@@ -292,7 +292,7 @@ export function ExpenseFormSheet({
               >
                 {EXPENSE_CURRENCIES.map((item) => (
                   <option key={item.code} value={item.code}>
-                    {item.code} — {item.label}
+                    {item.label} ({item.code})
                   </option>
                 ))}
               </select>
@@ -405,16 +405,17 @@ export function ExpenseFormSheet({
                   (!selectedFile && !receiptPath)
                 }
                 onClick={handleScanReceipt}
+                title="El sistema lee el monto y lo carga solo"
               >
                 {isScanning ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Escaneando...
+                    Leyendo ticket...
                   </>
                 ) : (
                   <>
                     <ScanLine className="mr-2 h-4 w-4" />
-                    Escanear con IA
+                    Sacale una foto al ticket
                   </>
                 )}
               </Button>

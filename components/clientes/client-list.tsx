@@ -176,7 +176,7 @@ export function ClientList({ clients, search }: ClientListProps) {
             <CardDescription>
               {normalizedSearch
                 ? `Proba con otro nombre, email o teléfono. Búsqueda actual: "${normalizedSearch}".`
-                : "Cuando registres tu primer cliente, aparecerá en este listado para usarlo en nuevas cotizaciones."}
+                  : "Cuando registres tu primer cliente, aparecerá acá. Tocá «Agregar cliente» para empezar."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -185,7 +185,7 @@ export function ClientList({ clients, search }: ClientListProps) {
               <span>
                 {normalizedSearch
                   ? "No hubo coincidencias en los resultados actuales."
-                  : "Empieza cargando un cliente desde el formulario de esta pantalla."}
+                  : "Tocá «Agregar cliente» arriba para cargar el primero."}
               </span>
             </div>
           </CardContent>
@@ -299,12 +299,12 @@ export function ClientList({ clients, search }: ClientListProps) {
         description={
           pendingDelete
             ? pendingDelete.quotationCount > 0
-              ? `¿Eliminar a ${pendingDelete.name}? Tiene ${pendingDelete.quotationCount} cotización${
+              ? `¿Seguro que querés eliminar a ${pendingDelete.name}? Tiene ${pendingDelete.quotationCount} cotización${
                   pendingDelete.quotationCount === 1 ? "" : "es"
                 } asociada${
                   pendingDelete.quotationCount === 1 ? "" : "s"
-                }. Si lo eliminás, el historial puede quedar inconsistente.`
-              : `¿Eliminar a ${pendingDelete.name}? Esta acción no se puede deshacer.`
+                }. Esta acción no se puede deshacer.`
+              : `¿Seguro que querés eliminar a ${pendingDelete.name}? Esta acción no se puede deshacer.`
             : ""
         }
         confirmLabel="Eliminar cliente"

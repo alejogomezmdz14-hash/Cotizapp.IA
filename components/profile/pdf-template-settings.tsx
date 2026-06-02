@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Palette, ScrollText } from "lucide-react";
+import { ChevronDown, Palette, ScrollText } from "lucide-react";
 
 import { savePdfTemplateSettingsAction } from "@/app/actions/profile";
 import { Button } from "@/components/ui/button";
@@ -157,6 +157,7 @@ export function PdfTemplateSettings({
   const [accentColor, setAccentColor] = useState(
     normalizePdfAccentColor(initialAccentColor),
   );
+  const [showColorCode, setShowColorCode] = useState(false);
 
   const previewBusinessName = useMemo(
     () => businessName?.trim() || "Tu empresa",
@@ -216,10 +217,32 @@ export function PdfTemplateSettings({
                 value={accentColor}
                 className="h-10 w-14 cursor-pointer border-0 bg-transparent p-0"
                 onChange={(event) => setAccentColor(event.target.value)}
+                aria-label="Elegir color de acento del PDF"
               />
-              <span className="text-sm font-medium uppercase">{accentColor}</span>
+              <span
+                className="h-6 w-6 rounded-full border border-token/80"
+                style={{ backgroundColor: accentColor }}
+              />
             </div>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+              onClick={() => setShowColorCode((current) => !current)}
+            >
+              {showColorCode ? "Ocultar código" : "Ver código de color"}
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 transition",
+                  showColorCode && "rotate-180",
+                )}
+              />
+            </button>
           </div>
+          {showColorCode ? (
+            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              {accentColor}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2">

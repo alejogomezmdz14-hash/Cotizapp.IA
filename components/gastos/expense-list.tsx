@@ -147,7 +147,7 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
       {!currentMonthGroup?.expenses.length && hasAnyExpenses ? (
         <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-8 text-center">
           <p className="text-sm leading-6 text-muted-foreground">
-            No hay gastos en el mes actual. Los registros anteriores aparecen arriba.
+            No hay gastos registrados en este mes.
           </p>
         </div>
       ) : null}

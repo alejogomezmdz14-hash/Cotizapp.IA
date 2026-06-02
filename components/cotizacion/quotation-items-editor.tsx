@@ -192,7 +192,7 @@ export function QuotationItemsEditor({
                 disabled={disabled}
               >
                 <PackagePlus className="mr-2 h-4 w-4" />
-                Importar catálogo
+                Agregar desde mis productos
               </Button>
             </div>
           </div>
@@ -360,10 +360,10 @@ export function QuotationItemsEditor({
           className="max-h-[85vh] overflow-y-auto border-token bg-surface"
         >
           <SheetHeader className="space-y-2">
-            <SheetTitle>Importar desde catálogo</SheetTitle>
+            <SheetTitle>Agregar desde mis productos</SheetTitle>
             <SheetDescription>
-              Elige un ítem para copiarlo a la cotización y ajustarlo sin tocar
-              tu catálogo original.
+              Elegí un producto para sumarlo a la cotización. Podés editarlo sin
+              cambiar tu catálogo original.
             </SheetDescription>
           </SheetHeader>
 

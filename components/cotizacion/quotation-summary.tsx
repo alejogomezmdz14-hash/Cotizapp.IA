@@ -63,8 +63,7 @@ export function QuotationSummary({
           <div className="space-y-1">
             <CardTitle className="text-xl">Resumen del borrador</CardTitle>
             <CardDescription className="leading-6">
-              Los calculos se actualizan en tiempo real para que llegues al guardado
-              con contexto claro.
+              El total se actualiza mientras cargás los ítems.
             </CardDescription>
           </div>
           <div className="rounded-2xl border border-token bg-background/70 p-3 text-accent-token">
@@ -140,16 +139,15 @@ export function QuotationSummary({
         {draftNumber ? (
           <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             Borrador guardado con el número <span className="font-semibold">{draftNumber}</span>.
-            Ahora puedes sumar adjuntos antes de salir.
+            Ahora podés sumar adjuntos antes de salir.
           </div>
         ) : (
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
             <div className="mb-2 flex items-center gap-2 text-foreground">
               <ShieldCheck className="h-4 w-4 text-accent-token" />
-              Guardar borrador
+              Guardar cotización
             </div>
-            Al guardar se crea una cotización en estado borrador, lista para sumar
-            adjuntos y preparar la salida por PDF o WhatsApp.
+            Se guarda. Después podés adjuntar fotos y enviarla por WhatsApp.
           </div>
         )}
 
@@ -172,10 +170,10 @@ export function QuotationSummary({
           aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
         >
           {isSubmitting
-            ? "Guardando borrador..."
+            ? "Guardando cotización..."
             : isSaved
-              ? "Borrador guardado"
-              : "Guardar borrador"}
+              ? "Cotización guardada"
+              : "Guardar cotización"}
         </Button>
       </CardContent>
     </Card>

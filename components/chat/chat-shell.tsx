@@ -212,7 +212,7 @@ export function ChatShell() {
             <p className="text-sm font-semibold text-white">Asistente Cotizapp</p>
             <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Circle className="h-2.5 w-2.5 fill-[#00E5A0] text-[#00E5A0]" />
-              En línea
+              Disponible ahora
             </p>
           </div>
         </div>

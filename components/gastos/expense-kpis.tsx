@@ -41,7 +41,7 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
       accent: "border-token bg-background/80 text-foreground",
     },
     {
-      title: "Categoría con más gasto",
+      title: "Donde más gastaste",
       value: topCategoryValue,
       description: "La categoría con mayor monto este mes.",
       icon: Tags,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Clock3, Layers3, ReceiptText } from "lucide-react";
+import { ArrowRight, Layers3, ReceiptText } from "lucide-react";
 
 import { QuotationsList } from "@/components/cotizacion/quotations-list";
 import { Button } from "@/components/ui/button";
@@ -76,13 +76,13 @@ export default async function QuotationsPage() {
             </div>
             <div className="rounded-md border border-token bg-background/60 p-4 shadow-none">
               <p className="ui-shell-kicker">
-                Borradores activos
+                Sin enviar
               </p>
               <p className="mt-3 text-3xl font-semibold tracking-tight">
                 {draftCount}
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Borradores sin enviar todavía.
+                Cotizaciones que todavía no mandaste.
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default async function QuotationsPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card className={summaryCardClassName}>
             <CardHeader className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -148,33 +148,13 @@ export default async function QuotationsPage() {
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="space-y-1">
-                <CardDescription>Borradores activos</CardDescription>
+                <CardDescription>Sin enviar</CardDescription>
                 <CardTitle className="text-4xl">{draftCount}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                Podés editarlos y enviarlos cuando quieras.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className={summaryCardClassName}>
-            <CardHeader className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="rounded-2xl border border-token bg-background/80 p-3">
-                  <Clock3 className="h-5 w-5" />
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-1">
-                <CardDescription>Estados presentes</CardDescription>
-                <CardTitle className="text-4xl">{activeStatuses.size}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Distintos estados activos en este momento.
+                Podés editarlas y enviarlas cuando quieras.
               </p>
             </CardContent>
           </Card>
@@ -185,13 +165,13 @@ export default async function QuotationsPage() {
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <p className="ui-shell-kicker">
-              Historial detallado
+              Todas tus cotizaciones
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
               Tus cotizaciones recientes
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Filtrá por estado o buscá por cliente. Cambiá entre tarjetas o tabla.
+              Buscá por cliente o filtrá por estado.
             </p>
           </div>
 

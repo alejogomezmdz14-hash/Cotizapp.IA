@@ -36,7 +36,6 @@ import { formatCurrencyAmount } from "@/lib/formatting";
 import {
   getQuotationValidityBounds,
   getQuotationValidityPresetDate,
-  formatDateInputHint,
 } from "@/lib/quotation-validity";
 import { isDraftQuotationStatus } from "@/lib/quotation-status";
 import { Button } from "@/components/ui/button";
@@ -700,8 +699,8 @@ export function QuotationForm({
                   <div className="space-y-1">
                     <CardTitle className="text-xl">Datos del cliente</CardTitle>
                     <CardDescription className="leading-6">
-                      Reutiliza un cliente guardado o cárgalo inline para no cortar
-                      el flujo del borrador.
+                      Elegí un cliente ya guardado, o cargá uno nuevo sin salir de
+                      esta pantalla.
                     </CardDescription>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -722,7 +721,7 @@ export function QuotationForm({
                       onClick={activateInlineClientMode}
                       disabled={isFormLocked}
                     >
-                      Crear inline
+                      Cargar cliente nuevo acá mismo
                     </Button>
                   </div>
                 </div>
@@ -730,8 +729,7 @@ export function QuotationForm({
 
               <CardContent className="space-y-4">
                 <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                  El cliente seleccionado aparece también en el resumen lateral para
-                  mantener el contexto del borrador mientras cargas ítems.
+                  El cliente elegido aparece en el resumen de la derecha.
                 </div>
 
                 {clientMode === "existing" ? (
@@ -743,7 +741,7 @@ export function QuotationForm({
                     allowClear
                     disabled={isFormLocked}
                     description="Seleccioná un cliente guardado para usar sus datos en esta cotización."
-                    emptyMessage="Todavía no hay clientes guardados. Puedes crear uno inline desde esta pantalla."
+                    emptyMessage="Todavía no hay clientes guardados. Podés cargar uno nuevo acá mismo."
                   />
                 ) : (
                   <div className="space-y-4">
@@ -893,8 +891,8 @@ export function QuotationForm({
               </>
             ) : (
               <div className="rounded-[1.5rem] border border-dashed border-token/80 bg-background/60 px-4 py-4 text-sm leading-6 text-muted-foreground">
-                Si tenés una factura o remito, podés escanearla con IA para importar ítems
-                sin salir del flujo de cotización.
+                ¿Tenés una factura o ticket de compra? Sacale una foto y el sistema
+                carga los datos solo.
               </div>
             )}
           </div>
@@ -906,10 +904,9 @@ export function QuotationForm({
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-1">
-                <CardTitle className="text-xl">Ajustes del borrador</CardTitle>
+                <CardTitle className="text-xl">Opciones de esta cotización</CardTitle>
                 <CardDescription className="leading-6">
-                  Define impuesto, validez y notas internas o visibles para este
-                  borrador.
+                  Definí impuesto, validez y notas para esta cotización.
                 </CardDescription>
               </CardHeader>
 
@@ -934,7 +931,7 @@ export function QuotationForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="valid-until">Válida hasta</Label>
+                    <Label htmlFor="valid-until">¿Hasta cuándo vale esta cotización?</Label>
                     <Input
                       id="valid-until"
                       name="valid_until"
@@ -963,11 +960,6 @@ export function QuotationForm({
                         </Button>
                       ))}
                     </div>
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      Elige una fecha entre {formatDateInputHint(validityBounds.minDate)} y{" "}
-                      {formatDateInputHint(validityBounds.maxDate)}. Si no elegís fecha, se
-                      usan 30 días por defecto.
-                    </p>
                     {isValidityInPast ? (
                       <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                         La fecha de validez no puede estar en el pasado.
@@ -977,8 +969,7 @@ export function QuotationForm({
                 </div>
 
                 <div className="rounded-[1.5rem] border border-token/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                  Define aquí condiciones, tiempos o aclaraciones que luego quieras
-                  tener visibles al revisar el borrador.
+                  Acá podés agregar condiciones, tiempos o aclaraciones para el cliente.
                 </div>
 
                 <div className="space-y-2">
@@ -1001,7 +992,7 @@ export function QuotationForm({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <FileCheck2 className="h-3.5 w-3.5 text-accent-token" />
-              Material de respaldo
+              Fotos y documentos de esta cotización
             </div>
             <QuotationAttachments
               quotationId={currentDraft?.quotationId ?? null}

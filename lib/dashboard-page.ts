@@ -66,7 +66,7 @@ export function buildDashboardPageCards(
       id: "sentQuotations",
       title: "Enviadas",
       value: formatDashboardCount(stats.quotationMetrics.sentQuotations),
-      description: "Presupuestos que ya compartiste con tus clientes.",
+      description: "Cotizaciones que ya mandaste a tus clientes.",
       href: "/cotizaciones",
     },
     {
@@ -80,7 +80,7 @@ export function buildDashboardPageCards(
       id: "pendingQuotations",
       title: "Pendientes",
       value: formatDashboardCount(stats.quotationMetrics.pendingQuotations),
-      description: "Oportunidades que siguen en seguimiento.",
+      description: "Cotizaciones sin respuesta todavía.",
       href: "/cotizaciones",
     },
     {

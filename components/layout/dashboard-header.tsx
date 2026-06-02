@@ -1,17 +1,21 @@
 import { BusinessAvatar } from "@/components/layout/business-avatar";
-import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { UserAvatarMenu } from "@/components/layout/user-avatar-menu";
 
 type DashboardHeaderProps = {
   businessName: string | null;
   logoUrl: string | null;
-  showSignOut?: boolean;
+  avatarUrl?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
 };
 
 export function DashboardHeader({
   businessName,
   logoUrl,
-  showSignOut = true,
+  avatarUrl = null,
+  firstName = null,
+  lastName = null,
 }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[rgba(255,255,255,0.07)] bg-[rgba(10,10,15,0.85)] px-4 py-3 backdrop-blur-md md:px-6">
@@ -31,9 +35,11 @@ export function DashboardHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          {showSignOut ? (
-            <SignOutButton className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-[12px] font-medium text-header hover:bg-white/10 hover:text-header" />
-          ) : null}
+          <UserAvatarMenu
+            avatarUrl={avatarUrl}
+            firstName={firstName}
+            lastName={lastName}
+          />
         </div>
       </div>
     </header>

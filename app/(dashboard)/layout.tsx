@@ -32,6 +32,9 @@ export default async function DashboardLayout({
         <DashboardHeader
           businessName={branding.businessName}
           logoUrl={branding.logoUrl}
+          avatarUrl={profile?.avatar_url ?? null}
+          firstName={profile?.first_name ?? null}
+          lastName={profile?.last_name ?? null}
         />
         <main className="flex-1 px-4 py-5 pb-[calc(4rem+env(safe-area-inset-bottom))] md:px-8 lg:pb-7">
           <div className="mx-auto w-full max-w-[1280px]">{children}</div>

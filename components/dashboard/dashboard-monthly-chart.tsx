@@ -38,6 +38,18 @@ export function DashboardMonthlyChart({
   data,
   currency,
 }: DashboardMonthlyChartProps) {
+  const hasData = data.some((point) => point.quoted > 0 || point.expenses > 0);
+
+  if (!hasData) {
+    return (
+      <div className="flex h-72 w-full items-center justify-center rounded-md border border-dashed border-token/80 bg-background/60 px-6 text-center">
+        <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+          Todavía no hay datos para mostrar. Creá tu primera cotización.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">

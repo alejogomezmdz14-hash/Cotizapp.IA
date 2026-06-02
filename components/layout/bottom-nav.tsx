@@ -22,7 +22,7 @@ export function BottomNav() {
       aria-label="Navegación principal"
     >
       <ul
-        className="grid h-16 grid-cols-5 items-stretch"
+        className="grid h-16 grid-cols-6 items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {primaryNavItems.map((item) => {
@@ -46,7 +46,7 @@ export function BottomNav() {
               >
                 <Icon className={cn("h-5 w-5", isPrimary && "h-[1.35rem] w-[1.35rem]")} />
                 <span className="max-w-full truncate leading-tight">
-                  {isPrimary ? "Nuevo" : item.label}
+                  {isPrimary ? "Nuevo" : item.href === "/chat" ? "Chat" : item.label}
                 </span>
               </Link>
             </li>

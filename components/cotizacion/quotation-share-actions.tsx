@@ -23,6 +23,7 @@ type QuotationShareActionsProps = {
   initialShareToken?: string | null;
   initialSentAt?: string | null;
   initialStatus?: string | null;
+  isDraft?: boolean;
   onStateChange?: (state: {
     pdfGeneratedAt: string | null;
     shareToken: string | null;
@@ -58,6 +59,7 @@ export function QuotationShareActions({
   initialShareToken = null,
   initialSentAt = null,
   initialStatus = null,
+  isDraft = false,
   onStateChange,
 }: QuotationShareActionsProps) {
   const { toast } = useToast();
@@ -252,7 +254,9 @@ export function QuotationShareActions({
         <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
         <p className="text-sm leading-6 text-muted-foreground">
           {pdfGeneratedAt
-            ? "Revisá el PDF y compartilo por WhatsApp."
+            ? isDraft
+              ? "Revisá el PDF antes de enviarlo."
+              : "Revisá el PDF y compartilo por WhatsApp."
             : "Generá el PDF primero. Después vas a poder verlo, descargarlo y compartirlo."}
         </p>
       </div>
@@ -327,7 +331,7 @@ export function QuotationShareActions({
           {isGeneratingPdf
             ? "Generando PDF..."
             : pdfGeneratedAt
-              ? "Regenerar PDF"
+              ? "Actualizar PDF"
               : "Generar PDF"}
         </Button>
 
@@ -378,7 +382,7 @@ export function QuotationShareActions({
                 asChild
               >
                 <a href={publicShareUrl} target="_blank" rel="noreferrer">
-                  Ver link público
+                  Ver enlace para compartir
                 </a>
               </Button>
             ) : null}

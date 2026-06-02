@@ -64,7 +64,7 @@ export default async function DashboardPage() {
       value: formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
     },
     {
-      label: "Cobrado",
+      label: "Cobrado (lo que ya te pagaron)",
       value: formatCurrencyAmount(stats.collectedThisMonth, currency),
     },
     {
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
             <p className="ui-shell-kicker">
-              Métricas clave
+              Tu resumen de hoy
             </p>
             <h3 className="text-xl font-semibold tracking-tight">
               Estado de tus cotizaciones
@@ -230,8 +230,7 @@ export default async function DashboardPage() {
               Cotizaciones recientes
             </h3>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Revisa los últimos movimientos sin duplicar métricas ni salir del
-              dashboard.
+              Tus últimas cotizaciones de un vistazo.
             </p>
           </div>
           <Button asChild variant="outline" className="bg-background/75">
@@ -245,8 +244,7 @@ export default async function DashboardPage() {
               Todavía no tienes cotizaciones
             </p>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Crea la primera cotización para ver el historial reciente desde este
-              dashboard.
+              Creá tu primera cotización para ver el historial reciente acá.
             </p>
           </div>
         ) : (

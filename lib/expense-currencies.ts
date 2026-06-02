@@ -1,5 +1,5 @@
 export const EXPENSE_CURRENCIES = [
-  { code: "ARS", label: "Peso argentino" },
+  { code: "ARS", label: "Pesos argentinos" },
   { code: "USD", label: "Dólar estadounidense" },
   { code: "MXN", label: "Peso mexicano" },
   { code: "COP", label: "Peso colombiano" },

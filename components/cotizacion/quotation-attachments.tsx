@@ -159,17 +159,16 @@ export function QuotationAttachments({
   return (
     <Card className="border-token bg-surface shadow-sm">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-xl">Adjuntos</CardTitle>
+        <CardTitle className="text-xl">Fotos y documentos</CardTitle>
         <CardDescription>
-          Suma fotos, PDFs o documentos relacionados con esta cotización.
+          Sumá fotos, PDFs o documentos relacionados con esta cotización.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {!quotationId ? (
           <div className="rounded-lg border border-dashed border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
-            Guarda primero la cotización como borrador para habilitar la carga de
-            adjuntos.
+            Guardá primero la cotización para poder subir archivos.
           </div>
         ) : readOnly ? (
           <div className="rounded-lg border border-token/80 bg-background/60 px-4 py-5 text-sm leading-6 text-muted-foreground">
@@ -195,7 +194,7 @@ export function QuotationAttachments({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Puedes elegir un archivo o varios a la vez. Tamaño máximo por archivo:
+              Podés elegir un archivo o varios a la vez. Tamaño máximo por archivo:
               10 MB.
             </p>
 

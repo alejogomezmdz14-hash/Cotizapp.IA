@@ -28,7 +28,9 @@ export default async function NotFound() {
         <DashboardHeader
           businessName={branding.businessName}
           logoUrl={branding.logoUrl}
-          showSignOut={Boolean(user)}
+          avatarUrl={profile?.avatar_url ?? null}
+          firstName={profile?.first_name ?? null}
+          lastName={profile?.last_name ?? null}
         />
         <main className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 lg:pb-6">
           <div className="mx-auto flex w-full max-w-3xl items-center justify-center">

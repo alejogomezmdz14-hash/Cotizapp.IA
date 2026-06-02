@@ -20,12 +20,11 @@ export const primaryNavItems = [
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { href: "/cotizaciones/nueva", label: "Nuevo", icon: Plus },
   { href: "/gastos", label: "Gastos", icon: Receipt },
+  { href: "/chat", label: "Chat IA", icon: MessageSquare },
   { href: "/catalogo", label: "Catálogo", icon: Package },
 ] as const satisfies readonly NavItem[];
 
-export const secondaryNavItems = [
-  { href: "/chat", label: "Chat IA", icon: MessageSquare },
-] as const satisfies readonly NavItem[];
+export const secondaryNavItems = [] as const satisfies readonly NavItem[];
 
 export const sidebarNavItems = [
   ...primaryNavItems,

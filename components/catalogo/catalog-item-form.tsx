@@ -9,6 +9,13 @@ import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "@/types";
 
+const SUGGESTED_CATEGORIES = [
+  "Materiales",
+  "Mano de obra",
+  "Servicios",
+  "Otros",
+] as const;
+
 type CatalogItemFormFields = Pick<
   CatalogItem,
   "name" | "description" | "unit" | "price" | "category"
@@ -48,10 +55,11 @@ export function CatalogItemForm({
   const fieldId = useId();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categoryValue, setCategoryValue] = useState(initialValues?.category ?? "");
   const { toast } = useToast();
 
   const defaultSubmitLabel =
-    mode === "edit" ? "Guardar cambios" : "Guardar ítem";
+    mode === "edit" ? "Guardar cambios" : "Guardar en mi catálogo";
   const pendingLabel = mode === "edit" ? "Guardando..." : "Creando...";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -118,10 +126,29 @@ export function CatalogItemForm({
             name="category"
             list={`${fieldId}-category-suggestions`}
             placeholder="Elegí o escribí una categoría"
-            defaultValue={initialValues?.category ?? ""}
+            value={categoryValue}
+            onChange={(event) => setCategoryValue(event.target.value)}
             disabled={isSubmitting}
             className="border-token bg-background/80"
           />
+          <div className="flex flex-wrap gap-2">
+            {SUGGESTED_CATEGORIES.map((category) => (
+              <button
+                key={category}
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setCategoryValue(category)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition",
+                  categoryValue === category
+                    ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground"
+                    : "border-token/80 bg-background/70 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
           <datalist id={`${fieldId}-category-suggestions`}>
             {categorySuggestions.map((category) => (
               <option key={category} value={category} />
@@ -137,7 +164,7 @@ export function CatalogItemForm({
             id={`${fieldId}-unit`}
             name="unit"
             list={`${fieldId}-unit-suggestions`}
-            placeholder="Elegí o escribí una unidad"
+            placeholder="Ej. hora, metro, kg, unidad"
             defaultValue={initialValues?.unit ?? ""}
             disabled={isSubmitting}
             className="border-token bg-background/80"
@@ -159,7 +186,7 @@ export function CatalogItemForm({
           name="price"
           inputMode="decimal"
           type="text"
-          placeholder="0.00"
+          placeholder="1250"
           defaultValue={
             typeof initialValues?.price === "number"
               ? initialValues.price.toString()

@@ -68,16 +68,16 @@ export default async function NewQuotationPage({
           </h1>
           <nav className="flex flex-wrap gap-2 text-sm">
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-cliente">
-              Cliente
+              1. Cliente
             </a>
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-items">
-              Items
+              2. Ítems
             </a>
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-escaneo">
-              Escaneo
+              3. Escaneo
             </a>
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-ajustes">
-              Ajustes
+              4. Opciones
             </a>
           </nav>
         </section>

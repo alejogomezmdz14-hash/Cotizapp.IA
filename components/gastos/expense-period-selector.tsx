@@ -17,7 +17,7 @@ export function ExpensePeriodSelector({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="expense-period">Período</Label>
+      <Label htmlFor="expense-period">Ver mes</Label>
       <select
         id="expense-period"
         value={selectedMonthKey}

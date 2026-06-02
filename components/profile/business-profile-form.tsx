@@ -109,7 +109,7 @@ export function BusinessProfileForm({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="tax_id">Número fiscal (CUIT, RFC, NIT, RUT)</Label>
+              <Label htmlFor="tax_id">Número impositivo (CUIT, RFC u otro)</Label>
               <Input
                 id="tax_id"
                 name="tax_id"
@@ -187,7 +187,7 @@ export function BusinessProfileForm({
                 defaultValue={numberingMode}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="auto">Automático (COT-fecha-random)</option>
+                <option value="auto">Automático (el sistema lo genera solo)</option>
                 <option value="sequential">Correlativo simple (COT-001, COT-002...)</option>
                 <option value="custom">Personalizado (prefijo propio)</option>
               </select>
@@ -215,7 +215,7 @@ export function BusinessProfileForm({
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Las nuevas cotizaciones usarán este formato. El correlativo avanza
-            automáticamente al crear cada cotización.
+            automáticamente al crear cada cotización. Ej: COT-20260601-A3F2
           </p>
         </div>
       </div>
@@ -252,15 +252,15 @@ export function BusinessProfileForm({
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Antes de guardar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Revisa que el contacto y el pie del PDF representen exactamente como
-              quieres enviar tus cotizaciones.
+              Antes de guardar, revisá que tus datos de contacto sean los que
+              querés que vean tus clientes.
             </p>
           </div>
         </div>
 
         {isLogoUploading ? (
           <p className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-            Espera a que termine la carga del logo antes de guardar el perfil.
+            Esperá a que termine la carga del logo antes de guardar el perfil.
           </p>
         ) : null}
 
@@ -271,7 +271,7 @@ export function BusinessProfileForm({
               Los cambios impactan el dashboard y los PDFs nuevos.
             </div>
             <Button type="button" variant="outline" className="bg-background/75" asChild>
-              <Link href="/onboarding">Volver a ver el tour inicial</Link>
+              <Link href="/onboarding">Ver tutorial de bienvenida</Link>
             </Button>
           </div>
           <Button type="submit" disabled={isLogoUploading}>

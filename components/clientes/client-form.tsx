@@ -110,7 +110,7 @@ export function ClientForm({
             id={`${fieldId}-email`}
             name="email"
             type="email"
-            placeholder="cliente@empresa.com"
+            placeholder="Ej. juan.perez@gmail.com"
             defaultValue={initialValues?.email ?? ""}
             disabled={isSubmitting}
             className="border-token bg-background/80"
