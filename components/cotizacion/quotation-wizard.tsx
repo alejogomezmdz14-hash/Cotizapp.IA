@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Camera,
   ChevronRight,
   Mic,
   PackagePlus,
@@ -13,6 +14,8 @@ import {
 
 import type { QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
+import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
+import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +35,12 @@ import {
 } from "@/lib/quotation-validity";
 import { useCotizacionStore } from "@/store/cotizacion-store";
 import { cn } from "@/lib/utils";
-import type { CatalogItem, Client } from "@/types";
+import type {
+  CatalogItem,
+  Client,
+  HydratedInvoiceScanReview,
+  InvoiceScanItemDraft,
+} from "@/types";
 
 const validityPresets = [30, 60, 90] as const;
 const textareaClassName =
@@ -48,6 +56,22 @@ type QuotationWizardProps = {
   saveDisabled: boolean;
   onSubmit: () => void;
 };
+
+function createInvoiceItemDraft(
+  id: number,
+  item: InvoiceScanItemDraft,
+): QuotationEditorItem {
+  return {
+    id: `item-${id}`,
+    source: "invoice",
+    catalogItemId: null,
+    name: item.name,
+    description: item.description ?? "",
+    quantity: item.quantity,
+    unit: item.unit,
+    unitPrice: item.unitPrice,
+  };
+}
 
 function matchesCatalogItem(item: CatalogItem, query: string) {
   const searchTarget = [item.name, item.description ?? "", item.category ?? "", item.unit]
@@ -118,7 +142,8 @@ export function QuotationWizard({
   const setInlineClient = useCotizacionStore((state) => state.setInlineClient);
   const addItem = useCotizacionStore((state) => state.addItem);
   const removeItem = useCotizacionStore((state) => state.removeItem);
-  const setTaxRate = useCotizacionStore((state) => state.setTaxRate);
+  const setTaxRateInput = useCotizacionStore((state) => state.setTaxRateInput);
+  const syncTaxRateFromInput = useCotizacionStore((state) => state.syncTaxRateFromInput);
   const setValidUntil = useCotizacionStore((state) => state.setValidUntil);
   const setNotes = useCotizacionStore((state) => state.setNotes);
   const setWizardStep = useCotizacionStore((state) => state.setWizardStep);
@@ -128,6 +153,9 @@ export function QuotationWizard({
   const [itemSheetOpen, setItemSheetOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [invoiceScanReview, setInvoiceScanReview] =
+    useState<HydratedInvoiceScanReview | null>(null);
   const [newItemDraft, setNewItemDraft] = useState({
     name: "",
     quantity: "1",
@@ -138,9 +166,14 @@ export function QuotationWizard({
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
+  const taxRateForTotals = useMemo(() => {
+    const parsed = Number.parseFloat(draft.taxRateInput.trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [draft.taxRateInput]);
+
   const summaryTotals = useMemo(
-    () => calculateQuotationTotals(draft.items, draft.taxRate),
-    [draft.items, draft.taxRate],
+    () => calculateQuotationTotals(draft.items, taxRateForTotals),
+    [draft.items, taxRateForTotals],
   );
 
   const filteredClients = useMemo(() => {
@@ -168,6 +201,9 @@ export function QuotationWizard({
     clients.find((client) => client.id === draft.selectedClientId)?.name ?? null;
 
   function goNext() {
+    if (step === 3) {
+      syncTaxRateFromInput();
+    }
     setWizardStep(Math.min(step + 1, totalSteps));
   }
 
@@ -192,6 +228,69 @@ export function QuotationWizard({
     addItem(item);
     setNewItemDraft({ name: "", quantity: "1", unitPrice: "0" });
     setItemSheetOpen(false);
+  }
+
+  function handleAddInvoiceItems(scannedItems: InvoiceScanItemDraft[]) {
+    if (scannedItems.length === 0) {
+      return;
+    }
+
+    scannedItems.forEach((item) => {
+      const nextId = allocNextItemId();
+      addItem(createInvoiceItemDraft(nextId, item));
+    });
+    setScanSheetOpen(false);
+  }
+
+  function handleInvoiceScanComplete({
+    scanId,
+    fileName,
+    result,
+  }: {
+    scanId: string;
+    fileName: string;
+    result: HydratedInvoiceScanReview["result"];
+  }) {
+    setInvoiceScanReview({
+      scanId,
+      fileName,
+      status: "completed",
+      failureMessage: null,
+      result,
+    });
+  }
+
+  function handleInvoiceScanPersisted({
+    scanId,
+    fileName,
+    status,
+    failureMessage,
+  }: {
+    scanId: string;
+    fileName: string;
+    status: "uploaded" | "processing" | "failed" | "completed";
+    failureMessage: string | null;
+  }) {
+    setInvoiceScanReview((currentValue) =>
+      currentValue?.scanId === scanId && currentValue.result
+        ? {
+            ...currentValue,
+            fileName,
+            status,
+            failureMessage,
+          }
+        : {
+            scanId,
+            fileName,
+            status,
+            failureMessage,
+            result: null,
+          },
+    );
+  }
+
+  function handleClearInvoiceScan() {
+    setInvoiceScanReview(null);
   }
 
   function handleAddCatalogItem(catalogItem: CatalogItem) {
@@ -407,32 +506,90 @@ export function QuotationWizard({
               disabled={disabled}
             >
               <Plus className="mr-2 h-5 w-5" />
-              Agregar ítem
+              Agregar ítem manualmente
             </Button>
+
             <Button
               type="button"
               variant="outline"
-              className="min-h-12 w-full bg-background/75"
+              className="min-h-12 w-full border-token bg-background/75"
               onClick={() => setCatalogOpen(true)}
               disabled={disabled}
             >
               <PackagePlus className="mr-2 h-5 w-5" />
               Agregar desde mi catálogo
             </Button>
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                o
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 w-full border-dashed bg-background/60"
+                onClick={() => setScanSheetOpen(true)}
+                disabled={disabled}
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Escanear factura de proveedor (opcional)
+              </Button>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Sacale una foto a una factura o ticket de compra y el sistema carga los
+                ítems solo. Útil para cargar materiales que compraste para el trabajo.
+              </p>
+            </div>
           </div>
         ) : null}
 
         {step === 3 ? (
           <div className="space-y-5">
             <div className="space-y-1">
-              <h2 className="text-2xl font-semibold tracking-tight">Opciones</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Notas e impuesto</h2>
               <p className="text-sm text-muted-foreground">
-                Validez, notas e impuesto opcional.
+                Agregá una nota para tu cliente y el impuesto si corresponde.
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>¿Hasta cuándo vale?</Label>
+              <Label htmlFor="wizard-notes">Notas (opcional)</Label>
+              <textarea
+                id="wizard-notes"
+                rows={4}
+                value={draft.notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Condiciones, tiempos o aclaraciones para tu cliente"
+                disabled={disabled}
+                className={textareaClassName}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wizard-tax">Impuesto (%)</Label>
+              <Input
+                id="wizard-tax"
+                type="number"
+                inputMode="decimal"
+                pattern="[0-9]*"
+                placeholder="Ej: 21"
+                value={draft.taxRateInput}
+                onChange={(event) => setTaxRateInput(event.target.value)}
+                onBlur={() => syncTaxRateFromInput()}
+                className="min-h-12"
+                disabled={disabled}
+              />
+              <p className="text-sm text-muted-foreground">
+                Dejalo vacío si no aplicás impuesto.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>¿Hasta cuándo vale esta cotización?</Label>
               <div className="flex flex-wrap gap-2">
                 {validityPresets.map((days) => (
                   <Button
@@ -455,38 +612,6 @@ export function QuotationWizard({
                 max={validityBounds.maxDate}
                 className="min-h-12"
                 disabled={disabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="wizard-tax">Impuesto (%)</Label>
-              <Input
-                id="wizard-tax"
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                pattern="[0-9]*"
-                value={draft.taxRate}
-                onChange={(event) => {
-                  const parsed = Number.parseFloat(event.target.value);
-                  setTaxRate(Number.isFinite(parsed) ? parsed : 0);
-                }}
-                className="min-h-12"
-                disabled={disabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="wizard-notes">Notas (opcional)</Label>
-              <textarea
-                id="wizard-notes"
-                rows={4}
-                value={draft.notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Condiciones, tiempos o aclaraciones"
-                disabled={disabled}
-                className={textareaClassName}
               />
             </div>
           </div>
@@ -513,7 +638,7 @@ export function QuotationWizard({
             <QuotationSummary
               items={draft.items}
               currency={currency}
-              taxRate={draft.taxRate}
+              taxRate={taxRateForTotals}
               validUntil={draft.validUntil}
               isSubmitting={isSubmitting}
               isSaved={false}
@@ -545,7 +670,10 @@ export function QuotationWizard({
             <Button
               type="button"
               className="min-h-14 w-full text-base"
-              onClick={onSubmit}
+              onClick={() => {
+                syncTaxRateFromInput();
+                onSubmit();
+              }}
               disabled={disabled || !canSave || isSubmitting}
             >
               {isSubmitting ? "Guardando..." : "Guardar cotización"}
@@ -627,6 +755,36 @@ export function QuotationWizard({
             >
               Agregar ítem
             </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={scanSheetOpen} onOpenChange={setScanSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[90dvh] overflow-y-auto rounded-t-[1.75rem]"
+        >
+          <SheetHeader>
+            <SheetTitle>Escanear factura de proveedor</SheetTitle>
+            <SheetDescription>
+              Es opcional. Sacá una foto y revisá los ítems antes de sumarlos a la
+              cotización.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <InvoiceDropzone
+              disabled={disabled}
+              persistedScan={invoiceScanReview}
+              onScanPersisted={handleInvoiceScanPersisted}
+              onScanComplete={handleInvoiceScanComplete}
+            />
+            <InvoiceItemsReview
+              fileName={invoiceScanReview?.fileName ?? null}
+              result={invoiceScanReview?.result ?? null}
+              disabled={disabled}
+              onAddToQuotation={handleAddInvoiceItems}
+              onClear={handleClearInvoiceScan}
+            />
           </div>
         </SheetContent>
       </Sheet>

@@ -16,6 +16,7 @@ export type CotizacionDraft = {
   inlineClient: InlineClientState;
   items: QuotationEditorItem[];
   taxRate: number;
+  taxRateInput: string;
   validUntil: string;
   notes: string;
   nextItemId: number;
@@ -36,6 +37,7 @@ export const initialCotizacionDraft = (): CotizacionDraft => ({
   inlineClient: emptyInlineClient(),
   items: [],
   taxRate: 0,
+  taxRateInput: "",
   validUntil: getDefaultQuotationValidityDate(),
   notes: "",
   nextItemId: 1,
@@ -57,7 +59,7 @@ function draftHasContent(draft: CotizacionDraft) {
   return (
     hasClientData ||
     draft.items.length > 0 ||
-    draft.taxRate > 0 ||
+    Boolean(draft.taxRateInput.trim()) ||
     Boolean(draft.notes.trim())
   );
 }
@@ -72,6 +74,8 @@ type CotizacionStore = {
   removeItem: (id: string) => void;
   updateItem: (id: string, data: Partial<QuotationEditorItem>) => void;
   setTaxRate: (taxRate: number) => void;
+  setTaxRateInput: (value: string) => void;
+  syncTaxRateFromInput: () => void;
   setValidUntil: (fecha: string) => void;
   setNotes: (notas: string) => void;
   setWizardStep: (step: number) => void;
@@ -136,6 +140,20 @@ export const useCotizacionStore = create<CotizacionStore>((set, get) => ({
   setTaxRate: (taxRate) =>
     set((state) => ({ draft: { ...state.draft, taxRate } })),
 
+  setTaxRateInput: (value) =>
+    set((state) => ({ draft: { ...state.draft, taxRateInput: value } })),
+
+  syncTaxRateFromInput: () =>
+    set((state) => {
+      const parsed = Number.parseFloat(state.draft.taxRateInput.trim());
+      return {
+        draft: {
+          ...state.draft,
+          taxRate: Number.isFinite(parsed) ? parsed : 0,
+        },
+      };
+    }),
+
   setValidUntil: (fecha) =>
     set((state) => ({ draft: { ...state.draft, validUntil: fecha } })),
 
@@ -188,6 +206,8 @@ export const useCotizacionStore = create<CotizacionStore>((set, get) => ({
         },
         items: payload.items,
         taxRate: payload.taxRate,
+        taxRateInput:
+          payload.taxRate > 0 ? String(payload.taxRate) : "",
         validUntil: payload.validUntil || getDefaultQuotationValidityDate(),
         notes: payload.notes,
         nextItemId: payload.items.length + 1,
