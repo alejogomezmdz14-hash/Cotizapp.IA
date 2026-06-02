@@ -58,13 +58,13 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
-              href="/login"
+              href="/sign-in"
               className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl bg-[rgb(var(--accent-rgb))] px-6 text-sm font-bold text-black transition hover:bg-[rgb(var(--accent-rgb)/0.9)]"
             >
               Empezar gratis
             </Link>
             <Link
-              href="/login"
+              href="/sign-in"
               className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl border border-white/20 bg-transparent px-6 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
             >
               Ver demo
@@ -106,7 +106,7 @@ export default function HomePage() {
             Empieza hoy. Gratis.
           </h2>
           <Link
-            href="/login"
+            href="/sign-in"
             className="mt-8 inline-flex h-14 min-w-[14rem] items-center justify-center rounded-xl bg-[rgb(var(--accent-rgb))] px-8 text-base font-bold text-black transition hover:bg-[rgb(var(--accent-rgb)/0.9)]"
           >
             Crear mi cuenta

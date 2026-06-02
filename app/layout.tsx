@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -44,17 +45,19 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${interTight.variable} ${jetBrainsMono.variable}`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          themes={["light", "dark"]}
-          storageKey="cotizapp-theme"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <ToastProvider>{children}</ToastProvider>
-          <ServiceWorkerRegister />
-        </ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            themes={["light", "dark"]}
+            storageKey="cotizapp-theme"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <ToastProvider>{children}</ToastProvider>
+            <ServiceWorkerRegister />
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

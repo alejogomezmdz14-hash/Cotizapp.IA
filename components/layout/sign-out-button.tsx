@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,6 @@ import {
   cancelAllPendingTasks,
   hasUnsavedDraft,
 } from "@/lib/pending-tasks";
-import { createClient } from "@/lib/supabase/client";
 
 type SignOutButtonProps = {
   className?: string;
@@ -17,6 +17,7 @@ type SignOutButtonProps = {
 };
 
 export function SignOutButton({ className, menuItem = false }: SignOutButtonProps) {
+  const { signOut } = useClerk();
   const { toast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,21 +40,7 @@ export function SignOutButton({ className, menuItem = false }: SignOutButtonProp
     cancelAllPendingTasks();
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
-        toast({
-          title: "No se pudo cerrar sesión",
-          description: "Intentá nuevamente en unos segundos.",
-          variant: "error",
-        });
-        setIsPending(false);
-        return;
-      }
-
-      window.location.assign("/login");
+      await signOut({ redirectUrl: "/sign-in" });
     } catch {
       setErrorMessage("No pudimos cerrar sesión. Intentá de nuevo.");
       toast({

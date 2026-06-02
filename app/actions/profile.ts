@@ -41,7 +41,7 @@ export async function saveOnboarding(formData: FormData) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const businessName = getRequiredValue(formData, "business_name");
@@ -95,7 +95,7 @@ export async function completeOnboardingLogoStep() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const supabase = await createClient();
@@ -141,7 +141,7 @@ export async function saveUserProfileAction(formData: FormData) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const firstName = getRequiredValue(formData, "first_name");
@@ -185,7 +185,7 @@ export async function saveBusinessProfileAction(formData: FormData) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const businessName = getRequiredValue(formData, "business_name");
@@ -245,7 +245,7 @@ export async function saveAppearanceSettingsAction(formData: FormData) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const theme = getRequiredValue(formData, "theme");
@@ -283,7 +283,7 @@ export async function savePdfTemplateSettingsAction(formData: FormData) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const pdfTemplate = normalizePdfTemplate(getRequiredValue(formData, "pdf_template"));
@@ -317,7 +317,7 @@ export async function deleteAccountAction() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const supabase = await createClient();
@@ -354,5 +354,5 @@ export async function deleteAccountAction() {
   }
 
   await supabase.auth.signOut();
-  redirect("/login?deleted=1");
+  redirect("/sign-in?deleted=1");
 }

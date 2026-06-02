@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 function getSupabaseServerEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -26,23 +26,11 @@ function getSupabaseServerEnv() {
 
 export async function createClient() {
   const { url, anonKey } = getSupabaseServerEnv();
-  const cookieStore = cookies();
 
-  return createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // Server Components can read cookies without being allowed to write
-          // them. Middleware handles the refresh path when writes are needed.
-        }
-      },
+  return createSupabaseClient(url, anonKey, {
+    async accessToken() {
+      const session = await auth();
+      return session.getToken();
     },
   });
 }

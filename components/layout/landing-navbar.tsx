@@ -11,7 +11,7 @@ export function LandingNavbar() {
         </Link>
 
         <Link
-          href="/login"
+          href="/sign-in"
           className="inline-flex h-10 items-center justify-center rounded-xl bg-[rgb(var(--accent-rgb))] px-4 text-sm font-semibold text-black transition hover:bg-[rgb(var(--accent-rgb)/0.9)]"
         >
           Entrar

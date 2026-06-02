@@ -1,6 +1,8 @@
-import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
+import { ensureProfileForClerkUser, getProfileByClerkId } from "@/lib/auth/clerk-profile";
+import type { AppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEntityName } from "@/lib/entity-normalization";
 import { normalizeProfileCurrency } from "@/lib/profile-currencies";
@@ -57,23 +59,40 @@ function normalizeOptionalText(value: string | null | undefined) {
   return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
-export async function getCurrentUser(): Promise<User | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function getCurrentUser(): Promise<AppUser | null> {
+  const { userId } = await auth();
 
-  return user ?? null;
-}
-
-export async function requireUser() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
+  if (!userId) {
+    return null;
   }
 
-  return user;
+  const profile = await getProfileByClerkId(userId);
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    id: profile.id,
+    clerkId: userId,
+    email: profile.email ?? null,
+  };
+}
+
+export async function requireUser(): Promise<AppUser> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  const profile = await ensureProfileForClerkUser(userId);
+
+  return {
+    id: profile.id,
+    clerkId: userId,
+    email: profile.email ?? null,
+  };
 }
 
 const PROFILE_LEGACY_COLUMNS =
