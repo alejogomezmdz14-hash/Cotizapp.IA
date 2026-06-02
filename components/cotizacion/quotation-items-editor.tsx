@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { PackagePlus, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Mic, PackagePlus, Plus, Search, Trash2 } from "lucide-react";
 
 import {
   Card,
@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSpeechInput } from "@/hooks/use-speech-input";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import { formatCurrencyAmount } from "@/lib/formatting";
+import { cn } from "@/lib/utils";
 import type { CatalogItem } from "@/types";
 
 export type QuotationEditorItem = {
@@ -103,6 +105,55 @@ function parseDecimalValue(rawValue: string) {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
+function ConceptFieldWithVoice({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const { supportsSpeech, isListening, voiceError, toggleListening } = useSpeechInput({
+    value,
+    onChange,
+  });
+
+  return (
+    <div className="space-y-1">
+      <div className="relative">
+        <Input
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Ej. Colocación de cañería 2 pulgadas"
+          disabled={disabled}
+          className="min-h-12 pr-12"
+        />
+        {supportsSpeech ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              "absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2",
+              isListening && "text-accent-token",
+            )}
+            onClick={toggleListening}
+            disabled={disabled}
+            aria-label={isListening ? "Detener dictado" : "Dictar concepto"}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+        ) : null}
+      </div>
+      {voiceError ? <p className="text-xs text-destructive">{voiceError}</p> : null}
+    </div>
+  );
+}
+
 export function QuotationItemsEditor({
   items,
   catalogItems,
@@ -115,29 +166,6 @@ export function QuotationItemsEditor({
 }: QuotationItemsEditorProps) {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
-  const [unitPriceTextById, setUnitPriceTextById] = useState<
-    Record<string, string>
-  >({});
-
-  useEffect(() => {
-    setUnitPriceTextById((current) => {
-      const next = { ...current };
-
-      for (const item of items) {
-        if (next[item.id] === undefined) {
-          next[item.id] = String(item.unitPrice);
-        }
-      }
-
-      for (const key of Object.keys(next)) {
-        if (!items.some((item) => item.id === key)) {
-          delete next[key];
-        }
-      }
-
-      return next;
-    });
-  }, [items]);
 
   const filteredCatalogItems = useMemo(() => {
     const normalizedSearch = catalogSearch.trim().toLowerCase();
@@ -255,13 +283,10 @@ export function QuotationItemsEditor({
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
                       <div className="space-y-2">
                         <Label htmlFor={`${item.id}-name`}>Concepto</Label>
-                        <Input
+                        <ConceptFieldWithVoice
                           id={`${item.id}-name`}
                           value={item.name}
-                          onChange={(event) =>
-                            onUpdateItem(item.id, { name: event.target.value })
-                          }
-                          placeholder="Ej. Cemento portland x 50 kg"
+                          onChange={(name) => onUpdateItem(item.id, { name })}
                           disabled={disabled}
                         />
                       </div>
@@ -301,29 +326,21 @@ export function QuotationItemsEditor({
                         <Label htmlFor={`${item.id}-price`}>Precio unitario</Label>
                         <Input
                           id={`${item.id}-price`}
+                          type="number"
                           inputMode="decimal"
-                      type="text"
-                      value={unitPriceTextById[item.id] ?? String(item.unitPrice)}
-                      onChange={(event) => {
-                        const rawValue = event.target.value;
-                        setUnitPriceTextById((current) => ({
-                          ...current,
-                          [item.id]: rawValue,
-                        }));
-
-                        const parsedValue = parseDecimalValue(rawValue);
-
-                        if (parsedValue === null) {
-                          return;
-                        }
-
-                        onUpdateItem(item.id, {
-                          unitPrice: parsedValue,
-                        });
-                      }}
+                          pattern="[0-9]*"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(event) => {
+                            const parsedValue = Number.parseFloat(event.target.value);
+                            onUpdateItem(item.id, {
+                              unitPrice: Number.isFinite(parsedValue) ? parsedValue : 0,
+                            });
+                          }}
                           disabled={disabled}
-                      placeholder="0.00"
-                      spellCheck={false}
+                          placeholder="0.00"
+                          className="min-h-12"
                         />
                       </div>
                     </div>

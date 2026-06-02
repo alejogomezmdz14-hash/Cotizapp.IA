@@ -139,7 +139,7 @@ export function CatalogItemForm({
                 disabled={isSubmitting}
                 onClick={() => setCategoryValue(category)}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition",
+                  "min-h-12 rounded-full border px-4 py-3 text-xs font-medium transition",
                   categoryValue === category
                     ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground"
                     : "border-token/80 bg-background/70 text-muted-foreground hover:text-foreground",
@@ -184,8 +184,11 @@ export function CatalogItemForm({
         <Input
           id={`${fieldId}-price`}
           name="price"
+          type="number"
           inputMode="decimal"
-          type="text"
+          pattern="[0-9]*"
+          min="0"
+          step="0.01"
           placeholder="1250"
           defaultValue={
             typeof initialValues?.price === "number"

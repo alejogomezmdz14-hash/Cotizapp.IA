@@ -42,7 +42,7 @@ export function GastosPageClient({
         </div>
         <Button
           onClick={() => setIsCreateOpen(true)}
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
+          className="min-h-12 bg-emerald-600 text-white hover:bg-emerald-700"
         >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo gasto

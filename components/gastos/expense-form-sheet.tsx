@@ -21,6 +21,7 @@ import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
 import { EXPENSE_CURRENCIES } from "@/lib/expense-currencies";
 import { formatExpenseAmount } from "@/lib/formatting";
 import type { Expense, ExpenseReceiptScanResult } from "@/types";
+import { useGastoStore } from "@/store/gasto-store";
 
 type ExpenseFormSheetProps = {
   open: boolean;
@@ -77,6 +78,9 @@ export function ExpenseFormSheet({
   );
 
   const isEditing = Boolean(expense?.id);
+  const patchGastoDraft = useGastoStore((state) => state.patchDraft);
+  const resetGastoDraft = useGastoStore((state) => state.resetDraft);
+  const storedGastoDraft = useGastoStore((state) => state.draft);
 
   useEffect(() => {
     if (!open) {
@@ -99,6 +103,18 @@ export function ExpenseFormSheet({
       return;
     }
 
+    if (storedGastoDraft.hasUnsavedDraft) {
+      setDescription(storedGastoDraft.description);
+      setAmount(storedGastoDraft.amount);
+      setCurrency(storedGastoDraft.currency || defaultCurrency);
+      setCategory(storedGastoDraft.category);
+      setDate(storedGastoDraft.date);
+      setNotes(storedGastoDraft.notes);
+      setReceiptPath(storedGastoDraft.receiptPath);
+      setReceiptPreviewUrl(null);
+      return;
+    }
+
     setDescription("");
     setAmount("");
     setCurrency(defaultCurrency);
@@ -107,7 +123,34 @@ export function ExpenseFormSheet({
     setNotes("");
     setReceiptPath(null);
     setReceiptPreviewUrl(null);
-  }, [open, expense, defaultCurrency]);
+  }, [open, expense, defaultCurrency, storedGastoDraft]);
+
+  useEffect(() => {
+    if (!open || isEditing) {
+      return;
+    }
+
+    patchGastoDraft({
+      description,
+      amount,
+      currency,
+      category,
+      date,
+      notes,
+      receiptPath,
+    });
+  }, [
+    amount,
+    category,
+    currency,
+    date,
+    description,
+    isEditing,
+    notes,
+    open,
+    patchGastoDraft,
+    receiptPath,
+  ]);
 
   async function uploadReceipt(scan = false) {
     if (!selectedFile && !scan) {
@@ -226,6 +269,7 @@ export function ExpenseFormSheet({
         await updateExpenseFromInput(expense.id, payload);
       } else {
         await createExpenseFromInput(payload);
+        resetGastoDraft(defaultCurrency);
       }
 
       onSaved();
@@ -274,10 +318,15 @@ export function ExpenseFormSheet({
               <Input
                 id="expense-amount"
                 name="amount"
+                type="number"
+                inputMode="decimal"
+                pattern="[0-9]*"
+                min="0"
+                step="0.01"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                placeholder="Ej. 1.250,50"
-                inputMode="decimal"
+                placeholder="Ej. 1250.50"
+                className="min-h-12"
                 required
               />
             </div>

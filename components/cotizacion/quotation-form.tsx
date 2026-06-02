@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileCheck2,
@@ -25,6 +25,8 @@ import { QuotationAttachments } from "@/components/cotizacion/quotation-attachme
 import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
+import { QuotationWizard } from "@/components/cotizacion/quotation-wizard";
+import { useCotizacionStore } from "@/store/cotizacion-store";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
 import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
@@ -65,13 +67,6 @@ type QuotationFormProps = {
   initialEditorState?: QuotationEditorInitialState | null;
   initialAttachments?: HydratedQuotationAttachment[];
   initialInvoiceScan?: HydratedInvoiceScanReview | null;
-};
-
-type InlineClientState = {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
 };
 
 type SavedDraftState = {
@@ -148,23 +143,31 @@ export function QuotationForm({
 }: QuotationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [clientMode, setClientMode] = useState<"existing" | "inline">(
-    clients.length > 0 ? "existing" : "inline",
-  );
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(() =>
-    getDefaultQuotationClientId(clients),
-  );
-  const [inlineClient, setInlineClient] = useState<InlineClientState>({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-  });
-  const [items, setItems] = useState<QuotationEditorItem[]>([]);
-  const nextItemIdRef = useRef(1);
-  const [taxRate, setTaxRate] = useState(0);
-  const [validUntil, setValidUntil] = useState(() => getDefaultQuotationValidityDate());
-  const [notes, setNotes] = useState("");
+  const draft = useCotizacionStore((state) => state.draft);
+  const setClientMode = useCotizacionStore((state) => state.setClientMode);
+  const setSelectedClientId = useCotizacionStore((state) => state.setSelectedClientId);
+  const setInlineClient = useCotizacionStore((state) => state.setInlineClient);
+  const addItem = useCotizacionStore((state) => state.addItem);
+  const removeItem = useCotizacionStore((state) => state.removeItem);
+  const updateItem = useCotizacionStore((state) => state.updateItem);
+  const setTaxRate = useCotizacionStore((state) => state.setTaxRate);
+  const setValidUntil = useCotizacionStore((state) => state.setValidUntil);
+  const setNotes = useCotizacionStore((state) => state.setNotes);
+  const allocNextItemId = useCotizacionStore((state) => state.allocNextItemId);
+  const resetDraft = useCotizacionStore((state) => state.resetDraft);
+  const hydrateFromEditor = useCotizacionStore((state) => state.hydrateFromEditor);
+  const showDraftBannerIfNeeded = useCotizacionStore((state) => state.showDraftBannerIfNeeded);
+  const dismissDraftBanner = useCotizacionStore((state) => state.dismissDraftBanner);
+  const hasDraftContent = useCotizacionStore((state) => state.hasDraftContent);
+
+  const clientMode = draft.clientMode;
+  const selectedClientId = draft.selectedClientId;
+  const inlineClient = draft.inlineClient;
+  const items = draft.items;
+  const taxRate = draft.taxRate;
+  const validUntil = draft.validUntil;
+  const notes = draft.notes;
+  const draftBannerVisible = draft.draftBannerVisible;
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
@@ -184,33 +187,28 @@ export function QuotationForm({
     );
   }, [initialInvoiceScan]);
 
-  // This reset should only happen when the routed draft identity changes.
-  // Listening to the hydrated scan prop here would wipe manual edits after each scan refresh.
   useEffect(() => {
     if (initialDraft) {
       setSavedDraft(initialDraft);
       return;
     }
 
-    setClientMode(clients.length > 0 ? "existing" : "inline");
-    setSelectedClientId(getDefaultQuotationClientId(clients));
-    setInlineClient({
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-    });
-    setItems([]);
-    nextItemIdRef.current = 1;
-    setTaxRate(0);
-    setValidUntil(getDefaultQuotationValidityDate());
-    setNotes("");
+    setSavedDraft(null);
     setError(null);
     setIsSubmitting(false);
-    setSavedDraft(null);
     setInvoiceScanReview(initialInvoiceScan);
     setScanSectionExpanded(Boolean(initialInvoiceScan));
-    markUnsavedDraft(false);
+
+    if (initialEditorState) {
+      return;
+    }
+
+    if (!hasDraftContent()) {
+      setClientMode(clients.length > 0 ? "existing" : "inline");
+      setSelectedClientId(getDefaultQuotationClientId(clients));
+    } else {
+      showDraftBannerIfNeeded();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, initialDraft?.quotationId]);
 
@@ -227,24 +225,18 @@ export function QuotationForm({
       shareToken: initialEditorState.shareToken,
       sentAt: initialEditorState.sentAt,
     });
-    setClientMode(initialEditorState.clientId ? "existing" : "inline");
-    setSelectedClientId(initialEditorState.clientId);
-    setInlineClient({
-      name: initialEditorState.clientName ?? "",
-      email: "",
-      phone: "",
-      address: "",
+    hydrateFromEditor({
+      clientId: initialEditorState.clientId,
+      clientName: initialEditorState.clientName,
+      items: initialEditorState.items,
+      taxRate: initialEditorState.taxRate,
+      validUntil:
+        initialEditorState.validUntil || getDefaultQuotationValidityDate(),
+      notes: initialEditorState.notes,
     });
-    setItems(initialEditorState.items);
-    nextItemIdRef.current = initialEditorState.items.length + 1;
-    setTaxRate(initialEditorState.taxRate);
-    setValidUntil(
-      initialEditorState.validUntil || getDefaultQuotationValidityDate(),
-    );
-    setNotes(initialEditorState.notes);
     setError(null);
     markUnsavedDraft(false);
-  }, [initialEditorState]);
+  }, [hydrateFromEditor, initialEditorState]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (savedDraft) {
@@ -360,7 +352,7 @@ export function QuotationForm({
 
     setError(null);
     setClientMode("existing");
-    setSelectedClientId((currentValue) => currentValue ?? getDefaultQuotationClientId(clients));
+    setSelectedClientId(selectedClientId ?? getDefaultQuotationClientId(clients));
   }
 
   function activateInlineClientMode() {
@@ -374,33 +366,24 @@ export function QuotationForm({
   }
 
   function handleAddManualItem() {
-    const nextItemId = nextItemIdRef.current;
-    nextItemIdRef.current += 1;
-    setItems((currentItems) => [...currentItems, createEmptyItem(nextItemId)]);
+    const nextItemId = allocNextItemId();
+    addItem(createEmptyItem(nextItemId));
   }
 
   function handleAddCatalogItem(item: CatalogItem) {
-    const nextItemId = nextItemIdRef.current;
-    nextItemIdRef.current += 1;
-    setItems((currentItems) => [
-      ...currentItems,
-      createCatalogItemDraft(nextItemId, item),
-    ]);
+    const nextItemId = allocNextItemId();
+    addItem(createCatalogItemDraft(nextItemId, item));
   }
 
   function handleUpdateItem(
     itemId: string,
     updates: Partial<QuotationEditorItem>,
   ) {
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === itemId ? { ...item, ...updates } : item,
-      ),
-    );
+    updateItem(itemId, updates);
   }
 
   function handleRemoveItem(itemId: string) {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
+    removeItem(itemId);
   }
 
   function handleInvoiceScanComplete({
@@ -487,22 +470,14 @@ export function QuotationForm({
       return;
     }
 
-    setItems((currentItems) => {
-      const nextItems = [...currentItems];
-
-      scannedItems.forEach((item) => {
-        const nextItemId = nextItemIdRef.current;
-        nextItemIdRef.current += 1;
-        nextItems.push(createInvoiceItemDraft(nextItemId, item));
-      });
-
-      return nextItems;
+    scannedItems.forEach((item) => {
+      const nextItemId = allocNextItemId();
+      addItem(createInvoiceItemDraft(nextItemId, item));
     });
     setError(null);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitQuotation() {
 
     if (savedDraft && !isEditingDraft) {
       return;
@@ -533,12 +508,27 @@ export function QuotationForm({
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData();
+      if (isEditingDraft && initialEditorState?.quotationId) {
+        formData.set("quotation_id", initialEditorState.quotationId);
+      }
+      formData.set("client_mode", clientMode);
+      formData.set(
+        "client_id",
+        clientMode === "existing" ? selectedClientId ?? "" : "",
+      );
+      formData.set("client_payload", clientMode === "inline" ? clientPayload : "");
+      formData.set("items_payload", itemsPayload);
+      formData.set("tax_rate", String(taxRate));
+      formData.set("valid_until", validUntil);
+      formData.set("notes", notes);
+
       const result = isEditingDraft
         ? await updateDraftQuotationAction(formData)
         : await createDraftQuotationAction(formData);
       setSavedDraft(result);
       markUnsavedDraft(false);
+      resetDraft({ clientMode: clients.length > 0 ? "existing" : "inline" });
       toast({
         title: isEditingDraft ? "Cotización actualizada" : "Cotización guardada",
         description: isEditingDraft
@@ -555,6 +545,11 @@ export function QuotationForm({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitQuotation();
   }
 
   if (initialDraft && !initialEditorState) {
@@ -583,7 +578,12 @@ export function QuotationForm({
                 type="button"
                 variant="outline"
                 className="bg-background/75"
-                onClick={() => router.replace("/cotizaciones/nueva")}
+                onClick={() => {
+                  resetDraft({
+                    clientMode: clients.length > 0 ? "existing" : "inline",
+                  });
+                  router.replace("/cotizaciones/nueva");
+                }}
               >
                 Nueva cotización
               </Button>
@@ -623,7 +623,49 @@ export function QuotationForm({
   }
 
   return (
-    <form className="relative space-y-5 pb-24 lg:space-y-6 lg:pb-0" onSubmit={handleSubmit}>
+    <>
+      <div className="xl:hidden">
+        {draftBannerVisible ? (
+          <div className="mb-4 rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.08)] px-4 py-4 text-sm">
+            <p className="font-medium text-foreground">
+              Tenés una cotización sin guardar. ¿Querés continuar donde lo dejaste?
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" className="min-h-12" onClick={dismissDraftBanner}>
+                Continuar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 bg-background/75"
+                onClick={() => {
+                  resetDraft({
+                    clientMode: clients.length > 0 ? "existing" : "inline",
+                  });
+                  setSelectedClientId(getDefaultQuotationClientId(clients));
+                }}
+              >
+                Empezar de nuevo
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        <QuotationWizard
+          clients={clients}
+          catalogItems={catalogItems}
+          currency={currency}
+          disabled={isFormLocked}
+          isSubmitting={isSubmitting}
+          canSave={canSaveQuotation}
+          saveDisabled={!canSaveQuotation}
+          onSubmit={() => {
+            void submitQuotation();
+          }}
+        />
+      </div>
+
+    <form className="relative hidden space-y-5 pb-24 xl:block lg:space-y-6 lg:pb-0" onSubmit={handleSubmit}>
       <div className="fixed inset-x-0 top-0 z-30 border-b border-token/80 bg-background/95 px-4 py-3 backdrop-blur xl:hidden">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
           <div>
@@ -751,10 +793,7 @@ export function QuotationForm({
                         id="inline-client-name"
                         value={inlineClient.name}
                         onChange={(event) =>
-                          setInlineClient((currentValue) => ({
-                            ...currentValue,
-                            name: event.target.value,
-                          }))
+                          setInlineClient({ name: event.target.value })
                         }
                         placeholder="Ej. Constructora Andina"
                         disabled={isFormLocked}
@@ -769,10 +808,7 @@ export function QuotationForm({
                           type="email"
                           value={inlineClient.email}
                           onChange={(event) =>
-                            setInlineClient((currentValue) => ({
-                              ...currentValue,
-                              email: event.target.value,
-                            }))
+                            setInlineClient({ email: event.target.value })
                           }
                           placeholder="cliente@empresa.com"
                           disabled={isFormLocked}
@@ -786,10 +822,7 @@ export function QuotationForm({
                           minLength={8}
                           value={inlineClient.phone}
                           onChange={(event) =>
-                            setInlineClient((currentValue) => ({
-                              ...currentValue,
-                              phone: event.target.value,
-                            }))
+                            setInlineClient({ phone: event.target.value })
                           }
                           placeholder="261 555 1234"
                           disabled={isFormLocked}
@@ -804,10 +837,7 @@ export function QuotationForm({
                         rows={3}
                         value={inlineClient.address}
                         onChange={(event) =>
-                          setInlineClient((currentValue) => ({
-                            ...currentValue,
-                            address: event.target.value,
-                          }))
+                          setInlineClient({ address: event.target.value })
                         }
                         placeholder="Dirección o referencia de entrega"
                         disabled={isFormLocked}
@@ -948,8 +978,7 @@ export function QuotationForm({
                           key={days}
                           type="button"
                           variant="outline"
-                          size="sm"
-                          className="bg-background/75"
+                          className="min-h-12 bg-background/75 px-6"
                           disabled={isFormLocked}
                           onClick={() => {
                             setValidUntil(getQuotationValidityPresetDate(days));
@@ -1041,5 +1070,6 @@ export function QuotationForm({
         </div>
       </div>
     </form>
+    </>
   );
 }

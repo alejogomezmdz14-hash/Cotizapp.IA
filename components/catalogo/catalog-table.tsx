@@ -3,11 +3,10 @@
 import { useMemo, useState } from "react";
 import {
   PackageSearch,
-  Pencil,
+  MoreVertical,
   Search,
   Shapes,
   Tag,
-  Trash2,
   Wallet,
 } from "lucide-react";
 
@@ -18,6 +17,12 @@ import {
 import { CatalogItemForm } from "@/components/catalogo/catalog-item-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useDebouncedSearchParam } from "@/hooks/use-debounced-search-param";
 import {
   Card,
@@ -207,32 +212,36 @@ export function CatalogTable({
                       </CardDescription>
                     </div>
                     {!isEditing ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-token bg-background text-foreground hover:bg-surface-2"
-                          onClick={() => {
-                            setActionError(null);
-                            setEditingId(item.id);
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => {
-                            requestDelete(item);
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {isDeleting ? "Eliminando..." : "Eliminar"}
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-12 w-12"
+                            disabled={isDeleting}
+                            aria-label="Acciones del ítem"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setActionError(null);
+                              setEditingId(item.id);
+                            }}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => requestDelete(item)}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : null}
                   </div>
                 </CardHeader>
@@ -307,10 +316,10 @@ export function CatalogTable({
         title="Eliminar ítem del catálogo"
         description={
           pendingDelete
-            ? `¿Eliminar "${pendingDelete.name}"? Esta acción no se puede deshacer.`
+            ? `¿Seguro que querés eliminar "${pendingDelete.name}"? No se puede deshacer.`
             : ""
         }
-        confirmLabel="Eliminar ítem"
+        confirmLabel="Sí, eliminar"
         isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {

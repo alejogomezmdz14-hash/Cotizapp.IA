@@ -30,6 +30,7 @@ type QuotationSummaryProps = {
   shareToken?: string | null;
   sentAt?: string | null;
   shareStatus?: string | null;
+  hideSaveButton?: boolean;
   onStateChange?: (state: {
     pdfGeneratedAt: string | null;
     shareToken: string | null;
@@ -52,6 +53,7 @@ export function QuotationSummary({
   shareToken = null,
   sentAt = null,
   shareStatus = null,
+  hideSaveButton = false,
   onStateChange,
 }: QuotationSummaryProps) {
   const totals = calculateQuotationTotals(items, taxRate);
@@ -163,9 +165,10 @@ export function QuotationSummary({
           />
         ) : null}
 
+        {hideSaveButton ? null : (
         <Button
           type="submit"
-          className="w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+          className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
           disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
           aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
         >
@@ -175,6 +178,7 @@ export function QuotationSummary({
               ? "Cotización guardada"
               : "Guardar cotización"}
         </Button>
+        )}
       </CardContent>
     </Card>
   );

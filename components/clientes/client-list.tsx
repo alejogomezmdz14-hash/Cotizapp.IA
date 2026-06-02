@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Mail, MapPin, Pencil, Phone, Search, Trash2, Users } from "lucide-react";
+import { Mail, MapPin, MoreVertical, Phone, Search, Users } from "lucide-react";
 
 import { useDebouncedSearchParam } from "@/hooks/use-debounced-search-param";
 
@@ -13,6 +13,12 @@ import {
 import { ClientForm } from "@/components/clientes/client-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Card,
   CardContent,
@@ -46,6 +52,10 @@ function formatDate(value: string | null) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function formatPhoneHref(phone: string) {
+  return phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
 }
 
 function getErrorMessage(error: unknown) {
@@ -209,32 +219,38 @@ export function ClientList({ clients, search }: ClientListProps) {
                       </CardDescription>
                     </div>
                     {!isEditing ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-token bg-background text-foreground hover:bg-surface-2"
-                          onClick={() => {
-                            setActionError(null);
-                            setEditingId(client.id);
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => {
-                            void requestDelete(client);
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {isDeleting ? "Eliminando..." : "Eliminar"}
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-12 w-12"
+                            disabled={isDeleting}
+                            aria-label="Acciones del cliente"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setActionError(null);
+                              setEditingId(client.id);
+                            }}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => {
+                              void requestDelete(client);
+                            }}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : null}
                   </div>
                 </CardHeader>
@@ -269,9 +285,28 @@ export function ClientList({ clients, search }: ClientListProps) {
                             <Phone className="h-4 w-4 text-muted-foreground" />
                             Teléfono
                           </p>
-                          <p className="text-sm leading-6 text-muted-foreground">
-                            {client.phone?.trim() || "Sin teléfono cargado"}
-                          </p>
+                          {client.phone?.trim() ? (
+                            <div className="flex flex-wrap gap-2">
+                              <a
+                                href={`tel:${formatPhoneHref(client.phone)}`}
+                                className="inline-flex min-h-12 items-center rounded-md border border-token px-4 text-sm font-medium text-foreground"
+                              >
+                                Llamar
+                              </a>
+                              <a
+                                href={`https://wa.me/${formatPhoneHref(client.phone)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex min-h-12 items-center rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 text-sm font-medium text-emerald-700 dark:text-emerald-300"
+                              >
+                                WhatsApp
+                              </a>
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-6 text-muted-foreground">
+                              Sin teléfono cargado
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -303,11 +338,11 @@ export function ClientList({ clients, search }: ClientListProps) {
                   pendingDelete.quotationCount === 1 ? "" : "es"
                 } asociada${
                   pendingDelete.quotationCount === 1 ? "" : "s"
-                }. Esta acción no se puede deshacer.`
-              : `¿Seguro que querés eliminar a ${pendingDelete.name}? Esta acción no se puede deshacer.`
+                }. No se puede deshacer.`
+              : `¿Seguro que querés eliminar a ${pendingDelete.name}? No se puede deshacer.`
             : ""
         }
-        confirmLabel="Eliminar cliente"
+        confirmLabel="Sí, eliminar"
         isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {

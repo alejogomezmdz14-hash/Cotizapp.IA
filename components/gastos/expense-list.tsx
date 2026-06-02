@@ -2,12 +2,18 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 
 import { deleteExpense } from "@/app/actions/expenses";
 import { ExpenseFormSheet } from "@/components/gastos/expense-form-sheet";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getExpenseCategoryBadgeClassName } from "@/lib/expense-categories";
 import { formatDateOnly, formatExpenseAmount } from "@/lib/formatting";
 import type { Expense, ExpenseMonthGroup } from "@/types";
@@ -114,28 +120,30 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
                         expense.currency || defaultCurrency,
                       )}
                     </p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="bg-background/75"
-                        onClick={() => setEditingExpense(expense)}
-                      >
-                        <Pencil className="mr-1.5 h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="border-destructive/40 bg-background/75 text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeletingExpense(expense)}
-                      >
-                        <Trash2 className="mr-1.5 h-4 w-4" />
-                        Eliminar
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-12 w-12"
+                          aria-label="Acciones del gasto"
+                        >
+                          <MoreVertical className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setEditingExpense(expense)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeletingExpense(expense)}
+                        >
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </article>
               ))}
@@ -172,10 +180,10 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
         title="Eliminar gasto"
         description={
           deletingExpense
-            ? `¿Querés eliminar "${deletingExpense.description}"? Esta acción no se puede deshacer.`
+            ? `¿Seguro que querés eliminar "${deletingExpense.description}"? No se puede deshacer.`
             : ""
         }
-        confirmLabel="Eliminar"
+        confirmLabel="Sí, eliminar"
         isLoading={isPending}
         onCancel={() => {
           setDeletingExpense(null);

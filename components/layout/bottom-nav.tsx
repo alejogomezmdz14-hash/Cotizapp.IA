@@ -9,7 +9,7 @@ import {
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
-const BOTTOM_NAV_HEIGHT_PX = 64;
+const BOTTOM_NAV_HEIGHT_PX = 72;
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -22,7 +22,7 @@ export function BottomNav() {
       aria-label="Navegación principal"
     >
       <ul
-        className="grid h-16 grid-cols-6 items-stretch"
+        className="grid h-[4.5rem] grid-cols-6 items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {primaryNavItems.map((item) => {
@@ -38,13 +38,14 @@ export function BottomNav() {
                 className={cn(
                   "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition",
                   isPrimary
-                    ? "bg-primary text-primary-foreground"
+                    ? "-mt-3 rounded-t-2xl bg-accent-token pt-2 text-black shadow-[0_-4px_16px_rgb(var(--accent-rgb)/0.35)]"
                     : active
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground",
+                  isPrimary && "min-h-[4.5rem]",
                 )}
               >
-                <Icon className={cn("h-5 w-5", isPrimary && "h-[1.35rem] w-[1.35rem]")} />
+                <Icon className={cn("h-5 w-5", isPrimary && "h-7 w-7")} />
                 <span className="max-w-full truncate leading-tight">
                   {isPrimary ? "Nuevo" : item.href === "/chat" ? "Chat" : item.label}
                 </span>

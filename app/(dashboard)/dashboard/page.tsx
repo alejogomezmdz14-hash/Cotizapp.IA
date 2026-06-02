@@ -1,22 +1,11 @@
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Clock3,
-  Receipt,
-  Send,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import { DashboardMetricCards } from "@/components/dashboard/dashboard-metric-cards";
 import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
 import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
@@ -44,15 +33,6 @@ export default async function DashboardPage() {
     profile?.currency ?? null,
   );
 
-  const quotationMetricIcons = {
-    totalQuotedThisMonth: TrendingUp,
-    sentQuotations: Send,
-    acceptedQuotations: BadgeCheck,
-    pendingQuotations: Clock3,
-    expensesThisMonth: Receipt,
-    netProfitThisMonth: Wallet,
-    netProfitPlaceholder: Wallet,
-  } as const;
   const recentQuotations = quotations.slice(0, 5);
   const hasExpenses = stats.expensesByCurrency.length > 0;
   const expensesSummary = hasExpenses
@@ -98,89 +78,15 @@ export default async function DashboardPage() {
               Estado de tus cotizaciones
             </h3>
           </div>
-          <Link
-            href="/cotizaciones"
-            className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-          >
-            Ver cotizaciones
-          </Link>
+          <Button asChild variant="outline" className="min-h-12 bg-background/75">
+            <Link href="/cotizaciones">Ver cotizaciones</Link>
+          </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {quotationMetricCards.map((card, index) => {
-            const Icon = quotationMetricIcons[card.id];
-            const isExpenseCard = card.id === "expensesThisMonth";
-            const isNetProfitCard = card.id === "netProfitThisMonth";
-            const isNetProfitPlaceholder = card.id === "netProfitPlaceholder";
-            const isHighlight = index === 0;
-
-            return (
-              <Card
-                key={card.id}
-                className={cn(
-                  statCardClassName,
-                  isHighlight &&
-                    "!border-[rgb(var(--accent-rgb)/0.3)] !bg-[rgb(var(--accent-rgb)/0.08)]",
-                  isExpenseCard &&
-                    "!border-orange-500/30 !bg-orange-500/8",
-                  isNetProfitCard &&
-                    (stats.netProfitThisMonth >= 0
-                      ? "!border-emerald-500/30 !bg-emerald-500/8"
-                      : "!border-destructive/30 !bg-destructive/8"),
-                  isNetProfitPlaceholder && "!border-dashed !border-token",
-                )}
-              >
-                <CardHeader className="space-y-4">
-                  <div
-                    className={cn(
-                      "w-fit rounded-2xl border p-3",
-                      isHighlight &&
-                        "border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.12)] text-accent-token",
-                      isExpenseCard &&
-                        "border-orange-500/30 bg-orange-500/15 text-orange-600 dark:text-orange-300",
-                      isNetProfitCard &&
-                        (stats.netProfitThisMonth >= 0
-                          ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
-                          : "border-destructive/40 bg-destructive/15 text-destructive"),
-                      !isHighlight &&
-                        !isExpenseCard &&
-                        !isNetProfitCard &&
-                        "border-token bg-background/80 text-foreground",
-                    )}
-                  >
-                    {isNetProfitCard && stats.netProfitThisMonth < 0 ? (
-                      <TrendingDown className="h-5 w-5" />
-                    ) : (
-                      <Icon className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <CardDescription>{card.title}</CardDescription>
-                    <CardTitle
-                      className={
-                        isHighlight ? "text-3xl lg:text-4xl" : "text-4xl"
-                      }
-                    >
-                      {card.value}
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-3">
-                  <p
-                    className={cn(
-                      "text-sm leading-6",
-                      isNetProfitPlaceholder && card.description === "Sin gastos registrados"
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {card.description}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <DashboardMetricCards
+          cards={quotationMetricCards}
+          netProfitThisMonth={stats.netProfitThisMonth}
+        />
       </section>
 
       <section className={panelClassName}>
