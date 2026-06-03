@@ -15,11 +15,11 @@ const baseStats = {
     pendingQuotations: 6,
   },
   acceptedQuotedThisMonth: 1800,
-  collectedThisMonth: 0,
+  collectedThisMonth: 950,
   monthlyComparison: [],
 };
 
-test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly total as currency", () => {
+test("buildDashboardPageCards exposes four monthly KPIs without duplicate accepted totals", () => {
   const sections = buildDashboardPageCards(
     {
       ...baseStats,
@@ -31,41 +31,22 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
     "ARS",
   );
 
-  assert.equal(sections.quotationMetricCards.length, 6);
+  assert.equal(sections.quotationMetricCards.length, 4);
   assert.deepEqual(
     sections.quotationMetricCards.map((card) => card.title),
     [
-      "Aceptado este mes",
-      "Enviadas",
-      "Aceptadas",
-      "Pendientes",
-      "Gastos este mes",
-      "Ganancia neta",
+      "Cobrado este mes",
+      "Cotizaciones enviadas",
+      "Pendientes de respuesta",
+      "Gastos del mes",
     ],
   );
   assert.equal(
     sections.quotationMetricCards[0]?.value,
-    formatCurrencyAmount(1800, "ARS"),
+    formatCurrencyAmount(950, "ARS"),
   );
   assert.equal(sections.quotationMetricCards[0]?.href, "/cotizaciones");
-  assert.match(sections.quotationMetricCards[4]?.value ?? "", /ARS/);
-
-  const noExpenseSections = buildDashboardPageCards(
-    {
-      ...baseStats,
-      expensesThisMonth: 0,
-      expensesByCurrency: [],
-      netProfitThisMonth: 1800,
-      canCalculateNetProfit: false,
-    },
-    "ARS",
-  );
-
-  assert.equal(noExpenseSections.quotationMetricCards.length, 6);
-  assert.equal(
-    noExpenseSections.quotationMetricCards[5]?.id,
-    "netProfitPlaceholder",
-  );
+  assert.match(sections.quotationMetricCards[3]?.value ?? "", /ARS/);
 
   assert.equal(sections.summaryCards.length, 3);
   assert.deepEqual(
@@ -74,7 +55,7 @@ test("buildDashboardPageCards prioritizes quotation KPIs and formats the monthly
   );
 });
 
-test("buildDashboardPageCards hides net profit when expenses use multiple currencies", () => {
+test("buildDashboardPageCards formats multi-currency expenses", () => {
   const sections = buildDashboardPageCards(
     {
       ...baseStats,
@@ -89,7 +70,6 @@ test("buildDashboardPageCards hides net profit when expenses use multiple curren
     "ARS",
   );
 
-  assert.equal(sections.quotationMetricCards[5]?.id, "netProfitPlaceholder");
-  assert.match(sections.quotationMetricCards[4]?.value ?? "", /ARS/);
-  assert.match(sections.quotationMetricCards[4]?.value ?? "", /USD/);
+  assert.match(sections.quotationMetricCards[3]?.value ?? "", /ARS/);
+  assert.match(sections.quotationMetricCards[3]?.value ?? "", /USD/);
 });

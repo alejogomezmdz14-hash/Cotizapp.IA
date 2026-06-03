@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, ShieldCheck } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -119,7 +119,7 @@ export function LogoUploader({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <ImagePlus className="h-3.5 w-3.5 text-accent-token" />
-            Branding visual
+            Tu logo
           </div>
           <h3 className="text-base font-semibold text-foreground">Logo del negocio</h3>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -148,11 +148,6 @@ export function LogoUploader({
         </div>
 
         <div className="flex-1 space-y-3">
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-            Si ya tienes un logo, quedará disponible para el resto de la cuenta en
-            cuanto termine la carga.
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="business-logo">Archivo</Label>
             <input
@@ -203,13 +198,6 @@ export function LogoUploader({
                   ? "Actualizar logo"
                   : "Subir logo"}
             </Button>
-
-            {logoPath ? (
-              <span className="inline-flex items-center gap-2 self-center text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-accent-token" />
-                El logo se guarda apenas termina la carga.
-              </span>
-            ) : null}
           </div>
         </div>
       </div>

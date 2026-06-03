@@ -290,6 +290,7 @@ export async function savePdfTemplateSettingsAction(formData: FormData) {
   const pdfAccentColor = normalizePdfAccentColor(
     getRequiredValue(formData, "pdf_accent_color"),
   );
+  const pdfFooter = getOptionalValue(formData, "pdf_footer");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -299,6 +300,7 @@ export async function savePdfTemplateSettingsAction(formData: FormData) {
         id: user.id,
         pdf_template: pdfTemplate,
         pdf_accent_color: pdfAccentColor,
+        pdf_footer: pdfFooter,
       },
       { onConflict: "id" },
     );

@@ -10,17 +10,17 @@ export const PDF_TEMPLATE_OPTIONS: Array<{
   {
     id: "classic",
     label: "Clásica",
-    description: "Header blanco, tabla simple y totales a la derecha.",
+    description: "Clásica: limpia y ordenada",
   },
   {
     id: "modern",
     label: "Moderna",
-    description: "Header con color de acento y filas alternadas.",
+    description: "Moderna: con color y estilo",
   },
   {
     id: "minimal",
     label: "Minimalista",
-    description: "Sin colores fuertes, solo tipografía y líneas finas.",
+    description: "Simple: solo texto y líneas",
   },
 ];
 

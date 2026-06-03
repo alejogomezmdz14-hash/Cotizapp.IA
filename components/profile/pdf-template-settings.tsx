@@ -15,9 +15,13 @@ import {
 } from "@/lib/pdf-template";
 import { cn } from "@/lib/utils";
 
+const textareaClassName =
+  "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
 type PdfTemplateSettingsProps = {
   initialTemplate: string | null;
   initialAccentColor: string | null;
+  initialPdfFooter?: string | null;
   businessName: string | null;
   saved?: boolean;
 };
@@ -148,6 +152,7 @@ function PreviewDocument({
 export function PdfTemplateSettings({
   initialTemplate,
   initialAccentColor,
+  initialPdfFooter = null,
   businessName,
   saved = false,
 }: PdfTemplateSettingsProps) {
@@ -166,9 +171,9 @@ export function PdfTemplateSettings({
 
   return (
     <form action={savePdfTemplateSettingsAction} className="space-y-5">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <ScrollText className="h-3.5 w-3.5 text-accent-token" />
-        Plantillas de PDF
+        Plantilla PDF
       </div>
 
       {saved ? (
@@ -229,7 +234,7 @@ export function PdfTemplateSettings({
               className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
               onClick={() => setShowColorCode((current) => !current)}
             >
-              {showColorCode ? "Ocultar código" : "Ver código de color"}
+              {showColorCode ? "Ocultar código" : "Elegir color"}
               <ChevronDown
                 className={cn(
                   "h-3.5 w-3.5 transition",
@@ -255,7 +260,21 @@ export function PdfTemplateSettings({
         </div>
       </div>
 
-      <Button type="submit">Guardar plantilla PDF</Button>
+      <div className="space-y-2">
+        <Label htmlFor="pdf_footer">Pie de página del PDF</Label>
+        <textarea
+          id="pdf_footer"
+          name="pdf_footer"
+          rows={4}
+          defaultValue={initialPdfFooter ?? ""}
+          placeholder="Ej. Precios sujetos a cambios sin previo aviso."
+          className={textareaClassName}
+        />
+      </div>
+
+      <Button type="submit" className="min-h-12 w-full sm:w-auto">
+        Guardar diseño
+      </Button>
     </form>
   );
 }

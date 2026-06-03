@@ -29,21 +29,18 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
     {
       title: "Total este mes",
       value: totalLabel,
-      description: "Suma de gastos registrados en el mes.",
       icon: Receipt,
       accent: "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-300",
     },
     {
       title: "Cantidad de gastos",
       value: String(stats.expenseCount),
-      description: "Gastos ingresados este mes.",
       icon: Hash,
       accent: "border-token bg-background/80 text-foreground",
     },
     {
       title: "Donde más gastaste",
       value: topCategoryValue,
-      description: "La categoría con mayor monto este mes.",
       icon: Tags,
       accent: "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300",
     },
@@ -51,7 +48,7 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {cards.map(({ title, value, description, icon: Icon, accent }) => (
+      {cards.map(({ title, value, icon: Icon, accent }) => (
         <div
           key={title}
           className="rounded-[1.75rem] border border-token bg-background/75 p-5 shadow-sm"
@@ -62,13 +59,10 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
             </div>
           </div>
           <div className="mt-4 space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              {title}
-            </p>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className="text-2xl font-semibold tracking-tight text-foreground">
               {value}
             </p>
-            <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           </div>
         </div>
       ))}

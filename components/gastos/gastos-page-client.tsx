@@ -37,7 +37,7 @@ export function GastosPageClient({
             Gastos
           </span>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Registro de gastos
+            Mis gastos
           </h2>
         </div>
         <Button

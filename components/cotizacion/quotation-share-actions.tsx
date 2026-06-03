@@ -24,6 +24,7 @@ type QuotationShareActionsProps = {
   initialSentAt?: string | null;
   initialStatus?: string | null;
   isDraft?: boolean;
+  variant?: "full" | "listPrimary";
   onStateChange?: (state: {
     pdfGeneratedAt: string | null;
     shareToken: string | null;
@@ -59,7 +60,7 @@ export function QuotationShareActions({
   initialShareToken = null,
   initialSentAt = null,
   initialStatus = null,
-  isDraft = false,
+  variant = "full",
   onStateChange,
 }: QuotationShareActionsProps) {
   const { toast } = useToast();
@@ -248,18 +249,89 @@ export function QuotationShareActions({
     }
   }
 
+  const normalizedStatus = shareStatus?.trim().toLowerCase() ?? "draft";
+  const isAccepted = normalizedStatus === "accepted";
+  const isPending = normalizedStatus === "pending";
+
+  function getListPrimaryLabel() {
+    if (isAccepted) {
+      return "Ver PDF";
+    }
+    if (isPending || sentAt) {
+      return "Reenviar por WhatsApp";
+    }
+    return "Enviar por WhatsApp";
+  }
+
+  async function handleListPrimaryClick() {
+    if (isAccepted) {
+      if (!pdfGeneratedAt) {
+        await handleGeneratePdf();
+      }
+      handleOpenPdf();
+      return;
+    }
+
+    await handleShareWhatsapp();
+  }
+
+  if (variant === "listPrimary") {
+    return (
+      <div className="min-w-0 flex-1 space-y-2">
+        {error ? (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+
+        {needsPhoneInput ? (
+          <div className="space-y-3 rounded-lg border border-token/80 bg-background/70 px-4 py-3">
+            <div className="space-y-1">
+              <Label htmlFor={`quotation-share-phone-${quotationId}`}>
+                Teléfono del cliente
+              </Label>
+              <Input
+                id={`quotation-share-phone-${quotationId}`}
+                type="tel"
+                value={phoneInput}
+                onChange={(event) => setPhoneInput(event.target.value)}
+                placeholder="Ej. 261 555 1234"
+                disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+              />
+            </div>
+            <Button
+              type="button"
+              className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
+              disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+              onClick={() => {
+                void handleSavePhoneAndShare();
+              }}
+            >
+              {isSavingPhone ? "Guardando teléfono..." : "Guardar teléfono y compartir"}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
+            disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+            onClick={() => {
+              void handleListPrimaryClick();
+            }}
+          >
+            {isGeneratingPdf
+              ? "Generando PDF..."
+              : isSharing || isLoadingRecipient
+                ? "Abriendo WhatsApp..."
+                : getListPrimaryLabel()}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 rounded-lg border border-token/80 bg-background/60 px-4 py-3">
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">PDF y WhatsApp</p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {pdfGeneratedAt
-            ? isDraft
-              ? "Revisá el PDF antes de enviarlo."
-              : "Revisá el PDF y compartilo por WhatsApp."
-            : "Generá el PDF primero. Después vas a poder verlo, descargarlo y compartirlo."}
-        </p>
-      </div>
 
       {error ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -382,7 +454,7 @@ export function QuotationShareActions({
                 asChild
               >
                 <a href={publicShareUrl} target="_blank" rel="noreferrer">
-                  Ver enlace para compartir
+                  Copiar enlace
                 </a>
               </Button>
             ) : null}

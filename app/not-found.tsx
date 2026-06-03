@@ -12,9 +12,6 @@ function PublicNotFound() {
   return (
     <main className="shell-backdrop flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <section className="shell-panel-strong w-full max-w-lg space-y-5 border border-token p-6 text-center sm:p-8">
-        <span className="inline-flex rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Error 404
-        </span>
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             Esa página no existe
@@ -78,10 +75,7 @@ export default async function NotFound() {
         <main className="flex-1 px-4 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 lg:pb-6">
           <div className="mx-auto flex w-full max-w-3xl items-center justify-center">
             <section className="shell-panel-strong shell-highlight w-full overflow-hidden px-6 py-8 text-center sm:px-8 sm:py-10">
-              <span className="inline-flex rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Error 404
-              </span>
-              <div className="mt-4 space-y-3">
+              <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                   Esa página no existe en Cotizapp
                 </h1>
@@ -92,7 +86,7 @@ export default async function NotFound() {
               </div>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button asChild>
-                  <Link href="/dashboard">Ir al dashboard</Link>
+                  <Link href="/dashboard">Volver al inicio</Link>
                 </Button>
                 <Button asChild variant="outline" className="bg-background/75">
                   <Link href="/cotizaciones">Ver cotizaciones</Link>

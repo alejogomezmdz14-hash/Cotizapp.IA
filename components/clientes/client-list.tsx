@@ -36,24 +36,6 @@ type ClientListProps = {
   search: string;
 };
 
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Sin fecha";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Sin fecha";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
 function formatPhoneHref(phone: string) {
   return phone.replace(/\s+/g, "").replace(/[^\d+]/g, "");
 }
@@ -135,11 +117,8 @@ export function ClientList({ clients, search }: ClientListProps) {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               <CardTitle className="text-xl">Clientes</CardTitle>
-              <CardDescription>
-                Buscá por nombre, email o teléfono.
-              </CardDescription>
             </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-muted-foreground">
               {resultLabel}
             </span>
           </div>
@@ -214,9 +193,6 @@ export function ClientList({ clients, search }: ClientListProps) {
                       <CardTitle className="text-xl">
                         {formatDisplayName(client.name)}
                       </CardTitle>
-                      <CardDescription>
-                        Agregado el {formatDate(client.created_at)}
-                      </CardDescription>
                     </div>
                     {!isEditing ? (
                       <DropdownMenu>
@@ -271,21 +247,23 @@ export function ClientList({ clients, search }: ClientListProps) {
                   ) : (
                     <>
                       <div className="grid gap-3 md:grid-cols-2">
-                        <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            Email
-                          </p>
-                          <p className="text-sm leading-6 text-muted-foreground">
-                            {client.email?.trim() || "Sin email cargado"}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            Teléfono
-                          </p>
-                          {client.phone?.trim() ? (
+                        {client.email?.trim() ? (
+                          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+                            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              Email
+                            </p>
+                            <p className="text-sm leading-6 text-muted-foreground">
+                              {client.email.trim()}
+                            </p>
+                          </div>
+                        ) : null}
+                        {client.phone?.trim() ? (
+                          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+                            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              Teléfono
+                            </p>
                             <div className="flex flex-wrap gap-2">
                               <a
                                 href={`tel:${formatPhoneHref(client.phone)}`}
@@ -302,23 +280,21 @@ export function ClientList({ clients, search }: ClientListProps) {
                                 WhatsApp
                               </a>
                             </div>
-                          ) : (
-                            <p className="text-sm leading-6 text-muted-foreground">
-                              Sin teléfono cargado
-                            </p>
-                          )}
-                        </div>
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                        <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          Dirección
-                        </p>
-                        <p className="text-sm leading-6 text-muted-foreground">
-                          {client.address?.trim() || "Sin dirección cargada"}
-                        </p>
-                      </div>
+                      {client.address?.trim() ? (
+                        <div className="rounded-lg border border-token/80 bg-background/60 p-4">
+                          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            Dirección
+                          </p>
+                          <p className="text-sm leading-6 text-muted-foreground">
+                            {client.address.trim()}
+                          </p>
+                        </div>
+                      ) : null}
                     </>
                   )}
                 </CardContent>

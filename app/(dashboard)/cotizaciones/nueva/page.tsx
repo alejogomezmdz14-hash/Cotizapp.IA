@@ -73,11 +73,11 @@ export default async function NewQuotationPage({
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-items">
               2. Ítems
             </a>
-            <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-escaneo">
-              3. Escaneo
+            <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-notas">
+              3. Notas
             </a>
-            <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-ajustes">
-              4. Opciones
+            <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-resumen">
+              4. Resumen
             </a>
           </nav>
         </section>

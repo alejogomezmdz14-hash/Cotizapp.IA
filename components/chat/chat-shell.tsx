@@ -209,10 +209,10 @@ export function ChatShell() {
             <Bot className="h-5 w-5" />
           </div>
           <div className="space-y-0.5">
-            <p className="text-sm font-semibold text-white">Asistente Cotizapp</p>
+            <p className="text-sm font-semibold text-white">Asistente automático</p>
             <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Circle className="h-2.5 w-2.5 fill-[#00E5A0] text-[#00E5A0]" />
-              Disponible ahora
+              Listo para ayudarte
             </p>
           </div>
         </div>

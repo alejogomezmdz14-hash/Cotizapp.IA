@@ -5,13 +5,10 @@ import {
 import type { DashboardStats } from "@/types";
 
 export type QuotationMetricCardId =
-  | "totalQuotedThisMonth"
+  | "collectedThisMonth"
   | "sentQuotations"
-  | "acceptedQuotations"
   | "pendingQuotations"
-  | "expensesThisMonth"
-  | "netProfitThisMonth"
-  | "netProfitPlaceholder";
+  | "expensesThisMonth";
 
 export type DashboardSummaryCardId =
   | "quotations"
@@ -48,7 +45,6 @@ export function buildDashboardPageCards(
   stats: DashboardStats,
   currency: string | null,
 ): DashboardPageCards {
-  const acceptedQuotedThisMonth = stats.acceptedQuotedThisMonth;
   const hasExpenses = stats.expensesByCurrency.length > 0;
   const expensesLabel = hasExpenses
     ? formatExpenseTotalsByCurrency(stats.expensesByCurrency)
@@ -56,57 +52,34 @@ export function buildDashboardPageCards(
 
   const quotationMetricCards: DashboardQuotationMetricCard[] = [
     {
-      id: "totalQuotedThisMonth",
-      title: "Aceptado este mes",
-      value: formatCurrencyAmount(acceptedQuotedThisMonth, currency),
-      description: "Suma de cotizaciones aceptadas del mes actual.",
+      id: "collectedThisMonth",
+      title: "Cobrado este mes",
+      value: formatCurrencyAmount(stats.collectedThisMonth, currency),
+      description: "",
       href: "/cotizaciones",
     },
     {
       id: "sentQuotations",
-      title: "Enviadas",
+      title: "Cotizaciones enviadas",
       value: formatDashboardCount(stats.quotationMetrics.sentQuotations),
-      description: "Cotizaciones que ya mandaste a tus clientes.",
-      href: "/cotizaciones",
-    },
-    {
-      id: "acceptedQuotations",
-      title: "Aceptadas",
-      value: formatDashboardCount(stats.quotationMetrics.acceptedQuotations),
-      description: "Cotizaciones aprobadas listas para avanzar.",
+      description: "",
       href: "/cotizaciones",
     },
     {
       id: "pendingQuotations",
-      title: "Pendientes",
+      title: "Pendientes de respuesta",
       value: formatDashboardCount(stats.quotationMetrics.pendingQuotations),
-      description: "Cotizaciones sin respuesta todavía.",
+      description: "",
       href: "/cotizaciones",
     },
     {
       id: "expensesThisMonth",
-      title: "Gastos este mes",
+      title: "Gastos del mes",
       value: expensesLabel,
-      description: hasExpenses
-        ? "Total registrado en gastos del mes actual."
-        : "Todavía no hay gastos registrados este mes.",
+      description: "",
       href: "/gastos",
     },
   ];
-
-  quotationMetricCards.push({
-    id: hasExpenses && stats.canCalculateNetProfit ? "netProfitThisMonth" : "netProfitPlaceholder",
-    title: "Ganancia neta",
-    value:
-      hasExpenses && stats.canCalculateNetProfit
-        ? formatCurrencyAmount(stats.netProfitThisMonth, currency)
-        : formatCurrencyAmount(acceptedQuotedThisMonth, currency),
-    description:
-      hasExpenses && stats.canCalculateNetProfit
-        ? "Total aceptado del mes menos gastos registrados."
-        : "Sin gastos registrados",
-    href: "/gastos",
-  });
 
   return {
     quotationMetricCards,

@@ -871,7 +871,7 @@ export function QuotationForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 <ReceiptText className="h-3.5 w-3.5 text-accent-token" />
-                Escaneo
+                Notas
               </div>
               {!scanSectionExpanded ? (
                 <Button
@@ -934,7 +934,7 @@ export function QuotationForm({
             </div>
             <Card className={sectionCardClassName}>
               <CardHeader className="space-y-1">
-                <CardTitle className="text-xl">Opciones de esta cotización</CardTitle>
+                <CardTitle className="text-xl">Resumen</CardTitle>
                 <CardDescription className="leading-6">
                   Definí impuesto, validez y notas para esta cotización.
                 </CardDescription>

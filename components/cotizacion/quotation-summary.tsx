@@ -1,11 +1,9 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowUpRight, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Separator } from "@/components/ui/separator";
@@ -60,40 +58,8 @@ export function QuotationSummary({
 
   return (
     <Card className="shell-panel-strong shell-highlight overflow-hidden shadow-none">
-      <CardHeader className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-xl">Resumen del borrador</CardTitle>
-            <CardDescription className="leading-6">
-              El total se actualiza mientras cargás los ítems.
-            </CardDescription>
-          </div>
-          <div className="rounded-2xl border border-token bg-background/70 p-3 text-accent-token">
-            <ReceiptText className="h-5 w-5" />
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Ítems cargados
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {items.length}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Estado del borrador
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {isSaved
-                ? "Guardado y bloqueado"
-                : items.length === 0
-                  ? "Agregá al menos un ítem para continuar"
-                  : "Listo para guardar"}
-            </p>
-          </div>
-        </div>
+      <CardHeader>
+        <CardTitle className="text-xl">Resumen</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -123,10 +89,6 @@ export function QuotationSummary({
               {formatCurrencyAmount(totals.total, currency)}
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <ArrowUpRight className="h-3.5 w-3.5" />
-            Borrador
-          </div>
         </div>
 
         <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm">
@@ -143,15 +105,7 @@ export function QuotationSummary({
             Borrador guardado con el número <span className="font-semibold">{draftNumber}</span>.
             Ahora podés sumar adjuntos antes de salir.
           </div>
-        ) : (
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            <div className="mb-2 flex items-center gap-2 text-foreground">
-              <ShieldCheck className="h-4 w-4 text-accent-token" />
-              Guardar cotización
-            </div>
-            Se guarda. Después podés adjuntar fotos y enviarla por WhatsApp.
-          </div>
-        )}
+        ) : null}
 
         {quotationId && draftNumber ? (
           <QuotationShareActions
@@ -166,18 +120,18 @@ export function QuotationSummary({
         ) : null}
 
         {hideSaveButton ? null : (
-        <Button
-          type="submit"
-          className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
-          disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
-          aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
-        >
-          {isSubmitting
-            ? "Guardando cotización..."
-            : isSaved
-              ? "Cotización guardada"
-              : "Guardar cotización"}
-        </Button>
+          <Button
+            type="submit"
+            className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+            disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
+            aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
+          >
+            {isSubmitting
+              ? "Guardando cotización..."
+              : isSaved
+                ? "Cotización guardada"
+                : "Guardar cotización"}
+          </Button>
         )}
       </CardContent>
     </Card>

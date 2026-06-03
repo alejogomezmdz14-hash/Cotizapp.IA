@@ -58,8 +58,7 @@ export function CatalogItemForm({
   const [categoryValue, setCategoryValue] = useState(initialValues?.category ?? "");
   const { toast } = useToast();
 
-  const defaultSubmitLabel =
-    mode === "edit" ? "Guardar cambios" : "Guardar en mi catálogo";
+  const defaultSubmitLabel = mode === "edit" ? "Guardar cambios" : "Guardar";
   const pendingLabel = mode === "edit" ? "Guardando..." : "Creando...";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -158,7 +157,7 @@ export function CatalogItemForm({
 
         <div className="space-y-2">
           <Label className="text-muted-foreground" htmlFor={`${fieldId}-unit`}>
-            Unidad
+            ¿Cómo se cobra?
           </Label>
           <Input
             id={`${fieldId}-unit`}

@@ -9,7 +9,6 @@ import { DashboardMetricCards } from "@/components/dashboard/dashboard-metric-ca
 import { DashboardMonthlyChart } from "@/components/dashboard/dashboard-monthly-chart";
 import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
-import { formatExpenseTotalsByCurrency } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
 import { getProfile, requireUser } from "@/lib/profile";
@@ -34,35 +33,6 @@ export default async function DashboardPage() {
   );
 
   const recentQuotations = quotations.slice(0, 5);
-  const hasExpenses = stats.expensesByCurrency.length > 0;
-  const expensesSummary = hasExpenses
-    ? formatExpenseTotalsByCurrency(stats.expensesByCurrency)
-    : formatCurrencyAmount(0, currency);
-  const monthlySummary = [
-    {
-      label: "Aceptado este mes",
-      value: formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
-    },
-    {
-      label: "Cobrado (lo que ya te pagaron)",
-      value: formatCurrencyAmount(stats.collectedThisMonth, currency),
-    },
-    {
-      label: "Gastos",
-      value: expensesSummary,
-    },
-    {
-      label: "Ganancia neta",
-      value:
-        hasExpenses && stats.canCalculateNetProfit
-          ? formatCurrencyAmount(stats.netProfitThisMonth, currency)
-          : formatCurrencyAmount(stats.acceptedQuotedThisMonth, currency),
-      hint:
-        hasExpenses && stats.canCalculateNetProfit
-          ? undefined
-          : "Sin gastos registrados",
-    },
-  ];
   const panelClassName = "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
   const statCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
@@ -71,50 +41,17 @@ export default async function DashboardPage() {
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <p className="ui-shell-kicker">
-              Tu resumen de hoy
-            </p>
-            <h3 className="text-xl font-semibold tracking-tight">
-              Estado de tus cotizaciones
-            </h3>
+            <h3 className="text-xl font-semibold tracking-tight">Métricas</h3>
           </div>
           <Button asChild variant="outline" className="min-h-12 bg-background/75">
             <Link href="/cotizaciones">Ver cotizaciones</Link>
           </Button>
         </div>
 
-        <DashboardMetricCards
-          cards={quotationMetricCards}
-          netProfitThisMonth={stats.netProfitThisMonth}
-        />
+        <DashboardMetricCards cards={quotationMetricCards} />
       </section>
 
       <section className={panelClassName}>
-        <div className="mb-5 space-y-2">
-          <p className="ui-shell-kicker">
-            Este mes
-          </p>
-          <h3 className="text-xl font-semibold tracking-tight">
-            Resumen financiero del mes
-          </h3>
-        </div>
-
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {monthlySummary.map((item) => (
-            <div key={item.label} className="rounded-md border border-token/80 bg-background/70 p-4">
-              <p className="ui-shell-kicker">
-                {item.label}
-              </p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">
-                {item.value}
-              </p>
-              {"hint" in item && item.hint ? (
-                <p className="mt-1 text-sm text-muted-foreground">{item.hint}</p>
-              ) : null}
-            </div>
-          ))}
-        </div>
-
         <div className="rounded-md border border-token/80 bg-background/70 p-4 sm:p-5">
           <p className="mb-4 text-sm font-medium text-foreground">
             Cotizaciones vs gastos (últimos 6 meses)

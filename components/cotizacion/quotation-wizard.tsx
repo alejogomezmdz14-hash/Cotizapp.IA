@@ -344,9 +344,7 @@ export function QuotationWizard({
           ) : (
             <span className="min-h-12" />
           )}
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Paso {step} de {totalSteps}
-          </p>
+          <span className="min-h-12" aria-hidden />
           <span className="min-h-12 w-12" />
         </div>
       </div>
@@ -389,7 +387,7 @@ export function QuotationWizard({
                 onClick={() => setClientMode("inline")}
                 disabled={disabled}
               >
-                Nuevo acá
+                Crear cliente nuevo
               </Button>
             </div>
 
@@ -506,7 +504,7 @@ export function QuotationWizard({
               disabled={disabled}
             >
               <Plus className="mr-2 h-5 w-5" />
-              Agregar ítem manualmente
+              Agregar trabajo o material
             </Button>
 
             <Button
@@ -517,7 +515,7 @@ export function QuotationWizard({
               disabled={disabled}
             >
               <PackagePlus className="mr-2 h-5 w-5" />
-              Agregar desde mi catálogo
+              Elegir del catálogo
             </Button>
 
             <div className="flex items-center gap-3 py-1">
@@ -537,7 +535,7 @@ export function QuotationWizard({
                 disabled={disabled}
               >
                 <Camera className="mr-2 h-5 w-5" />
-                Escanear factura de proveedor (opcional)
+                Subir foto de factura (opcional)
               </Button>
               <p className="text-sm leading-6 text-muted-foreground">
                 Sacale una foto a una factura o ticket de compra y el sistema carga los
@@ -589,7 +587,7 @@ export function QuotationWizard({
             </div>
 
             <div className="space-y-2">
-              <Label>¿Hasta cuándo vale esta cotización?</Label>
+              <Label>¿Cuándo vence?</Label>
               <div className="flex flex-wrap gap-2">
                 {validityPresets.map((days) => (
                   <Button
@@ -619,15 +617,8 @@ export function QuotationWizard({
 
         {step === 4 ? (
           <div className="space-y-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-semibold tracking-tight">Resumen</h2>
-              <p className="text-sm text-muted-foreground">
-                Revisá todo antes de guardar.
-              </p>
-            </div>
-
             <div className="rounded-xl border border-token bg-background/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Cliente</p>
+              <p className="text-sm text-muted-foreground">Cliente</p>
               <p className="mt-1 font-medium">
                 {draft.clientMode === "existing"
                   ? selectedClientName ?? "Sin cliente"
@@ -702,11 +693,11 @@ export function QuotationWizard({
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-[1.75rem]">
           <SheetHeader>
             <SheetTitle>Nuevo ítem</SheetTitle>
-            <SheetDescription>Cargá concepto, cantidad y precio.</SheetDescription>
+            <SheetDescription>Completá cantidad y precio del trabajo o material.</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
-              <Label>Concepto</Label>
+              <Label>¿Qué vas a cobrar?</Label>
               <ItemConceptField
                 value={newItemDraft.name}
                 onChange={(name) => setNewItemDraft((current) => ({ ...current, name }))}

@@ -16,9 +16,11 @@ import {
 import {
   deleteQuotationAction,
   duplicateQuotationAction,
+  generateQuotationPdfAction,
   toggleQuotationPaidAction,
   updateQuotationStatusAction,
 } from "@/app/actions/quotations";
+import { buildPublicAppPath } from "@/lib/app-url";
 import { convertQuotationToInvoiceAction } from "@/app/actions/invoices";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -46,7 +48,10 @@ type QuotationMoreMenuProps = {
   quotationNumber: string;
   initialStatus: string | null;
   paidAt: string | null;
+  pdfGeneratedAt?: string | null;
+  shareToken?: string | null;
   reopenHref?: string | null;
+  showSecondaryPdfActions?: boolean;
 };
 
 export function QuotationMoreMenu({
@@ -54,7 +59,10 @@ export function QuotationMoreMenu({
   quotationNumber,
   initialStatus,
   paidAt,
+  pdfGeneratedAt = null,
+  shareToken = null,
   reopenHref,
+  showSecondaryPdfActions = false,
 }: QuotationMoreMenuProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -63,6 +71,10 @@ export function QuotationMoreMenu({
   const isPaid = Boolean(paidAt);
   const isAccepted = initialStatus?.trim().toLowerCase() === "accepted";
   const pdfUrl = `/api/quotations/${encodeURIComponent(quotationId)}/pdf`;
+  const pdfDownloadUrl = `${pdfUrl}?download=1`;
+  const publicShareUrl = shareToken
+    ? buildPublicAppPath(`/api/quotations/share/${encodeURIComponent(shareToken)}`)
+    : null;
 
   async function runAction(action: () => Promise<void>) {
     setIsBusy(true);
@@ -97,12 +109,59 @@ export function QuotationMoreMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem asChild>
-            <Link href={pdfUrl} target="_blank">
-              <Download className="mr-2 h-4 w-4" />
-              Ver / Descargar PDF
-            </Link>
-          </DropdownMenuItem>
+          {showSecondaryPdfActions ? (
+            <>
+              <DropdownMenuItem
+                onClick={() =>
+                  void runAction(async () => {
+                    await generateQuotationPdfAction(quotationId);
+                    toast({
+                      title: "PDF generado",
+                      description: "Ya podés verlo o descargarlo.",
+                    });
+                  })
+                }
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                {pdfGeneratedAt ? "Actualizar PDF" : "Generar PDF"}
+              </DropdownMenuItem>
+
+              {pdfGeneratedAt ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href={pdfUrl} target="_blank">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Ver PDF
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={pdfDownloadUrl} download>
+                      <Download className="mr-2 h-4 w-4" />
+                      Descargar PDF
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+
+              {publicShareUrl ? (
+                <DropdownMenuItem asChild>
+                  <Link href={publicShareUrl} target="_blank" rel="noreferrer">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar enlace
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
+
+              <DropdownMenuSeparator />
+            </>
+          ) : (
+            <DropdownMenuItem asChild>
+              <Link href={pdfUrl} target="_blank">
+                <Download className="mr-2 h-4 w-4" />
+                Ver / Descargar PDF
+              </Link>
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             onClick={() =>

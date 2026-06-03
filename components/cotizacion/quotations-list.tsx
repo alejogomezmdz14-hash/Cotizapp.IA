@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { LayoutGrid, List, Search } from "lucide-react";
 
-import { QuotationDuplicateButton } from "@/components/cotizacion/quotation-duplicate-button";
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatCurrencyAmount, formatDateOnly, formatDateTime } from "@/lib/formatting";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
@@ -28,6 +27,23 @@ type QuotationsListProps = {
 };
 
 type StatusFilter = "all" | "draft" | "pending" | "accepted" | "rejected";
+
+function formatShortDate(value: string | null | undefined) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+}
 
 const statusFilters: Array<{ id: StatusFilter; label: string }> = [
   { id: "all", label: "Todas" },
@@ -182,7 +198,8 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
-                          {formatDateTime(quotation.created_at)}
+                          Creada {formatShortDate(quotation.created_at)} — Vence{" "}
+                          {formatShortDate(quotation.valid_until)}
                         </td>
                         <td className="px-4 py-3 font-medium">
                           {formatCurrencyAmount(quotation.total, currency)}
@@ -203,10 +220,15 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
-                            <QuotationDuplicateButton quotationId={quotation.id} />
-                            <Button asChild size="sm" variant="outline">
-                              <Link href={detailHref}>Ver</Link>
-                            </Button>
+                            <QuotationMoreMenu
+                              quotationId={quotation.id}
+                              quotationNumber={quotation.number}
+                              initialStatus={quotation.status}
+                              paidAt={quotation.paid_at ?? null}
+                              pdfGeneratedAt={quotation.pdf_generated_at}
+                              shareToken={quotation.share_token}
+                              showSecondaryPdfActions
+                            />
                           </div>
                         </td>
                       </tr>
@@ -221,8 +243,6 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
           {filteredQuotations.map((quotation) => {
             const reopenDraftHref = getDraftQuotationEditorHref(quotation);
             const isDraft = isDraftQuotationStatus(quotation.status);
-            const canShareQuotation =
-              isDraft || quotation.status === "pending";
             const isExpired = shouldDisplayQuotationAsExpired(
               quotation.valid_until,
               quotation.status,
@@ -261,8 +281,8 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                         {quotation.number}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Creada el {formatDateTime(quotation.created_at)} · Válida hasta{" "}
-                        {formatDateOnly(sanitizeQuotationValidityDate(quotation.valid_until))}
+                        Creada {formatShortDate(quotation.created_at)} — Vence{" "}
+                        {formatShortDate(sanitizeQuotationValidityDate(quotation.valid_until))}
                       </p>
                     </div>
                     <p className="text-lg font-semibold">
@@ -271,37 +291,29 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   </div>
                 </div>
 
-                {canShareQuotation ? (
-                  <div
-                    className="mt-4"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
-                  >
-                    <QuotationShareActions
-                      quotationId={quotation.id}
-                      quotationNumber={quotation.number}
-                      initialPdfGeneratedAt={quotation.pdf_generated_at}
-                      initialShareToken={quotation.share_token}
-                      initialSentAt={quotation.sent_at}
-                      initialStatus={quotation.status}
-                      isDraft={isDraft}
-                    />
-                  </div>
-                ) : null}
-
                 <div
-                  className="mt-4 flex flex-wrap justify-end gap-2"
+                  className="mt-4 flex items-center gap-2"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <QuotationDuplicateButton quotationId={quotation.id} />
+                  <QuotationShareActions
+                    quotationId={quotation.id}
+                    quotationNumber={quotation.number}
+                    initialPdfGeneratedAt={quotation.pdf_generated_at}
+                    initialShareToken={quotation.share_token}
+                    initialSentAt={quotation.sent_at}
+                    initialStatus={quotation.status}
+                    isDraft={isDraft}
+                    variant="listPrimary"
+                  />
                   <QuotationMoreMenu
                     quotationId={quotation.id}
                     quotationNumber={quotation.number}
                     initialStatus={quotation.status}
                     paidAt={quotation.paid_at ?? null}
+                    pdfGeneratedAt={quotation.pdf_generated_at}
+                    shareToken={quotation.share_token}
                     reopenHref={reopenDraftHref}
+                    showSecondaryPdfActions
                   />
                 </div>
               </Link>
