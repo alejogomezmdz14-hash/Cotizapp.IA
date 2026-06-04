@@ -59,6 +59,7 @@ export async function saveOnboarding(formData: FormData) {
   try {
     profilePayload = buildOnboardingProfileUpsertInput({
       userId: user.id,
+      clerkId: user.clerkId,
       businessName,
       industry,
       phone: getOptionalValue(formData, "phone"),
@@ -117,6 +118,7 @@ export async function completeOnboardingLogoStep() {
   const { error } = await supabase.from("profiles").upsert(
     {
       id: user.id,
+      clerk_id: user.clerkId,
       logo_onboarding_completed: true,
     },
     { onConflict: "id" },
@@ -158,6 +160,7 @@ export async function saveUserProfileAction(formData: FormData) {
     .upsert(
       {
         id: user.id,
+        clerk_id: user.clerkId,
         first_name: firstName,
         last_name: lastName,
         phone: getOptionalValue(formData, "phone"),
@@ -202,6 +205,7 @@ export async function saveBusinessProfileAction(formData: FormData) {
     .upsert(
       buildBusinessProfileUpsertInput({
         userId: user.id,
+        clerkId: user.clerkId,
         businessName,
         industry,
         phone: getOptionalValue(formData, "phone"),
@@ -263,6 +267,7 @@ export async function saveAppearanceSettingsAction(formData: FormData) {
     .upsert(
       {
         id: user.id,
+        clerk_id: user.clerkId,
         theme,
         pdf_accent_color: pdfAccentColor,
       },
@@ -298,6 +303,7 @@ export async function savePdfTemplateSettingsAction(formData: FormData) {
     .upsert(
       {
         id: user.id,
+        clerk_id: user.clerkId,
         pdf_template: pdfTemplate,
         pdf_accent_color: pdfAccentColor,
         pdf_footer: pdfFooter,
@@ -355,6 +361,8 @@ export async function deleteAccountAction() {
     throw new Error("No se pudo eliminar la cuenta. Intentá de nuevo.");
   }
 
-  await supabase.auth.signOut();
+  const { clerkClient } = await import("@clerk/nextjs/server");
+  const clerk = await clerkClient();
+  await clerk.users.deleteUser(user.clerkId);
   redirect("/sign-in?deleted=1");
 }

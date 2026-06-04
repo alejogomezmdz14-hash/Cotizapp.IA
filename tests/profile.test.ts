@@ -10,6 +10,7 @@ import {
 test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not overwrite uploads", () => {
   const payload = buildOnboardingProfileUpsertInput({
     userId: "user-1",
+    clerkId: "user_clerk_1",
     businessName: "Corralon Centro",
     industry: "Construccion",
     phone: "2615551234",
@@ -21,6 +22,7 @@ test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not ov
 
   assert.deepEqual(payload, {
     id: "user-1",
+    clerk_id: "user_clerk_1",
     business_name: "Corralon Centro",
     industry: "Construccion",
     phone: "2615551234",
@@ -57,6 +59,7 @@ test("isProfileComplete requires logo onboarding when the flag exists", () => {
 test("buildBusinessProfileUpsertInput keeps logo and PDF footer when saving the business profile", () => {
   const payload = buildBusinessProfileUpsertInput({
     userId: "user-1",
+    clerkId: "user_clerk_1",
     businessName: "Corralon Centro",
     industry: "Construccion",
     phone: "2615551234",
@@ -70,6 +73,7 @@ test("buildBusinessProfileUpsertInput keeps logo and PDF footer when saving the 
 
   assert.deepEqual(payload, {
     id: "user-1",
+    clerk_id: "user_clerk_1",
     business_name: "Corralon Centro",
     industry: "Construccion",
     logo_url: "user-1/logo/logo.png",

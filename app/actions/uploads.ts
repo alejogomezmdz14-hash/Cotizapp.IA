@@ -167,6 +167,7 @@ export async function uploadLogoFromFormData(
     .upsert(
       {
         id: user.id,
+        clerk_id: user.clerkId,
         logo_url: logoPath,
       },
       {
@@ -182,6 +183,7 @@ export async function uploadLogoFromFormData(
       ).catch(() => undefined);
     }
 
+    console.error("[uploadLogo] profile upsert:", profileError.message);
     throw new UploadActionError("No se pudo asociar el logo al perfil.", 500);
   }
 
@@ -275,6 +277,7 @@ export async function uploadAvatarFromFormData(
     .upsert(
       {
         id: user.id,
+        clerk_id: user.clerkId,
         avatar_url: avatarPath,
       },
       {
@@ -290,6 +293,7 @@ export async function uploadAvatarFromFormData(
       ).catch(() => undefined);
     }
 
+    console.error("[uploadAvatar] profile upsert:", profileError.message);
     throw new UploadActionError("No se pudo asociar la foto al perfil.", 500);
   }
 

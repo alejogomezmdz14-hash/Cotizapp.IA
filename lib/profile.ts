@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 
-import { ensureProfileForClerkUser, getProfileByClerkId } from "@/lib/auth/clerk-profile";
+import { ensureProfileForClerkUser } from "@/lib/auth/clerk-profile";
 import type { AppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEntityName } from "@/lib/entity-normalization";
@@ -12,8 +12,12 @@ import type { HydratedQuotationBranding, Profile } from "@/types";
 
 export { PROFILE_CURRENCIES, normalizeProfileCurrency } from "@/lib/profile-currencies";
 
-type OnboardingProfileUpsertInput = {
+type ProfileUpsertIdentity = {
   userId: string;
+  clerkId: string;
+};
+
+type OnboardingProfileUpsertInput = ProfileUpsertIdentity & {
   businessName: string;
   industry: string;
   phone: string | null;
@@ -23,15 +27,16 @@ type OnboardingProfileUpsertInput = {
   currency: string;
 };
 
-type BusinessProfileUpsertInput = OnboardingProfileUpsertInput & {
-  taxId?: string | null;
-  pdfFooter?: string | null;
-  quotationNumberingMode?: string | null;
-  quotationPrefix?: string | null;
-  quotationCounter?: number | null;
-  logoPath?: string | null;
-  logoOnboardingCompleted?: boolean;
-};
+type BusinessProfileUpsertInput = ProfileUpsertIdentity &
+  Omit<OnboardingProfileUpsertInput, keyof ProfileUpsertIdentity> & {
+    taxId?: string | null;
+    pdfFooter?: string | null;
+    quotationNumberingMode?: string | null;
+    quotationPrefix?: string | null;
+    quotationCounter?: number | null;
+    logoPath?: string | null;
+    logoOnboardingCompleted?: boolean;
+  };
 
 export function isProfileComplete(profile: Profile | null) {
   const hasBusinessBasics = Boolean(
@@ -66,17 +71,17 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     return null;
   }
 
-  const profile = await getProfileByClerkId(userId);
+  try {
+    const profile = await ensureProfileForClerkUser(userId);
 
-  if (!profile) {
+    return {
+      id: profile.id,
+      clerkId: userId,
+      email: profile.email ?? null,
+    };
+  } catch {
     return null;
   }
-
-  return {
-    id: profile.id,
-    clerkId: userId,
-    email: profile.email ?? null,
-  };
 }
 
 export async function requireUser(): Promise<AppUser> {
@@ -204,6 +209,7 @@ export function buildProfileLogoDataUrl(file: {
 
 export function buildOnboardingProfileUpsertInput({
   userId,
+  clerkId,
   businessName,
   industry,
   phone,
@@ -214,6 +220,7 @@ export function buildOnboardingProfileUpsertInput({
 }: OnboardingProfileUpsertInput) {
   return buildBusinessProfileUpsertInput({
     userId,
+    clerkId,
     businessName,
     industry,
     phone,
@@ -231,6 +238,7 @@ export function buildOnboardingProfileUpsertInput({
 
 export function buildBusinessProfileUpsertInput({
   userId,
+  clerkId,
   businessName,
   industry,
   phone,
@@ -248,6 +256,7 @@ export function buildBusinessProfileUpsertInput({
 }: BusinessProfileUpsertInput) {
   return {
     id: userId,
+    clerk_id: clerkId,
     business_name: normalizeEntityName(businessName),
     industry: normalizeEntityName(industry),
     ...(taxId !== undefined ? { tax_id: taxId } : {}),
