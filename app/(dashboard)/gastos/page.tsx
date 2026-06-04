@@ -16,7 +16,10 @@ function getCurrentMonthKey() {
 
 export default async function GastosPage({ searchParams }: GastosPageProps) {
   const user = await requireUser();
-  const monthGroups = await getExpensesByMonth(user.id);
+  const [monthGroups, profile] = await Promise.all([
+    getExpensesByMonth(user.id),
+    getProfile(user.id),
+  ]);
   const availableMonthKeys = monthGroups.map((group) => group.monthKey);
   const requestedMonth =
     typeof searchParams?.month === "string" ? searchParams.month : "";
@@ -24,10 +27,7 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
     ? requestedMonth
     : availableMonthKeys[0] ?? getCurrentMonthKey();
 
-  const [profile, stats] = await Promise.all([
-    getProfile(user.id),
-    getExpenseStatsForMonth(user.id, selectedMonthKey),
-  ]);
+  const stats = await getExpenseStatsForMonth(user.id, selectedMonthKey);
 
   const defaultCurrency = normalizeExpenseCurrency(profile?.currency ?? "ARS");
 

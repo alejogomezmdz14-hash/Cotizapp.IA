@@ -1,12 +1,6 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { SignIn } from '@clerk/nextjs'
 
-export default async function SignInPage() {
-  const { userId } = await auth()
-  if (userId) {
-    redirect('/dashboard')
-  }
+export default function SignInPage() {
   return (
     <div style={{
       minHeight: '100vh',

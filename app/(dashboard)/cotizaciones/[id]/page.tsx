@@ -52,19 +52,19 @@ export default async function QuotationDetailPage({
 }: QuotationDetailPageProps) {
   const { id } = await params;
   const user = await requireUser();
-  const [hydrated, profile] = await Promise.all([
-    getHydratedQuotation(user.id, id),
-    getProfile(user.id),
-  ]);
+  const hydratedPromise = getHydratedQuotation(user.id, id);
+  const profilePromise = getProfile(user.id);
+  const hydrated = await hydratedPromise;
 
   if (!hydrated) {
     notFound();
   }
 
   const quotation = hydrated.quotation;
-  const signaturePreviewUrl = await getQuotationSignaturePreviewUrl(
-    quotation.signature_url,
-  );
+  const [profile, signaturePreviewUrl] = await Promise.all([
+    profilePromise,
+    getQuotationSignaturePreviewUrl(quotation.signature_url),
+  ]);
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
   const canEditDraft = Boolean(reopenDraftHref);
   const isExpired = shouldDisplayQuotationAsExpired(

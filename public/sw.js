@@ -1,8 +1,19 @@
-const CACHE_NAME = "cotizapp-shell-v3";
+const CACHE_NAME = "cotizapp-shell-v4";
 const SHELL_ASSETS = [
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+];
+
+/** Rutas que nunca deben pasar por el SW (auth Clerk, APIs, navegación). */
+const BYPASS_PATH_PREFIXES = [
+  "/api/",
+  "/api/auth",
+  "/_next/data/",
+  "/auth/",
+  "/sign-in",
+  "/sign-up",
+  "/login",
 ];
 
 self.addEventListener("install", (event) => {
@@ -25,6 +36,14 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+function shouldBypassFetch(url) {
+  if (url.hostname.includes("clerk.accounts.dev") || url.hostname.includes("clerk.com")) {
+    return true;
+  }
+
+  return BYPASS_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
@@ -38,14 +57,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/_next/data/") ||
-    url.pathname.startsWith("/auth/") ||
-    url.pathname.startsWith("/sign-in") ||
-    url.pathname.startsWith("/sign-up") ||
-    url.pathname.startsWith("/login")
-  ) {
+  if (shouldBypassFetch(url)) {
     return;
   }
 

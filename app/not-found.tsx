@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
+import { getClerkUserId } from "@/lib/auth/clerk-session";
 import { resolveDashboardBranding } from "@/lib/dashboard-branding";
 import { getCurrentUser, getProfile, isProfileComplete } from "@/lib/profile";
 
@@ -34,7 +34,7 @@ function PublicNotFound() {
 }
 
 export default async function NotFound() {
-  const { userId } = await auth();
+  const userId = await getClerkUserId();
 
   if (!userId) {
     return <PublicNotFound />;

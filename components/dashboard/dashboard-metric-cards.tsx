@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Clock3, Receipt, Send, Wallet } from "lucide-react";
 

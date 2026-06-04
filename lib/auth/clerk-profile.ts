@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types";
 
-export async function getProfileByClerkId(clerkId: string): Promise<Profile | null> {
+export const getProfileByClerkId = cache(async (clerkId: string): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
@@ -16,9 +17,9 @@ export async function getProfileByClerkId(clerkId: string): Promise<Profile | nu
   }
 
   return (data as Profile | null) ?? null;
-}
+});
 
-export async function ensureProfileForClerkUser(clerkId: string) {
+export const ensureProfileForClerkUser = cache(async (clerkId: string) => {
   const existing = await getProfileByClerkId(clerkId);
 
   if (existing) {
@@ -47,4 +48,4 @@ export async function ensureProfileForClerkUser(clerkId: string) {
   }
 
   return data as Profile;
-}
+});

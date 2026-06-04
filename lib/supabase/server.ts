@@ -1,5 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+import { getClerkSupabaseToken } from "@/lib/auth/clerk-session";
 
 function getSupabaseServerEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -28,9 +29,6 @@ export async function createClient() {
   const { url, anonKey } = getSupabaseServerEnv();
 
   return createSupabaseClient(url, anonKey, {
-    async accessToken() {
-      const session = await auth();
-      return session.getToken();
-    },
+    accessToken: getClerkSupabaseToken,
   });
 }

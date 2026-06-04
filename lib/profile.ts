@@ -1,7 +1,8 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 
 import { ensureProfileForClerkUser } from "@/lib/auth/clerk-profile";
+import { getClerkUserId, getSessionProfile } from "@/lib/auth/clerk-session";
 import type { AppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEntityName } from "@/lib/entity-normalization";
@@ -64,28 +65,28 @@ function normalizeOptionalText(value: string | null | undefined) {
   return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
-export async function getCurrentUser(): Promise<AppUser | null> {
-  const { userId } = await auth();
+export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
+  const profile = await getSessionProfile();
+
+  if (!profile) {
+    return null;
+  }
+
+  const userId = await getClerkUserId();
 
   if (!userId) {
     return null;
   }
 
-  try {
-    const profile = await ensureProfileForClerkUser(userId);
+  return {
+    id: profile.id,
+    clerkId: userId,
+    email: profile.email ?? null,
+  };
+});
 
-    return {
-      id: profile.id,
-      clerkId: userId,
-      email: profile.email ?? null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function requireUser(): Promise<AppUser> {
-  const { userId } = await auth();
+export const requireUser = cache(async (): Promise<AppUser> => {
+  const userId = await getClerkUserId();
 
   if (!userId) {
     redirect("/sign-in");
@@ -98,7 +99,7 @@ export async function requireUser(): Promise<AppUser> {
     clerkId: userId,
     email: profile.email ?? null,
   };
-}
+});
 
 const PROFILE_LEGACY_COLUMNS =
   "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
@@ -148,9 +149,15 @@ async function fetchProfileWithFallback(userId: string) {
   return null;
 }
 
-export async function getProfile(userId: string): Promise<Profile | null> {
+export const getProfile = cache(async (userId: string): Promise<Profile | null> => {
+  const sessionProfile = await getSessionProfile();
+
+  if (sessionProfile?.id === userId) {
+    return sessionProfile;
+  }
+
   return fetchProfileWithFallback(userId);
-}
+});
 
 export async function getProfileForQuotation(
   userId: string,
