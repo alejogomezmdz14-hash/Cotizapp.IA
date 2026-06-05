@@ -1095,7 +1095,9 @@ export async function renderQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
-  const quotation = await getHydratedQuotation(userId, quotationId);
+  const { resolveProfileUserId } = await import("@/lib/profile");
+  const profileUserId = await resolveProfileUserId(userId);
+  const quotation = await getHydratedQuotation(profileUserId, quotationId);
 
   if (!quotation) {
     throw new Error("La cotización no existe o no te pertenece.");
@@ -1166,11 +1168,14 @@ export async function generateQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
+  const { resolveProfileUserId } = await import("@/lib/profile");
+  const profileUserId = await resolveProfileUserId(userId);
   const supabase = await createClient();
 
   return generateAndStoreQuotationPdf(
     {
-      getHydratedQuotation: async () => getHydratedQuotation(userId, quotationId),
+      getHydratedQuotation: async () =>
+        getHydratedQuotation(profileUserId, quotationId),
       resolveLogoDataUrl: async (quotation) => {
         if (!quotation.branding.logoPath) {
           return null;
@@ -1229,7 +1234,7 @@ export async function generateQuotationPdfForUser(
             pdf_generated_at: pdfGeneratedAt,
           })
           .eq("id", quotationId)
-          .eq("user_id", userId)
+          .eq("user_id", profileUserId)
           .select("id")
           .maybeSingle();
 
@@ -1242,7 +1247,7 @@ export async function generateQuotationPdfForUser(
       },
     },
     {
-      userId,
+      userId: profileUserId,
       quotationId,
     },
   );
@@ -1336,9 +1341,13 @@ export async function getStoredQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
+  const { resolveProfileUserId } = await import("@/lib/profile");
+  const profileUserId = await resolveProfileUserId(userId);
+
   return getStoredQuotationPdf(
     {
-      getHydratedQuotation: async () => getHydratedQuotation(userId, quotationId),
+      getHydratedQuotation: async () =>
+        getHydratedQuotation(profileUserId, quotationId),
       downloadPdf: async (path) => {
         const file = await downloadFile(STORAGE_BUCKETS.quotationPdfs, path);
         return file.bytes;
@@ -1457,21 +1466,23 @@ export async function getHydratedQuotation(
   userId: string,
   quotationId: string,
 ): Promise<HydratedQuotation | null> {
+  const { getProfileForQuotation, resolveProfileUserId } = await import(
+    "@/lib/profile"
+  );
+  const profileUserId = await resolveProfileUserId(userId);
   const supabase = await createClient();
   const storageModule = await import("@/lib/storage/server");
 
   return hydrateCompleteQuotation({
-    getQuotation: async () => fetchUserQuotationById(userId, quotationId),
-    getProfile: async () => {
-      const { getProfileForQuotation } = await import("@/lib/profile");
-      return getProfileForQuotation(userId);
-    },
+    getQuotation: async () =>
+      fetchUserQuotationById(profileUserId, quotationId),
+    getProfile: async () => getProfileForQuotation(profileUserId),
     getClient: async (clientId) => {
       const { data, error } = await supabase
         .from("clients")
         .select("id, user_id, name, email, phone, address, created_at")
         .eq("id", clientId)
-        .eq("user_id", userId)
+        .eq("user_id", profileUserId)
         .maybeSingle();
 
       if (error) {

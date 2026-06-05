@@ -1,5 +1,6 @@
 export type Profile = {
   id: string;
+  clerk_id?: string | null;
   business_name: string | null;
   industry: string | null;
   tax_id?: string | null;

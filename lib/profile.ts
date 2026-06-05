@@ -9,7 +9,17 @@ import { normalizeEntityName } from "@/lib/entity-normalization";
 import { normalizeProfileCurrency } from "@/lib/profile-currencies";
 import { normalizePdfAccentColor } from "@/lib/pdf-accent-color";
 import { normalizePdfTemplate } from "@/lib/pdf-template";
+import {
+  isClerkUserId,
+  resolveLogoStoragePath,
+} from "@/lib/storage/profile-paths";
 import type { HydratedQuotationBranding, Profile } from "@/types";
+
+export {
+  isClerkUserId,
+  remapStoragePathOwner,
+  resolveLogoStoragePath,
+} from "@/lib/storage/profile-paths";
 
 export { PROFILE_CURRENCIES, normalizeProfileCurrency } from "@/lib/profile-currencies";
 
@@ -65,6 +75,27 @@ function normalizeOptionalText(value: string | null | undefined) {
   return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
+export async function resolveProfileUserId(userRef: string) {
+  if (!isClerkUserId(userRef)) {
+    return userRef;
+  }
+
+  const sessionProfile = await getSessionProfile();
+
+  if (sessionProfile?.clerk_id === userRef) {
+    return sessionProfile.id;
+  }
+
+  const { getProfileByClerkId } = await import("@/lib/auth/clerk-profile");
+  const profile = await getProfileByClerkId(userRef);
+
+  if (!profile) {
+    throw new Error("No se encontró el perfil asociado a tu cuenta.");
+  }
+
+  return profile.id;
+}
+
 export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
   const profile = await getSessionProfile();
 
@@ -102,7 +133,7 @@ export const requireUser = cache(async (): Promise<AppUser> => {
 });
 
 const PROFILE_LEGACY_COLUMNS =
-  "id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
+  "id, clerk_id, business_name, industry, logo_url, phone, email, address, currency, theme, created_at";
 const PROFILE_TAX_COLUMNS = `${PROFILE_LEGACY_COLUMNS}, tax_id`;
 const PROFILE_PDF_ACCENT_COLUMNS = `${PROFILE_TAX_COLUMNS}, pdf_footer, pdf_accent_color`;
 const PROFILE_PDF_COLUMNS = `${PROFILE_PDF_ACCENT_COLUMNS}, pdf_template`;
@@ -149,25 +180,39 @@ async function fetchProfileWithFallback(userId: string) {
   return null;
 }
 
-export const getProfile = cache(async (userId: string): Promise<Profile | null> => {
+async function fetchProfileByUserRef(userRef: string) {
   const sessionProfile = await getSessionProfile();
 
-  if (sessionProfile?.id === userId) {
+  if (
+    sessionProfile &&
+    (sessionProfile.id === userRef || sessionProfile.clerk_id === userRef)
+  ) {
     return sessionProfile;
   }
 
-  return fetchProfileWithFallback(userId);
+  if (isClerkUserId(userRef)) {
+    const { getProfileByClerkId } = await import("@/lib/auth/clerk-profile");
+    return getProfileByClerkId(userRef);
+  }
+
+  return fetchProfileWithFallback(userRef);
+}
+
+export const getProfile = cache(async (userId: string): Promise<Profile | null> => {
+  return fetchProfileByUserRef(userId);
 });
 
 export async function getProfileForQuotation(
   userId: string,
 ): Promise<Profile | null> {
-  return fetchProfileWithFallback(userId);
+  return fetchProfileByUserRef(userId);
 }
 
 export function resolveProfileBranding(
   profile: Pick<
     Profile,
+    | "id"
+    | "clerk_id"
     | "business_name"
     | "logo_url"
     | "phone"
@@ -183,7 +228,7 @@ export function resolveProfileBranding(
 
   return {
     businessName: normalizeOptionalText(profile?.business_name),
-    logoPath: normalizeOptionalText(profile?.logo_url),
+    logoPath: resolveLogoStoragePath(profile?.logo_url ?? null, profile),
     logoUrl: null,
     phone: normalizeOptionalText(profile?.phone),
     email: normalizeOptionalText(profile?.email),
