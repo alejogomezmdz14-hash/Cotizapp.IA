@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 
@@ -33,11 +33,6 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const currentMonthGroup = useMemo(() => {
-    const currentMonthKey = getCurrentMonthKey();
-    return monthGroups.find((group) => group.monthKey === currentMonthKey);
-  }, [monthGroups]);
 
   const hasAnyExpenses = monthGroups.some((group) => group.expenses.length > 0);
 
