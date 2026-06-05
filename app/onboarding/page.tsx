@@ -58,7 +58,10 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       redirect("/onboarding");
     }
 
-    const logoState = await getProfileLogoUploadState(profile?.logo_url ?? null);
+    const logoState = await getProfileLogoUploadState(
+      profile?.logo_url ?? null,
+      profile,
+    );
 
     return (
       <OnboardingLogoStep

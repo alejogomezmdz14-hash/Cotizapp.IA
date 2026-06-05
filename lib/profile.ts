@@ -96,6 +96,21 @@ export async function resolveProfileUserId(userRef: string) {
   return profile.id;
 }
 
+/** UUID del perfil para rutas de Storage (resuelve Clerk ID → UUID). */
+export async function resolveAuthenticatedProfileUserId(
+  user: Pick<AppUser, "id" | "clerkId">,
+) {
+  if (user.clerkId && isClerkUserId(user.clerkId)) {
+    return resolveProfileUserId(user.clerkId);
+  }
+
+  if (isClerkUserId(user.id)) {
+    return resolveProfileUserId(user.id);
+  }
+
+  return user.id;
+}
+
 export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
   const profile = await getSessionProfile();
 

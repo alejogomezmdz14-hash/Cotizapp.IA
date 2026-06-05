@@ -19,7 +19,7 @@ export default async function BusinessProfilePage({
   const user = await requireUser();
   const profile = await getProfile(user.id);
   const logoState = profile?.logo_url
-    ? await getProfileLogoUploadState(profile.logo_url)
+    ? await getProfileLogoUploadState(profile.logo_url, profile)
     : null;
   const saved = isTruthyFlag(searchParams?.saved);
   const savedPdf = searchParams?.saved === "pdf";

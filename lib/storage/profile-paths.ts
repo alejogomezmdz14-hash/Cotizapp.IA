@@ -41,3 +41,30 @@ export function resolveLogoStoragePath(
 
   return remapStoragePathOwner(normalized, profile.clerk_id, profile.id);
 }
+
+/** Ruta canónica del logo en Storage (prefijo UUID del perfil). */
+export function getCanonicalLogoStoragePath(
+  logoPath: string | null,
+  profile: Pick<Profile, "id" | "clerk_id"> | null,
+) {
+  return resolveLogoStoragePath(logoPath, profile);
+}
+
+/** Candidatos para leer el logo: UUID primero, legacy Clerk solo como fallback. */
+export function getLogoStoragePathCandidates(
+  logoPath: string | null,
+  profile: Pick<Profile, "id" | "clerk_id"> | null,
+) {
+  const canonical = getCanonicalLogoStoragePath(logoPath, profile);
+  const normalized = normalizeOptionalText(logoPath);
+
+  if (!canonical) {
+    return [];
+  }
+
+  if (!normalized || canonical === normalized) {
+    return [canonical];
+  }
+
+  return Array.from(new Set([canonical, normalized]));
+}

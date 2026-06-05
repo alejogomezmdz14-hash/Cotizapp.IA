@@ -99,35 +99,54 @@ async function buildSignedUrl(bucket: string, path: string) {
   }
 }
 
-export async function getProfileLogoUploadState(logoPath: string | null) {
+export async function getProfileLogoUploadState(
+  logoPath: string | null,
+  profile?: { id: string; clerk_id?: string | null } | null,
+) {
   if (!logoPath) {
     return null;
   }
 
+  const { getLogoStoragePathCandidates } = await import(
+    "@/lib/storage/profile-paths"
+  );
   const { STORAGE_BUCKETS } = await import("@/lib/storage/server");
-  const previewUrl = await buildSignedUrl(STORAGE_BUCKETS.businessAssets, logoPath);
+  const pathCandidates = getLogoStoragePathCandidates(logoPath, profile ?? null);
 
-  if (!previewUrl) {
-    return null;
+  for (const candidate of pathCandidates) {
+    const previewUrl = await buildSignedUrl(
+      STORAGE_BUCKETS.businessAssets,
+      candidate,
+    );
+
+    if (previewUrl) {
+      return {
+        logoPath: pathCandidates[0] ?? candidate,
+        previewUrl,
+      };
+    }
   }
 
-  return {
-    logoPath,
-    previewUrl,
-  };
+  return null;
 }
 
 export async function uploadLogoFromFormData(
   formData: FormData,
 ): Promise<UploadedLogoResult> {
   const { file } = parseLogoUploadFormData(formData);
-  const [{ getCurrentUser }, { createClient }, storageModule, pathsModule] =
-    await Promise.all([
-      import("@/lib/profile"),
-      import("@/lib/supabase/server"),
-      import("@/lib/storage/server"),
-      import("@/lib/storage/paths"),
-    ]);
+  const [
+    { getCurrentUser, resolveAuthenticatedProfileUserId },
+    { createClient },
+    storageModule,
+    pathsModule,
+    profilePathsModule,
+  ] = await Promise.all([
+    import("@/lib/profile"),
+    import("@/lib/supabase/server"),
+    import("@/lib/storage/server"),
+    import("@/lib/storage/paths"),
+    import("@/lib/storage/profile-paths"),
+  ]);
   const user = await getCurrentUser();
 
   if (!user) {
@@ -137,18 +156,19 @@ export async function uploadLogoFromFormData(
     );
   }
 
+  const profileUserId = await resolveAuthenticatedProfileUserId(user);
   const supabase = await createClient();
   const { data: currentProfile, error: currentProfileError } = await supabase
     .from("profiles")
-    .select("logo_url")
-    .eq("id", user.id)
+    .select("logo_url, clerk_id")
+    .eq("id", profileUserId)
     .maybeSingle();
 
   if (currentProfileError) {
     throw new UploadActionError("No se pudo preparar la carga del logo.", 500);
   }
 
-  const logoPath = pathsModule.buildBusinessLogoPath(user.id, file.name);
+  const logoPath = pathsModule.buildBusinessLogoPath(profileUserId, file.name);
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await supabase.storage
     .from(storageModule.STORAGE_BUCKETS.businessAssets)
@@ -166,7 +186,7 @@ export async function uploadLogoFromFormData(
     .from("profiles")
     .upsert(
       {
-        id: user.id,
+        id: profileUserId,
         clerk_id: user.clerkId,
         logo_url: logoPath,
       },
@@ -188,10 +208,19 @@ export async function uploadLogoFromFormData(
   }
 
   if (previousLogoPath && previousLogoPath !== logoPath) {
-    await storageModule.removeFile(
-      storageModule.STORAGE_BUCKETS.businessAssets,
+    const legacyCleanupPaths = profilePathsModule.getLogoStoragePathCandidates(
       previousLogoPath,
-    ).catch(() => undefined);
+      {
+        id: profileUserId,
+        clerk_id: currentProfile?.clerk_id ?? user.clerkId,
+      },
+    );
+
+    for (const pathToRemove of legacyCleanupPaths) {
+      await storageModule
+        .removeFile(storageModule.STORAGE_BUCKETS.businessAssets, pathToRemove)
+        .catch(() => undefined);
+    }
   }
 
   return {

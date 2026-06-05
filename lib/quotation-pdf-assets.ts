@@ -1,30 +1,9 @@
-import { resolveLogoStoragePath } from "@/lib/storage/profile-paths";
+import { getLogoStoragePathCandidates } from "@/lib/storage/profile-paths";
 import { downloadFile, STORAGE_BUCKETS } from "@/lib/storage/server";
 import type { Profile } from "@/types";
 
-function normalizeLogoPath(logoPath: string | null | undefined) {
-  if (typeof logoPath !== "string") {
-    return null;
-  }
-
-  const normalized = logoPath.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function getLogoStoragePathCandidates(profile: Profile | null) {
-  const storedPath = normalizeLogoPath(profile?.logo_url);
-
-  if (!storedPath || !profile) {
-    return [];
-  }
-
-  const remappedPath = resolveLogoStoragePath(storedPath, profile);
-
-  return Array.from(new Set([remappedPath, storedPath].filter(Boolean))) as string[];
-}
-
 export async function downloadProfileLogoForPdf(profile: Profile | null) {
-  for (const path of getLogoStoragePathCandidates(profile)) {
+  for (const path of getLogoStoragePathCandidates(profile?.logo_url ?? null, profile)) {
     try {
       const file = await downloadFile(STORAGE_BUCKETS.businessAssets, path);
 

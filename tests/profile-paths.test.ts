@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getLogoStoragePathCandidates,
   remapStoragePathOwner,
   resolveLogoStoragePath,
 } from "../lib/storage/profile-paths";
@@ -29,5 +30,19 @@ test("remapStoragePathOwner leaves UUID-prefixed paths unchanged", () => {
       profileId,
     ),
     `${profileId}/logo/marca.png`,
+  );
+});
+
+test("getLogoStoragePathCandidates prefers UUID path before legacy Clerk path", () => {
+  const profileId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+  const clerkId = "user_3EdCCvrb0TquNYVmfWncpftSYKg";
+  const legacyPath = `${clerkId}/logo/marca.png`;
+
+  assert.deepEqual(
+    getLogoStoragePathCandidates(legacyPath, {
+      id: profileId,
+      clerk_id: clerkId,
+    }),
+    [`${profileId}/logo/marca.png`, legacyPath],
   );
 });

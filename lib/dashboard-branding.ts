@@ -2,7 +2,10 @@ import { getProfileLogoUploadState } from "@/app/actions/uploads";
 import type { Profile } from "@/types";
 
 type LogoState = Awaited<ReturnType<typeof getProfileLogoUploadState>>;
-type ResolveLogoState = (logoPath: string | null) => Promise<LogoState>;
+type ResolveLogoState = (
+  logoPath: string | null,
+  profile?: Pick<Profile, "business_name" | "logo_url" | "id" | "clerk_id"> | null,
+) => Promise<LogoState>;
 
 export type DashboardBranding = {
   businessName: string | null;
@@ -10,7 +13,7 @@ export type DashboardBranding = {
 };
 
 export async function resolveDashboardBranding(
-  profile: Pick<Profile, "business_name" | "logo_url"> | null,
+  profile: Pick<Profile, "business_name" | "logo_url" | "id" | "clerk_id"> | null,
   resolveLogoState: ResolveLogoState = getProfileLogoUploadState,
 ): Promise<DashboardBranding> {
   const businessName = profile?.business_name ?? null;
@@ -23,7 +26,7 @@ export async function resolveDashboardBranding(
     };
   }
 
-  const logoState = await resolveLogoState(logoPath);
+  const logoState = await resolveLogoState(logoPath, profile);
 
   return {
     businessName,
