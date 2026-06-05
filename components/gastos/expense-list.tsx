@@ -23,10 +23,6 @@ type ExpenseListProps = {
   defaultCurrency: string;
 };
 
-function getCurrentMonthKey() {
-  return new Date().toISOString().slice(0, 7);
-}
-
 export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -146,14 +142,6 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
           </section>
         ))}
       </div>
-
-      {!currentMonthGroup?.expenses.length && hasAnyExpenses ? (
-        <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-8 text-center">
-          <p className="text-sm leading-6 text-muted-foreground">
-            No hay gastos registrados en este mes.
-          </p>
-        </div>
-      ) : null}
 
       <ExpenseFormSheet
         open={Boolean(editingExpense)}
