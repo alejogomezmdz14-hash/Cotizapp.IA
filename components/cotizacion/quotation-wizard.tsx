@@ -163,6 +163,7 @@ export function QuotationWizard({
     unitPrice: "0",
   });
   const [inlineNameError, setInlineNameError] = useState<string | null>(null);
+  const [existingClientError, setExistingClientError] = useState<string | null>(null);
 
   const step = draft.wizardStep;
   const totalSteps = 4;
@@ -232,6 +233,18 @@ export function QuotationWizard({
   }
 
   function goNext() {
+    if (step === 1 && !canAdvanceFromStep(1)) {
+      if (draft.clientMode === "inline") {
+        setInlineNameError("El nombre es obligatorio.");
+      } else {
+        setExistingClientError("Seleccioná un cliente para continuar.");
+      }
+      return;
+    }
+
+    setInlineNameError(null);
+    setExistingClientError(null);
+
     if (step === 3) {
       syncTaxRateFromInput();
     }
@@ -407,7 +420,11 @@ export function QuotationWizard({
                 type="button"
                 variant={draft.clientMode === "existing" ? "default" : "outline"}
                 className="min-h-12 flex-1"
-                onClick={() => setClientMode("existing")}
+                onClick={() => {
+                  setInlineNameError(null);
+                  setExistingClientError(null);
+                  setClientMode("existing");
+                }}
                 disabled={disabled || clients.length === 0}
               >
                 Guardado
@@ -419,6 +436,7 @@ export function QuotationWizard({
                 onClick={() => {
                   setSelectedClientId(null);
                   setInlineNameError(null);
+                  setExistingClientError(null);
                   setClientMode("inline");
                 }}
                 disabled={disabled}
@@ -446,7 +464,10 @@ export function QuotationWizard({
                             ? "border-accent-token bg-[rgb(var(--accent-rgb)/0.08)]"
                             : "border-token bg-background/75",
                         )}
-                        onClick={() => setSelectedClientId(client.id)}
+                        onClick={() => {
+                          setSelectedClientId(client.id);
+                          setExistingClientError(null);
+                        }}
                         disabled={disabled}
                       >
                         <span className="text-base font-medium">{client.name}</span>
@@ -454,6 +475,9 @@ export function QuotationWizard({
                     );
                   })
                 )}
+                {existingClientError ? (
+                  <p className="text-sm text-destructive">{existingClientError}</p>
+                ) : null}
               </div>
             ) : (
               <div className="space-y-3">
