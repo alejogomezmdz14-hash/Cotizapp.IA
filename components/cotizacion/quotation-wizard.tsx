@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Camera,
@@ -152,6 +152,7 @@ export function QuotationWizard({
   const [clientSearch, setClientSearch] = useState("");
   const [itemSheetOpen, setItemSheetOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const suppressCatalogOpenRef = useRef(false);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [invoiceScanReview, setInvoiceScanReview] =
@@ -199,6 +200,35 @@ export function QuotationWizard({
 
   const selectedClientName =
     clients.find((client) => client.id === draft.selectedClientId)?.name ?? null;
+
+  function handleItemSheetOpenChange(open: boolean) {
+    setItemSheetOpen(open);
+
+    if (!open) {
+      suppressCatalogOpenRef.current = true;
+      setCatalogOpen(false);
+      window.setTimeout(() => {
+        suppressCatalogOpenRef.current = false;
+      }, 350);
+    }
+  }
+
+  function handleCatalogOpenChange(open: boolean) {
+    if (open && suppressCatalogOpenRef.current) {
+      return;
+    }
+
+    setCatalogOpen(open);
+
+    if (open) {
+      setItemSheetOpen(false);
+    }
+  }
+
+  function openItemSheet() {
+    setCatalogOpen(false);
+    setItemSheetOpen(true);
+  }
 
   function goNext() {
     if (step === 3) {
@@ -500,7 +530,7 @@ export function QuotationWizard({
             <Button
               type="button"
               className="min-h-12 w-full"
-              onClick={() => setItemSheetOpen(true)}
+              onClick={openItemSheet}
               disabled={disabled}
             >
               <Plus className="mr-2 h-5 w-5" />
@@ -511,7 +541,10 @@ export function QuotationWizard({
               type="button"
               variant="outline"
               className="min-h-12 w-full border-token bg-background/75"
-              onClick={() => setCatalogOpen(true)}
+              onClick={() => {
+                setItemSheetOpen(false);
+                setCatalogOpen(true);
+              }}
               disabled={disabled}
             >
               <PackagePlus className="mr-2 h-5 w-5" />
@@ -689,8 +722,12 @@ export function QuotationWizard({
         </Button>
       ) : null}
 
-      <Sheet open={itemSheetOpen} onOpenChange={setItemSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-[1.75rem]">
+      <Sheet open={itemSheetOpen} onOpenChange={handleItemSheetOpenChange}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] overflow-y-auto rounded-t-[1.75rem]"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle>Nuevo ítem</SheetTitle>
             <SheetDescription>Completá cantidad y precio del trabajo o material.</SheetDescription>
@@ -780,8 +817,12 @@ export function QuotationWizard({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={catalogOpen} onOpenChange={setCatalogOpen}>
-        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-[1.75rem]">
+      <Sheet open={catalogOpen} onOpenChange={handleCatalogOpenChange}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] overflow-y-auto rounded-t-[1.75rem]"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle>Desde mi catálogo</SheetTitle>
             <SheetDescription>Elegí un producto o servicio guardado.</SheetDescription>
