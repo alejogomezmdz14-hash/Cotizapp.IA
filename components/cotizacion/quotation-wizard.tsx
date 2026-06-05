@@ -164,6 +164,10 @@ export function QuotationWizard({
   });
   const [inlineNameError, setInlineNameError] = useState<string | null>(null);
   const [existingClientError, setExistingClientError] = useState<string | null>(null);
+  const [newItemFieldErrors, setNewItemFieldErrors] = useState<{
+    quantity?: string;
+    unitPrice?: string;
+  }>({});
 
   const step = draft.wizardStep;
   const totalSteps = 4;
@@ -229,6 +233,7 @@ export function QuotationWizard({
 
   function openItemSheet() {
     setCatalogOpen(false);
+    setNewItemFieldErrors({});
     setItemSheetOpen(true);
   }
 
@@ -256,14 +261,31 @@ export function QuotationWizard({
   }
 
   function handleAddManualItemFromSheet() {
+    const trimmedName = newItemDraft.name.trim();
+    const quantity = Number.parseFloat(newItemDraft.quantity);
+    const unitPrice = Number.parseFloat(newItemDraft.unitPrice);
+    const fieldErrors: { quantity?: string; unitPrice?: string } = {};
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      fieldErrors.quantity = "La cantidad debe ser mayor a 0.";
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      fieldErrors.unitPrice = "El precio debe ser mayor a 0.";
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setNewItemFieldErrors(fieldErrors);
+      return;
+    }
+
+    setNewItemFieldErrors({});
     const nextId = allocNextItemId();
-    const quantity = Number.parseFloat(newItemDraft.quantity) || 1;
-    const unitPrice = Number.parseFloat(newItemDraft.unitPrice) || 0;
     const item: QuotationEditorItem = {
       id: `item-${nextId}`,
       source: "manual",
       catalogItemId: null,
-      name: newItemDraft.name.trim(),
+      name: trimmedName,
       description: "",
       quantity,
       unit: "unidad",
@@ -796,12 +818,20 @@ export function QuotationWizard({
                   min="0.01"
                   step="0.01"
                   value={newItemDraft.quantity}
-                  onChange={(event) =>
-                    setNewItemDraft((current) => ({ ...current, quantity: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setNewItemDraft((current) => ({
+                      ...current,
+                      quantity: event.target.value,
+                    }));
+                    setNewItemFieldErrors((current) => ({ ...current, quantity: undefined }));
+                  }}
                   className="min-h-12"
                   disabled={disabled}
+                  aria-invalid={Boolean(newItemFieldErrors.quantity)}
                 />
+                {newItemFieldErrors.quantity ? (
+                  <p className="text-sm text-destructive">{newItemFieldErrors.quantity}</p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label>Precio unitario</Label>
@@ -809,15 +839,23 @@ export function QuotationWizard({
                   type="number"
                   inputMode="decimal"
                   pattern="[0-9]*"
-                  min="0"
+                  min="0.01"
                   step="0.01"
                   value={newItemDraft.unitPrice}
-                  onChange={(event) =>
-                    setNewItemDraft((current) => ({ ...current, unitPrice: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setNewItemDraft((current) => ({
+                      ...current,
+                      unitPrice: event.target.value,
+                    }));
+                    setNewItemFieldErrors((current) => ({ ...current, unitPrice: undefined }));
+                  }}
                   className="min-h-12"
                   disabled={disabled}
+                  aria-invalid={Boolean(newItemFieldErrors.unitPrice)}
                 />
+                {newItemFieldErrors.unitPrice ? (
+                  <p className="text-sm text-destructive">{newItemFieldErrors.unitPrice}</p>
+                ) : null}
               </div>
             </div>
             <Button

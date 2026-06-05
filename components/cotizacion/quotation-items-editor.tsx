@@ -320,7 +320,13 @@ export function QuotationItemsEditor({
                             })
                           }
                           disabled={disabled}
+                          aria-invalid={item.quantity <= 0}
                         />
+                        {item.quantity <= 0 ? (
+                          <p className="text-sm text-destructive">
+                            La cantidad debe ser mayor a 0.
+                          </p>
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor={`${item.id}-price`}>Precio unitario</Label>
@@ -329,7 +335,7 @@ export function QuotationItemsEditor({
                           type="number"
                           inputMode="decimal"
                           pattern="[0-9]*"
-                          min="0"
+                          min="0.01"
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(event) => {
@@ -341,7 +347,13 @@ export function QuotationItemsEditor({
                           disabled={disabled}
                           placeholder="0.00"
                           className="min-h-12"
+                          aria-invalid={item.unitPrice <= 0}
                         />
+                        {item.unitPrice <= 0 ? (
+                          <p className="text-sm text-destructive">
+                            El precio debe ser mayor a 0.
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
