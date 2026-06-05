@@ -1095,9 +1095,14 @@ export async function renderQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
-  const { resolveProfileUserId } = await import("@/lib/profile");
+  const { resolveProfileUserId, getProfileForQuotation } = await import(
+    "@/lib/profile"
+  );
+  const { buildLogoDataUrlForPdf } = await import("@/lib/quotation-pdf-assets");
   const profileUserId = await resolveProfileUserId(userId);
-  const quotation = await getHydratedQuotation(profileUserId, quotationId);
+  const quotation = await getHydratedQuotation(profileUserId, quotationId, {
+    skipSignedLogoUrl: true,
+  });
 
   if (!quotation) {
     throw new Error("La cotización no existe o no te pertenece.");
@@ -1105,23 +1110,9 @@ export async function renderQuotationPdfForUser(
 
   const generatedAt = new Date().toISOString();
   const fileName = buildQuotationPdfFileName(quotation.quotation.number);
+  const profile = await getProfileForQuotation(profileUserId);
   const [logoDataUrl, signatureDataUrl] = await Promise.all([
-    (async () => {
-      if (!quotation.branding.logoPath) {
-        return null;
-      }
-
-      try {
-        const logoFile = await downloadFile(
-          STORAGE_BUCKETS.businessAssets,
-          quotation.branding.logoPath,
-        );
-
-        return buildProfileLogoDataUrl(logoFile);
-      } catch {
-        return null;
-      }
-    })(),
+    buildLogoDataUrlForPdf(profile),
     (async () => {
       const signaturePath = quotation.quotation.signature_url?.trim();
 
@@ -1168,29 +1159,22 @@ export async function generateQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
-  const { resolveProfileUserId } = await import("@/lib/profile");
+  const { resolveProfileUserId, getProfileForQuotation } = await import(
+    "@/lib/profile"
+  );
+  const { buildLogoDataUrlForPdf } = await import("@/lib/quotation-pdf-assets");
   const profileUserId = await resolveProfileUserId(userId);
   const supabase = await createClient();
 
   return generateAndStoreQuotationPdf(
     {
       getHydratedQuotation: async () =>
-        getHydratedQuotation(profileUserId, quotationId),
-      resolveLogoDataUrl: async (quotation) => {
-        if (!quotation.branding.logoPath) {
-          return null;
-        }
-
-        try {
-          const logoFile = await downloadFile(
-            STORAGE_BUCKETS.businessAssets,
-            quotation.branding.logoPath,
-          );
-
-          return buildProfileLogoDataUrl(logoFile);
-        } catch {
-          return null;
-        }
+        getHydratedQuotation(profileUserId, quotationId, {
+          skipSignedLogoUrl: true,
+        }),
+      resolveLogoDataUrl: async () => {
+        const profile = await getProfileForQuotation(profileUserId);
+        return buildLogoDataUrlForPdf(profile);
       },
       resolveSignatureDataUrl: async (quotation) => {
         const signaturePath = quotation.quotation.signature_url?.trim();
@@ -1271,11 +1255,21 @@ export async function getStoredQuotationPdf(
   const fileName =
     pdfPath.split("/").pop() ?? buildQuotationPdfFileName(quotation.quotation.number);
 
-  return {
-    fileName,
-    generatedAt: quotation.output.pdfGeneratedAt,
-    bytes: await dependencies.downloadPdf(pdfPath),
-  };
+  try {
+    return {
+      fileName,
+      generatedAt: quotation.output.pdfGeneratedAt,
+      bytes: await dependencies.downloadPdf(pdfPath),
+    };
+  } catch (error) {
+    const { isStorageAccessError } = await import("@/lib/quotation-pdf-errors");
+
+    if (isStorageAccessError(error)) {
+      throw new Error("El PDF de la cotización aún no fue generado.");
+    }
+
+    throw error;
+  }
 }
 
 export async function getSharedQuotationPdf(
@@ -1341,16 +1335,41 @@ export async function getStoredQuotationPdfForUser(
   userId: string,
   quotationId: string,
 ) {
-  const { resolveProfileUserId } = await import("@/lib/profile");
+  const { resolveProfileUserId, getProfileForQuotation } = await import(
+    "@/lib/profile"
+  );
+  const { remapStoragePathOwner } = await import("@/lib/storage/profile-paths");
   const profileUserId = await resolveProfileUserId(userId);
 
   return getStoredQuotationPdf(
     {
       getHydratedQuotation: async () =>
-        getHydratedQuotation(profileUserId, quotationId),
+        getHydratedQuotation(profileUserId, quotationId, {
+          skipSignedLogoUrl: true,
+        }),
       downloadPdf: async (path) => {
-        const file = await downloadFile(STORAGE_BUCKETS.quotationPdfs, path);
-        return file.bytes;
+        const profile = await getProfileForQuotation(profileUserId);
+        const remappedPath =
+          profile?.clerk_id && profile.clerk_id !== profileUserId
+            ? remapStoragePathOwner(path, profile.clerk_id, profileUserId)
+            : path;
+        const candidates = Array.from(
+          new Set([remappedPath, path].filter(Boolean)),
+        ) as string[];
+
+        for (const candidate of candidates) {
+          try {
+            const file = await downloadFile(
+              STORAGE_BUCKETS.quotationPdfs,
+              candidate,
+            );
+            return file.bytes;
+          } catch {
+            continue;
+          }
+        }
+
+        throw new Error("Object not found");
       },
     },
   );
@@ -1465,6 +1484,7 @@ export async function getQuotationAttachments(
 export async function getHydratedQuotation(
   userId: string,
   quotationId: string,
+  options?: { skipSignedLogoUrl?: boolean },
 ): Promise<HydratedQuotation | null> {
   const { getProfileForQuotation, resolveProfileUserId } = await import(
     "@/lib/profile"
@@ -1505,16 +1525,18 @@ export async function getHydratedQuotation(
 
       return (data as QuotationItemRow[] | null) ?? [];
     },
-    createSignedLogoUrl: async (path) => {
-      try {
-        return await storageModule.createSignedFileUrl(
-          storageModule.STORAGE_BUCKETS.businessAssets,
-          path,
-        );
-      } catch {
-        return null;
-      }
-    },
+    createSignedLogoUrl: options?.skipSignedLogoUrl
+      ? async () => null
+      : async (path) => {
+          try {
+            return await storageModule.createSignedFileUrl(
+              storageModule.STORAGE_BUCKETS.businessAssets,
+              path,
+            );
+          } catch {
+            return null;
+          }
+        },
   });
 }
 

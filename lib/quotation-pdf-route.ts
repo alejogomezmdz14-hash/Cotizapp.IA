@@ -37,7 +37,10 @@ function shouldAttemptRegeneration(error: unknown) {
     message.includes("aún no fue generado") ||
     message.includes("aun no fue generado") ||
     message.includes("object not found") ||
-    message.includes("not found")
+    message.includes("not found") ||
+    message.includes("invalid input syntax for type uuid") ||
+    message.includes("row-level security") ||
+    message.includes("permission denied")
   );
 }
 
@@ -82,11 +85,50 @@ function buildPdfResponse(
 async function requireRouteUser(dependencies: QuotationPdfRouteDependencies) {
   const user = await dependencies.getCurrentUser();
 
-  if (user) {
-    return user;
+  if (!user) {
+    return null;
   }
 
-  return null;
+  const clerkRef = user.clerkId?.startsWith("user_") ? user.clerkId : null;
+  const idRef = user.id.startsWith("user_") ? user.id : null;
+  const userRef = clerkRef ?? idRef;
+
+  if (userRef) {
+    const { resolveProfileUserId } = await import("@/lib/profile");
+    const profileUserId = await resolveProfileUserId(userRef);
+
+    return {
+      ...user,
+      id: profileUserId,
+    };
+  }
+
+  return user;
+}
+
+async function generatePdfWithFallback(
+  dependencies: QuotationPdfRouteDependencies,
+  profileUserId: string,
+  quotationId: string,
+) {
+  try {
+    return await dependencies.generateQuotationPdfForUser(
+      profileUserId,
+      quotationId,
+    );
+  } catch (error) {
+    if (!dependencies.renderQuotationPdfForUser) {
+      throw error;
+    }
+
+    console.error("[quotation-pdf] storage generation failed, using direct fallback", {
+      quotationId,
+      userId: profileUserId,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+
+    return dependencies.renderQuotationPdfForUser(profileUserId, quotationId);
+  }
 }
 
 async function getRouteQuotationId(context: RouteContext) {
@@ -155,7 +197,8 @@ export function createQuotationPdfRouteHandlers(
           });
 
           try {
-            result = await dependencies.generateQuotationPdfForUser(
+            result = await generatePdfWithFallback(
+              dependencies,
               user.id,
               quotationId,
             );
@@ -170,7 +213,7 @@ export function createQuotationPdfRouteHandlers(
               throw regenerationError;
             }
 
-            console.error("[quotation-pdf][GET] storage regeneration failed, using direct fallback", {
+            console.error("[quotation-pdf][GET] regeneration failed, using direct fallback", {
               quotationId,
               userId: user.id,
               reason:
@@ -230,7 +273,8 @@ export function createQuotationPdfRouteHandlers(
           quotationId,
           userId: user.id,
         });
-        const result = await dependencies.generateQuotationPdfForUser(
+        const result = await generatePdfWithFallback(
+          dependencies,
           user.id,
           quotationId,
         );

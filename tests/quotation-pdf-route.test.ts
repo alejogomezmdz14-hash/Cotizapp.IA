@@ -6,7 +6,7 @@ import { createQuotationPdfRouteHandlers } from "../lib/quotation-pdf-route";
 test("GET serves an existing persisted PDF without triggering generation", async () => {
   const calls: string[] = [];
   const { GET } = createQuotationPdfRouteHandlers({
-    getCurrentUser: async () => ({ id: "user-1" }),
+    getCurrentUser: async () => ({ id: "user-1", clerkId: "user-1", email: null }),
     generateQuotationPdfForUser: async () => {
       calls.push("generate");
       throw new Error("GET no debe generar PDFs.");
@@ -41,7 +41,7 @@ test("GET serves an existing persisted PDF without triggering generation", async
 test("GET falls back to regeneration when stored PDF is missing", async () => {
   const calls: string[] = [];
   const { GET } = createQuotationPdfRouteHandlers({
-    getCurrentUser: async () => ({ id: "user-1" }),
+    getCurrentUser: async () => ({ id: "user-1", clerkId: "user-1", email: null }),
     generateQuotationPdfForUser: async () => {
       calls.push("generate");
       return {
@@ -79,7 +79,7 @@ test("GET falls back to regeneration when stored PDF is missing", async () => {
 test("POST generates and persists the PDF explicitly", async () => {
   const calls: string[] = [];
   const { POST } = createQuotationPdfRouteHandlers({
-    getCurrentUser: async () => ({ id: "user-1" }),
+    getCurrentUser: async () => ({ id: "user-1", clerkId: "user-1", email: null }),
     generateQuotationPdfForUser: async () => {
       calls.push("generate");
       return {
