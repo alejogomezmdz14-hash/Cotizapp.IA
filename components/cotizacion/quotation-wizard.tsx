@@ -257,7 +257,7 @@ export function QuotationWizard({
     };
     addItem(item);
     setNewItemDraft({ name: "", quantity: "1", unitPrice: "0" });
-    setItemSheetOpen(false);
+    handleItemSheetOpenChange(false);
   }
 
   function handleAddInvoiceItems(scannedItems: InvoiceScanItemDraft[]) {
@@ -335,7 +335,8 @@ export function QuotationWizard({
       unit: catalogItem.unit,
       unitPrice: catalogItem.price,
     });
-    setCatalogOpen(false);
+    handleItemSheetOpenChange(false);
+    handleCatalogOpenChange(false);
   }
 
   function canAdvanceFromStep(currentStep: number) {
