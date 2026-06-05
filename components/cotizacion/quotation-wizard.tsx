@@ -162,6 +162,7 @@ export function QuotationWizard({
     quantity: "1",
     unitPrice: "0",
   });
+  const [inlineNameError, setInlineNameError] = useState<string | null>(null);
 
   const step = draft.wizardStep;
   const totalSteps = 4;
@@ -415,7 +416,11 @@ export function QuotationWizard({
                 type="button"
                 variant={draft.clientMode === "inline" ? "default" : "outline"}
                 className="min-h-12 flex-1"
-                onClick={() => setClientMode("inline")}
+                onClick={() => {
+                  setSelectedClientId(null);
+                  setInlineNameError(null);
+                  setClientMode("inline");
+                }}
                 disabled={disabled}
               >
                 Crear cliente nuevo
@@ -457,11 +462,26 @@ export function QuotationWizard({
                   <Input
                     id="wizard-inline-name"
                     value={draft.inlineClient.name}
-                    onChange={(event) => setInlineClient({ name: event.target.value })}
+                    onChange={(event) => {
+                      const name = event.target.value;
+                      setInlineClient({ name });
+                      if (name.trim()) {
+                        setInlineNameError(null);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!draft.inlineClient.name.trim()) {
+                        setInlineNameError("El nombre es obligatorio.");
+                      }
+                    }}
                     placeholder="Ej. Constructora Andina"
                     className="min-h-12"
                     disabled={disabled}
+                    aria-invalid={Boolean(inlineNameError)}
                   />
+                  {inlineNameError ? (
+                    <p className="text-sm text-destructive">{inlineNameError}</p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="wizard-inline-phone">Teléfono</Label>
