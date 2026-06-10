@@ -33,6 +33,11 @@ export function isExpenseCategory(value: string): value is ExpenseCategory {
   return (EXPENSE_CATEGORIES as readonly string[]).includes(value);
 }
 
+export function normalizeExpenseCategory(value: string) {
+  const trimmed = value.trim();
+  return isExpenseCategory(trimmed) ? trimmed : "Otro";
+}
+
 export function getExpenseCategoryBadgeClassName(category: string) {
   if (isExpenseCategory(category)) {
     return CATEGORY_BADGE_CLASSES[category];

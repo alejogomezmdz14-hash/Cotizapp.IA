@@ -1,4 +1,4 @@
-import { isExpenseCategory } from "@/lib/expense-categories";
+import { normalizeExpenseCategory } from "@/lib/expense-categories";
 import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import { formatMonthLabel } from "@/lib/formatting";
 import { createClient } from "@/lib/supabase/server";
@@ -131,10 +131,7 @@ export function normalizeExpenseDateInput(value: string | null | undefined) {
   return trimmed;
 }
 
-export function normalizeExpenseCategory(value: string) {
-  const trimmed = value.trim();
-  return isExpenseCategory(trimmed) ? trimmed : "Otro";
-}
+export { normalizeExpenseCategory } from "@/lib/expense-categories";
 
 function buildTotalsByCurrency(
   rows: Array<{ amount: unknown; currency: unknown }>,

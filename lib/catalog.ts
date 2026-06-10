@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeCatalogUnit } from "@/lib/catalog-units";
 import { normalizeEntityName } from "@/lib/entity-normalization";
 import type { CatalogItem } from "@/types";
+
+export { DEFAULT_CATALOG_UNIT, normalizeCatalogUnit } from "@/lib/catalog-units";
 
 export type CatalogFormValues = {
   name: string;
@@ -29,8 +32,6 @@ export type CatalogReadOptions = {
   orderBy?: "created_at" | "name" | "price" | "category";
   ascending?: boolean;
 };
-
-export const DEFAULT_CATALOG_UNIT = "unidad";
 
 function normalizeAmount(value: number | string | null) {
   if (typeof value === "number") {
@@ -64,16 +65,6 @@ function getOptionalCatalogValue(formData: FormData, field: string) {
 
   const normalizedValue = value.trim();
   return normalizedValue.length > 0 ? normalizedValue : null;
-}
-
-export function normalizeCatalogUnit(value: string | null | undefined) {
-  const normalizedValue = value?.trim();
-
-  if (!normalizedValue) {
-    return DEFAULT_CATALOG_UNIT;
-  }
-
-  return normalizedValue;
 }
 
 function normalizePriceInput(value: string) {

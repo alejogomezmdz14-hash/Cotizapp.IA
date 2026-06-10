@@ -1,6 +1,10 @@
-import { normalizeCatalogUnit } from "@/lib/catalog";
+import { normalizeCatalogUnit } from "@/lib/catalog-units";
 import { getOpenAIApiKey, getOpenAIClient } from "@/lib/ai/openai";
-import { getExpenses, normalizeExpenseCategory } from "@/lib/expenses";
+import {
+  formatClientesListForChatReply,
+  type ChatClientListItem,
+} from "@/lib/chat/client-list-format";
+import { normalizeExpenseCategory } from "@/lib/expense-categories";
 import type {
   CatalogItem,
   ChatConversationMessage,
@@ -16,16 +20,19 @@ import type {
 } from "@/types";
 
 const DEFAULT_CHAT_MODEL = "gpt-4o-mini";
-const MAX_CONTEXT_CLIENTS = 6;
 const MAX_CONTEXT_CATALOG_ITEMS = 8;
 const MAX_CONTEXT_QUOTATIONS = 6;
 const MAX_CONTEXT_EXPENSES = 6;
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_NOTES_LENGTH = 96;
 
+const FALSE_SAVE_REPLY_PATTERN =
+  /\b(y[aá]|listo|guard[eé]|cre[eé]|registr[eé]|actualic[eé])\b.*\b(cotizaci[oó]n|borrador|gasto)\b/i;
+
 type BusinessChatContextInput = {
   profile: Profile | null;
   clients: Client[];
+  availableClients: ChatClientListItem[];
   catalogItems: CatalogItem[];
   quotations: Quotation[];
   expenses?: BusinessChatExpenseSnapshot | null;
@@ -67,6 +74,7 @@ export type BusinessChatContext = {
     email: string | null;
     phone: string | null;
   }>;
+  availableClients: ChatClientListItem[];
   recentCatalogItems: Array<{
     id: string;
     name: string;
@@ -112,6 +120,33 @@ export type BusinessChatExpenseSnapshot = {
     note: string | null;
   };
 };
+
+export function isQuotationCreateIntent(prompt: string) {
+  const normalizedPrompt = prompt.trim().toLowerCase();
+
+  if (!normalizedPrompt) {
+    return false;
+  }
+
+  return /(cotizaci[oó]n|cotizar|armame|haceme|crea(r)?|genera(r)?|nueva).*(cotizaci[oó]n|cliente|items?|producto|servicio)?/i.test(
+    normalizedPrompt,
+  ) || /\bcotizaci[oó]n\b/i.test(normalizedPrompt);
+}
+
+function sanitizeChatReply(
+  reply: string,
+  suggestedAction: ChatSuggestedAction | null,
+) {
+  if (suggestedAction) {
+    return reply;
+  }
+
+  if (!FALSE_SAVE_REPLY_PATTERN.test(reply)) {
+    return reply;
+  }
+
+  return "Todavía no guardé nada en tu cuenta. Si querés crear una cotización, primero elegí un cliente de tu lista y después confirmame con «sí» cuando veas el preview.";
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -441,6 +476,7 @@ export async function loadBusinessChatExpenseContext(
 ): Promise<BusinessChatExpenseSnapshot> {
   const referenceDate = options?.referenceDate ?? new Date();
   const period = options?.periodFilter ?? "month";
+  const { getExpenses } = await import("@/lib/expenses");
   const expenses = await getExpenses(userId);
 
   return buildBusinessChatExpenseSnapshot({
@@ -569,18 +605,16 @@ function normalizeSuggestedAction(
 
     const clientId = getTrimmedString(input.clientId);
     const matchedClient = clientId ? clientById.get(clientId) ?? null : null;
-    const clientName =
-      getTrimmedString(input.clientName) ?? matchedClient?.name ?? null;
 
-    if (!clientName && !matchedClient) {
+    if (!matchedClient) {
       return null;
     }
 
     return {
       type,
-      clientId: matchedClient?.id ?? null,
-      clientName: matchedClient?.name ?? clientName,
-      clientSource: matchedClient ? "existing" : "inline",
+      clientId: matchedClient.id,
+      clientName: matchedClient.name,
+      clientSource: "existing",
       notes: getTrimmedString(input.notes),
       items,
     };
@@ -650,24 +684,22 @@ export function buildBusinessChatSystemPrompt() {
     "Eres el asistente comercial de Cotizapp.",
     "Responde siempre en español rioplatense, tono directo y simple.",
     "Trabaja solo dentro de este alcance: clientes, catálogo, cotizaciones, gastos y perfil/resumen del negocio.",
-    "Tenés herramientas reales para crear cotizaciones borrador, registrar gastos, consultar resumen y buscar clientes.",
+    "Tenés herramientas reales: getClientesList (availableClients en contexto) y createCotizacion (solo tras confirmación del usuario).",
     "Usa expenses del contexto para responder cuánto gastó el usuario, el mayor gasto, el último gasto y la ganancia neta del período.",
     "Usa meta.currentDate como fecha de referencia para interpretar hoy, esta semana y este mes.",
     "Si meta.quotationPeriodFilter viene informado, responde usando solo recentQuotations, summary.filteredQuotations y expenses del mismo período.",
-    "Si te piden crear una cotización o registrar un gasto, primero devolvé preview claro en reply y suggestedAction con la acción propuesta.",
-    "Regla de conversación para cotizaciones: si falta info, pedí todo en UNA sola pregunta. Usa algo como: ¿Para quién es, qué incluye y a cuánto?",
-    "No hagas cadenas de preguntas separadas (cliente, ítems y precio por separado).",
-    "Máximo 1 pregunta de seguimiento si falta información crítica.",
-    "Si el usuario ya dio info suficiente, andá directo al preview.",
+    "FLUJO OBLIGATORIO PARA COTIZACIONES:",
+    "1) Si el usuario pide crear una cotización y todavía no eligió cliente, listá TODOS los availableClients numerados (id, nombre, teléfono) en reply y suggestedAction=null.",
+    "2) NUNCA inventes un cliente nuevo ni uses clientSource inline.",
+    "3) Solo después de que el usuario elija un cliente existente (por nombre, número de lista o id), podés proponer draft_quotation_create con clientId válido de availableClients.",
+    "4) El preview va en reply; suggestedAction solo cuando haya clientId + ítems válidos.",
+    "5) Nunca escribas en la base sin confirmación explícita del usuario (responde «sí», «dale», etc.).",
+    "6) NUNCA digas que ya guardaste o creaste una cotización en reply. Solo podés decir que quedó lista PARA CONFIRMAR.",
+    "Si te piden registrar un gasto, devolvé preview claro en reply y suggestedAction con expense_create.",
+    "Regla de conversación: si falta info de ítems, pedí todo en UNA sola pregunta.",
     "No preguntes lo que se puede asumir: fecha = hoy y moneda = la del perfil.",
-    "Si el cliente no existe en recentClients, preguntá en una sola línea si quiere crearlo.",
-    "Nunca escribas en la base sin confirmación explícita del usuario.",
-    "Si falta información crítica, pedila con una pregunta corta (por ejemplo: ¿Para qué cliente? o ¿Qué monto?).",
     "Si el usuario pregunta por resumen, respondé con métricas concretas del mes usando summary y expenses.",
-    "Si el usuario pregunta por un cliente específico, buscá coincidencias en recentClients y respondé directo.",
-    "Si el pedido cae fuera de ese alcance, rechaza la parte fuera de alcance, indica claramente que está fuera de alcance y redirige la conversación a esos módulos de negocio; no actúes como asistente general.",
-    "Nunca afirmes que ya creaste, actualizaste o eliminaste datos.",
-    "Solo podés sugerir acciones de escritura para confirmación explícita del usuario.",
+    "Si el pedido cae fuera de alcance, rechazalo y redirige a módulos de negocio.",
     "Si no hace falta proponer una acción, devuelve suggestedAction como null.",
     "Las acciones permitidas son draft_quotation_create, expense_create y catalog_price_update.",
     "Cuando propongas guardar, cerrá reply con: ¿Confirmo y lo guardo?",
@@ -677,6 +709,7 @@ export function buildBusinessChatSystemPrompt() {
 export function buildBusinessChatContext({
   profile,
   clients,
+  availableClients,
   catalogItems,
   quotations,
   expenses = null,
@@ -718,12 +751,13 @@ export function buildBusinessChatContext({
       filteredQuotations: scopedQuotations.length,
       quotationStatusBreakdown: buildStatusBreakdown(scopedQuotations),
     },
-    recentClients: clients.slice(0, MAX_CONTEXT_CLIENTS).map((client) => ({
+    recentClients: clients.slice(0, 8).map((client) => ({
       id: client.id,
       name: client.name,
       email: client.email,
       phone: client.phone,
     })),
+    availableClients,
     recentCatalogItems: catalogItems
       .slice(0, MAX_CONTEXT_CATALOG_ITEMS)
       .map((item) => ({
@@ -754,12 +788,14 @@ export function normalizeBusinessChatResult(
   references: BusinessChatReferences,
 ): ChatReplyPayload {
   const source = isRecord(input) ? input : {};
+  const suggestedAction = normalizeSuggestedAction(source.suggestedAction, references);
+  const rawReply =
+    getTrimmedString(source.reply) ??
+    "No pude generar una respuesta útil en este momento. Intenta reformular tu consulta.";
 
   return {
-    reply:
-      getTrimmedString(source.reply) ??
-      "No pude generar una respuesta útil en este momento. Intenta reformular tu consulta.",
-    suggestedAction: normalizeSuggestedAction(source.suggestedAction, references),
+    reply: sanitizeChatReply(rawReply, suggestedAction),
+    suggestedAction,
   };
 }
 
@@ -805,6 +841,19 @@ export async function runBusinessChat(
 
   const content = completion.choices[0]?.message?.content ?? "";
   const parsed = extractJsonObjectFromText(content);
+  const result = normalizeBusinessChatResult(parsed, references);
 
-  return normalizeBusinessChatResult(parsed, references);
+  if (
+    isQuotationCreateIntent(prompt) &&
+    !result.suggestedAction &&
+    context.availableClients.length > 0 &&
+    !result.reply.includes("¿Para cuál cliente")
+  ) {
+    return {
+      reply: formatClientesListForChatReply(context.availableClients),
+      suggestedAction: null,
+    };
+  }
+
+  return result;
 }

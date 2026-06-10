@@ -12,13 +12,12 @@ import {
   consumeChatRateLimit,
 } from "@/lib/ai/rate-limit";
 import { getCatalogItems } from "@/lib/catalog";
-import { getClients } from "@/lib/clients";
+import { getClientesList } from "@/lib/chat/chat-tools";
 import { getCurrentUser, getProfile } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
-import type { ChatConversationMessage } from "@/types";
+import type { ChatConversationMessage, Client } from "@/types";
 
 const CHAT_CONTEXT_QUOTATION_LIMIT = 30;
-const CHAT_CONTEXT_CLIENT_LIMIT = 30;
 const CHAT_CONTEXT_CATALOG_LIMIT = 50;
 
 const MAX_MESSAGES = 10;
@@ -131,16 +130,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const [clients, catalogItems, quotations, profile] = await Promise.all([
-      getClients(user.id).then((rows) =>
-        rows.slice(0, CHAT_CONTEXT_CLIENT_LIMIT),
-      ),
+    const [availableClients, catalogItems, quotations, profile] = await Promise.all([
+      getClientesList(user.id),
       getCatalogItems(user.id).then((rows) =>
         rows.slice(0, CHAT_CONTEXT_CATALOG_LIMIT),
       ),
       getQuotations(user.id, { limit: CHAT_CONTEXT_QUOTATION_LIMIT }),
       getProfile(user.id),
     ]);
+    const clients: Client[] = availableClients.map((client) => ({
+      id: client.id,
+      user_id: user.id,
+      name: client.nombre,
+      email: client.email,
+      phone: client.telefono,
+      address: null,
+      created_at: null,
+    }));
     const quotationPeriodFilter = resolveQuotationPeriodFilter(
       latestMessage.content,
     );
@@ -152,6 +158,7 @@ export async function POST(request: Request) {
     const context = buildBusinessChatContext({
       profile,
       clients,
+      availableClients,
       catalogItems,
       quotations,
       expenses,

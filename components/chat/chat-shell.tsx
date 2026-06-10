@@ -45,10 +45,10 @@ function buildSuggestionPreview(suggestion: ChatSuggestedAction) {
       );
 
     return [
-      "Preview de cotización:",
-      `Cliente: ${suggestion.clientName ?? "Cliente nuevo"}`,
+      "Preview de cotización (todavía NO guardada):",
+      `Cliente: ${suggestion.clientName ?? "Sin cliente"}`,
       ...lines,
-      "¿Guardamos esta cotización?",
+      "Respondé «sí» para guardarla en tu cuenta.",
     ].join("\n");
   }
 
@@ -104,7 +104,7 @@ export function ChatShell() {
             ...currentMessages,
             createMessage(
               "assistant",
-              `Listo. Guardé la cotización ${result.number}. La podés ver en /cotizaciones/nueva?quotationId=${result.quotationId}`,
+              `Listo. Guardé la cotización ${result.number} en tu cuenta. Podés verla en /cotizaciones/${result.quotationId}`,
             ),
           ]);
         } else if (pendingSuggestion.type === "expense_create") {

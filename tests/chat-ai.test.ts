@@ -128,9 +128,18 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
     created_at: "2026-01-01T00:00:00.000Z",
   };
 
+  const clientRows = Array.from({ length: 8 }, (_, index) => createClient(index + 1));
+  const availableClients = clientRows.map((client) => ({
+    id: client.id,
+    nombre: client.name,
+    email: client.email,
+    telefono: client.phone,
+  }));
+
   const context = buildBusinessChatContext({
     profile,
-    clients: Array.from({ length: 8 }, (_, index) => createClient(index + 1)),
+    clients: clientRows,
+    availableClients,
     catalogItems: Array.from({ length: 10 }, (_, index) =>
       createCatalogItem(index + 1),
     ),
@@ -164,7 +173,8 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
       pending: 2,
     },
   });
-  assert.equal(context.recentClients.length, 6);
+  assert.equal(context.recentClients.length, 8);
+  assert.equal(context.availableClients.length, 8);
   assert.equal(context.recentCatalogItems.length, 8);
   assert.equal(context.recentQuotations.length, 6);
   assert.match(context.recentQuotations[0]!.notes ?? "", /^Necesita entrega urgente/);
@@ -398,7 +408,7 @@ test("normalizeBusinessChatResult uses canonical client data for existing client
   });
 });
 
-test("normalizeBusinessChatResult makes inline client creation explicit when client id is invalid", () => {
+test("normalizeBusinessChatResult rejects quotation drafts without a valid existing client", () => {
   const result = normalizeBusinessChatResult(
     {
       reply: "Puedo dejarlo listo con un cliente nuevo.",
@@ -423,23 +433,8 @@ test("normalizeBusinessChatResult makes inline client creation explicit when cli
     },
   );
 
-  assert.deepEqual(result.suggestedAction, {
-    type: "draft_quotation_create",
-    clientId: null,
-    clientName: "Obra Sanchez",
-    clientSource: "inline",
-    notes: "Crear cliente nuevo antes del borrador",
-    items: [
-      {
-        catalogItemId: null,
-        name: "Cemento",
-        description: null,
-        quantity: 5,
-        unit: "bolsa",
-        unitPrice: 10000,
-      },
-    ],
-  });
+  assert.equal(result.suggestedAction, null);
+  assert.match(result.reply, /cliente/i);
 });
 
 test("normalizeBusinessChatResult removes unsupported or unsafe suggestions", () => {
@@ -532,12 +527,13 @@ test("buildBusinessChatSystemPrompt keeps the assistant inside the business scop
   assert.match(prompt, /solo dentro de este alcance/i);
   assert.match(prompt, /clientes, catálogo, cotizaciones, gastos y perfil/i);
   assert.match(prompt, /herramientas reales/i);
-  assert.match(prompt, /UNA sola pregunta/i);
-  assert.match(prompt, /Máximo 1 pregunta de seguimiento/i);
+  assert.match(prompt, /FLUJO OBLIGATORIO PARA COTIZACIONES/i);
+  assert.match(prompt, /availableClients/i);
+  assert.match(prompt, /NUNCA inventes un cliente nuevo/i);
   assert.match(prompt, /fecha = hoy y moneda = la del perfil/i);
-  assert.match(prompt, /nunca escribas en la base sin confirmación explícita/i);
+  assert.match(prompt, /confirmación explícita/i);
   assert.match(prompt, /draft_quotation_create, expense_create y catalog_price_update/i);
-  assert.match(prompt, /rechaza.*fuera de alcance/i);
+  assert.match(prompt, /NUNCA digas que ya guardaste/i);
 });
 
 test("readChatRequestBody returns a 400 error for malformed json", async () => {

@@ -2,18 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
-import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import { assertCatalogPriceSuggestionIsCurrent } from "@/lib/ai/catalog-price-updates";
+import { createCotizacion } from "@/lib/chat/chat-tools";
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { normalizeExpenseCategory, normalizeExpenseDateInput } from "@/lib/expenses";
 import { requireUser } from "@/lib/profile";
-import { calculateQuotationTotals } from "@/lib/quotation-calculations";
-import {
-  assertSingleQuotationRollbackMutation,
-  buildQuotationItemInsertRows,
-  DRAFT_QUOTATION_STATUS,
-  persistDraftQuotation,
-} from "@/lib/quotations";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ChatCatalogPriceUpdateAction,
@@ -26,11 +19,6 @@ type CatalogItemRecord = {
   id: string;
   name: string;
   price: number | string | null;
-};
-
-type ClientRecord = {
-  id: string;
-  name: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -151,22 +139,9 @@ function normalizeDraftQuotationSuggestion(
     };
   }
 
-  if (clientId) {
-    throw new Error("La sugerencia inline no puede incluir un cliente existente.");
-  }
-
-  if (!clientName) {
-    throw new Error("La sugerencia no incluye un cliente válido.");
-  }
-
-  return {
-    type: "draft_quotation_create",
-    clientId: null,
-    clientName,
-    clientSource,
-    notes: getTrimmedString(input.notes),
-    items,
-  };
+  throw new Error(
+    "La cotización del chat debe usar un cliente existente. Elegí uno de tu lista de clientes.",
+  );
 }
 
 function normalizeCatalogPriceSuggestion(
@@ -232,6 +207,12 @@ function revalidateAiViews() {
   revalidatePath("/dashboard");
 }
 
+export async function getClientesListAction() {
+  const user = await requireUser();
+  const { getClientesList } = await import("@/lib/chat/chat-tools");
+  return getClientesList(user.id);
+}
+
 export async function confirmCatalogPriceUpdateAction(input: unknown) {
   const user = await requireUser();
   const suggestion = normalizeCatalogPriceSuggestion(input);
@@ -292,168 +273,32 @@ export async function confirmCatalogPriceUpdateAction(input: unknown) {
 export async function confirmDraftQuotationSuggestionAction(input: unknown) {
   const user = await requireUser();
   const suggestion = normalizeDraftQuotationSuggestion(input);
-  const supabase = await createClient();
-  const requestedCatalogIds = suggestion.items.flatMap((item) =>
-    item.catalogItemId ? [item.catalogItemId] : [],
-  );
-  const catalogIdSet = new Set<string>();
 
-  if (requestedCatalogIds.length > 0) {
-    const { data: catalogRows, error: catalogError } = await supabase
-      .from("catalog_items")
-      .select("id")
-      .eq("user_id", user.id)
-      .in("id", requestedCatalogIds);
-
-    if (catalogError) {
-      throw new Error("No se pudieron validar los ítems sugeridos del catálogo.");
-    }
-
-    for (const row of (catalogRows ?? []) as Array<{ id: string }>) {
-      catalogIdSet.add(row.id);
-    }
+  if (suggestion.clientSource !== "existing" || !suggestion.clientId) {
+    throw new Error(
+      "Elegí un cliente existente antes de guardar la cotización.",
+    );
   }
 
-  const items = suggestion.items.map((item) => ({
-    catalogItemId:
-      item.catalogItemId && catalogIdSet.has(item.catalogItemId)
-        ? item.catalogItemId
-        : null,
-    name: item.name,
-    description: item.description,
-    quantity: item.quantity,
-    unit: normalizeCatalogUnit(item.unit),
-    unitPrice: item.unitPrice,
-  }));
-  const totals = calculateQuotationTotals(items, 0);
-  const result = await persistDraftQuotation(
-    {
-      createInlineClient: async (inlineClient) => {
-        const { data, error } = await supabase
-          .from("clients")
-          .insert({
-            user_id: user.id,
-            ...inlineClient,
-          })
-          .select("id, name")
-          .single();
-
-        if (error || !data) {
-          throw new Error("No se pudo crear el cliente para el borrador sugerido.");
-        }
-
-        return data as ClientRecord;
-      },
-      getExistingClient: async (clientId) => {
-        const { data, error } = await supabase
-          .from("clients")
-          .select("id, name")
-          .eq("id", clientId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          throw new Error("No se pudo validar el cliente de la sugerencia.");
-        }
-
-        return (data as ClientRecord | null) ?? null;
-      },
-      createQuotation: async ({
-        clientId,
-        clientName,
-        quotationNumber,
-        notes,
-        subtotal,
-        taxRate,
-        total,
-        validUntil,
-      }) => {
-        const { data, error } = await supabase
-          .from("quotations")
-          .insert({
-            user_id: user.id,
-            client_id: clientId,
-            client_name: clientName,
-            number: quotationNumber,
-            status: DRAFT_QUOTATION_STATUS,
-            notes,
-            subtotal,
-            tax_rate: taxRate,
-            total,
-            valid_until: validUntil,
-          })
-          .select("id, number")
-          .single();
-
-        if (error || !data) {
-          throw new Error("No se pudo guardar el borrador sugerido.");
-        }
-
-        return data as { id: string; number: string };
-      },
-      createQuotationItems: async (quotationId, quotationItems) => {
-        const { error } = await supabase
-          .from("quotation_items")
-          .insert(buildQuotationItemInsertRows(quotationId, quotationItems));
-
-        if (error) {
-          throw new Error("No se pudieron guardar los items del borrador sugerido.");
-        }
-      },
-      deleteQuotation: async (quotationId) => {
-        const { data, error } = await supabase
-          .from("quotations")
-          .delete()
-          .eq("id", quotationId)
-          .eq("user_id", user.id)
-          .select("id");
-
-        if (error) {
-          throw new Error("No se pudo revertir el borrador sugerido.");
-        }
-
-        assertSingleQuotationRollbackMutation(data, "quotation");
-      },
-      deleteClient: async (clientId) => {
-        const { data, error } = await supabase
-          .from("clients")
-          .delete()
-          .eq("id", clientId)
-          .eq("user_id", user.id)
-          .select("id");
-
-        if (error) {
-          throw new Error("No se pudo eliminar el cliente temporal sugerido.");
-        }
-
-        assertSingleQuotationRollbackMutation(data, "client");
-      },
-    },
-    {
-      values: {
-        clientId: suggestion.clientId,
-        inlineClient: suggestion.clientId
-          ? null
-          : {
-              name: suggestion.clientName ?? "Cliente sugerido",
-              email: null,
-              phone: null,
-              address: null,
-            },
-        notes: suggestion.notes,
-        taxRate: 0,
-        validUntil: null,
-        items,
-      },
-      quotationNumber: await reserveNextQuotationNumber(),
-      subtotal: totals.subtotal,
-      total: totals.total,
-    },
-  );
+  const result = await createCotizacion(user.id, {
+    cliente_id: suggestion.clientId,
+    items: suggestion.items.map((item) => ({
+      concepto: item.name,
+      cantidad: item.quantity,
+      precio_unitario: item.unitPrice,
+      catalog_item_id: item.catalogItemId,
+      descripcion: item.description,
+      unidad: item.unit,
+    })),
+    notas: suggestion.notes,
+  });
 
   revalidateAiViews();
 
-  return result;
+  return {
+    quotationId: result.id,
+    number: result.number,
+  };
 }
 
 export async function confirmExpenseCreateSuggestionAction(input: unknown) {
