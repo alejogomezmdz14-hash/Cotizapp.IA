@@ -14,7 +14,7 @@ type InvoiceItemNormalizationStats = {
 };
 
 type ScanInvoiceWithAiInput = {
-  signedUrl: string;
+  imageDataUrl: string;
   fileName?: string | null;
 };
 
@@ -378,7 +378,7 @@ export function sanitizeInvoiceReviewItemsForCatalog(input: unknown) {
 }
 
 export async function scanInvoiceWithAi({
-  signedUrl,
+  imageDataUrl,
   fileName,
 }: ScanInvoiceWithAiInput) {
   const [{ getInvoiceScanModel, getOpenAIClient }] = await Promise.all([
@@ -408,7 +408,7 @@ export async function scanInvoiceWithAi({
           {
             type: "image_url",
             image_url: {
-              url: signedUrl,
+              url: imageDataUrl,
             },
           },
         ],
@@ -417,6 +417,18 @@ export async function scanInvoiceWithAi({
   });
 
   const content = completion.choices[0]?.message?.content ?? "";
+
+  if (!content.trim()) {
+    console.error("[invoice-scan] OpenAI returned empty content", {
+      model,
+      fileName: fileName ?? null,
+      completion,
+    });
+    throw new Error(
+      "OpenAI returned empty content - possible content policy rejection or model error",
+    );
+  }
+
   const parsed = extractJsonObjectFromText(content);
 
   return {

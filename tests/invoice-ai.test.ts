@@ -244,3 +244,16 @@ test("sanitizeInvoiceReviewItemsForCatalog only keeps valid explicit catalog dra
     },
   ]);
 });
+
+test("buildInvoiceScanImageDataUrl encodes invoice bytes as a data URL", async () => {
+  const { buildInvoiceScanImageDataUrl } = await import(
+    "../lib/invoice-scan/image-data-url"
+  );
+  const dataUrl = buildInvoiceScanImageDataUrl(
+    Uint8Array.from([137, 80, 78, 71]),
+    null,
+    "factura-demo.png",
+  );
+
+  assert.match(dataUrl, /^data:image\/png;base64,/);
+});

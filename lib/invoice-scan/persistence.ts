@@ -60,9 +60,9 @@ type LoadPersistedInvoiceScanReviewDependencies = {
 type ProcessPersistedInvoiceScanDependencies = {
   getScan: (scanId: string) => Promise<InvoiceScan | null>;
   markProcessing: (scanId: string) => Promise<boolean>;
-  getSignedUrl: (filePath: string) => Promise<string>;
+  getInvoiceImageDataUrl: (filePath: string) => Promise<string>;
   scanWithAi: (input: {
-    signedUrl: string;
+    imageDataUrl: string;
     fileName?: string | null;
   }) => Promise<{
     rawResult: Record<string, unknown>;
@@ -332,7 +332,7 @@ export async function processPersistedInvoiceScan(
     shouldPersistFailure = true;
 
     const aiScan = await dependencies.scanWithAi({
-      signedUrl: await dependencies.getSignedUrl(scan.file_path),
+      imageDataUrl: await dependencies.getInvoiceImageDataUrl(scan.file_path),
       fileName: getInvoiceScanDisplayFileName(scan),
     });
     const storedRawResult = {

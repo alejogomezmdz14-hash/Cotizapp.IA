@@ -70,9 +70,9 @@ type PersistenceModule = {
     dependencies: {
       getScan: (scanId: string) => Promise<InvoiceScanShape | null>;
       markProcessing: (scanId: string) => Promise<boolean>;
-      getSignedUrl: (filePath: string) => Promise<string>;
+      getInvoiceImageDataUrl: (filePath: string) => Promise<string>;
       scanWithAi: (input: {
-        signedUrl: string;
+        imageDataUrl: string;
         fileName?: string | null;
       }) => Promise<{
         rawResult: Record<string, unknown>;
@@ -261,7 +261,7 @@ test("processPersistedInvoiceScan reuses cached completed scans without touching
         calls.push("processing");
         return true;
       },
-      getSignedUrl: async () => {
+      getInvoiceImageDataUrl: async () => {
         calls.push("signed-url");
         return "https://signed.example/factura-demo.png";
       },
@@ -311,7 +311,7 @@ test("processPersistedInvoiceScan rejects scans already marked as processing", a
               status: "processing",
             }),
           markProcessing: async () => true,
-          getSignedUrl: async () => "https://signed.example/factura-demo.png",
+          getInvoiceImageDataUrl: async () => "https://signed.example/factura-demo.png",
           scanWithAi: async () => ({
             rawResult: {},
             result: createCompletedResult(),
@@ -346,12 +346,12 @@ test("processPersistedInvoiceScan retries failed scans and persists the normaliz
         calls.push(`processing:${scanId}`);
         return true;
       },
-      getSignedUrl: async (filePath) => {
+      getInvoiceImageDataUrl: async (filePath) => {
         calls.push(`signed-url:${filePath}`);
         return "https://signed.example/factura-demo.png";
       },
-      scanWithAi: async ({ signedUrl, fileName }) => {
-        calls.push(`ai:${signedUrl}:${fileName ?? ""}`);
+      scanWithAi: async ({ imageDataUrl, fileName }) => {
+        calls.push(`ai:${imageDataUrl}:${fileName ?? ""}`);
         return {
           rawResult: {
             provider: "openai",
@@ -415,7 +415,7 @@ test("processPersistedInvoiceScan rechecks persisted state when processing lock 
         calls.push("processing");
         return false;
       },
-      getSignedUrl: async () => {
+      getInvoiceImageDataUrl: async () => {
         calls.push("signed-url");
         return "https://signed.example/factura-demo.png";
       },
@@ -470,7 +470,7 @@ test("processPersistedInvoiceScan rechecks persisted state when processing lock 
             calls.push("processing");
             return false;
           },
-          getSignedUrl: async () => {
+          getInvoiceImageDataUrl: async () => {
             calls.push("signed-url");
             return "https://signed.example/factura-demo.png";
           },

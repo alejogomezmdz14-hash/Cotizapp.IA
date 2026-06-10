@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
+import {
+  buildInvoiceScanImageDataUrl,
+} from "@/lib/invoice-scan/image-data-url";
 import { scanInvoiceWithAi } from "@/lib/ai/invoice";
 import {
   PersistedInvoiceScanError,
   processPersistedInvoiceScan,
 } from "@/lib/invoice-scan/persistence";
 import { getCurrentUser } from "@/lib/profile";
-import { createSignedFileUrl, STORAGE_BUCKETS } from "@/lib/storage/server";
+import { downloadFile, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceScan } from "@/types";
 
@@ -116,11 +119,18 @@ export async function POST(request: Request) {
             allowedStatuses: ["uploaded", "failed"],
             errorMessage: "No se pudo bloquear la factura para procesarla.",
           }),
-        getSignedUrl: (filePath) =>
-          createSignedFileUrl(STORAGE_BUCKETS.invoiceUploads, filePath),
-        scanWithAi: ({ signedUrl, fileName }) =>
+        getInvoiceImageDataUrl: async (filePath) => {
+          const file = await downloadFile(STORAGE_BUCKETS.invoiceUploads, filePath);
+
+          return buildInvoiceScanImageDataUrl(
+            file.bytes,
+            file.contentType,
+            filePath.split("/").pop(),
+          );
+        },
+        scanWithAi: ({ imageDataUrl, fileName }) =>
           scanInvoiceWithAi({
-            signedUrl,
+            imageDataUrl,
             fileName,
           }),
         markCompleted: (targetScanId, rawResult) =>
@@ -155,6 +165,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error("[invoice-scan][POST] failed", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
     return getErrorResponse(error);
   }
 }
