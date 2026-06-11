@@ -2,18 +2,22 @@
 
 import { Bot } from "lucide-react";
 
-import type { ChatRole } from "@/types";
+import { ClientSelectorMessage } from "@/components/chat/client-selector-message";
+import type { ChatClientListItem, ChatRole, ChatUiHint } from "@/types";
 
 type ChatUiMessage = {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
+  uiHint?: ChatUiHint | null;
 };
 
 type ChatMessageListProps = {
   messages: ChatUiMessage[];
+  isSubmitting?: boolean;
   onQuickPrompt: (prompt: string) => void;
+  onClientSelect: (client: ChatClientListItem) => void;
 };
 
 function formatTimestamp(value: string) {
@@ -31,7 +35,9 @@ function formatTimestamp(value: string) {
 
 export function ChatMessageList({
   messages,
+  isSubmitting = false,
   onQuickPrompt,
+  onClientSelect,
 }: ChatMessageListProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -68,6 +74,10 @@ export function ChatMessageList({
             {messages.map((message) => {
               const isAssistant = message.role === "assistant";
               const timestamp = formatTimestamp(message.createdAt);
+              const clientSelectorHint =
+                isAssistant && message.uiHint?.type === "client_selector"
+                  ? message.uiHint
+                  : null;
 
               return (
                 <div
@@ -93,6 +103,13 @@ export function ChatMessageList({
                         }`}
                       >
                         <p className="whitespace-pre-wrap">{message.content}</p>
+                        {clientSelectorHint ? (
+                          <ClientSelectorMessage
+                            clients={clientSelectorHint.clients}
+                            disabled={isSubmitting}
+                            onSelect={onClientSelect}
+                          />
+                        ) : null}
                       </div>
                       {timestamp ? (
                         <p

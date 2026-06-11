@@ -1,5 +1,5 @@
 import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
-import type { ChatClientListItem } from "@/lib/chat/client-list-format";
+import type { ChatClientListItem } from "@/types";
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
@@ -11,8 +11,11 @@ import {
 } from "@/lib/quotations";
 import { createClient } from "@/lib/supabase/server";
 
-export type { ChatClientListItem } from "@/lib/chat/client-list-format";
-export { formatClientesListForChatReply } from "@/lib/chat/client-list-format";
+export type { ChatClientListItem } from "@/types";
+export {
+  buildClientSelectorReply,
+  formatClientesListForChatReply,
+} from "@/lib/chat/client-list-format";
 
 export type CreateCotizacionItemInput = {
   concepto: string;

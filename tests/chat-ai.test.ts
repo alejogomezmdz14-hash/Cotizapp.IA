@@ -10,6 +10,7 @@ import {
   buildBusinessChatContext,
   filterExpensesByPeriod,
   filterQuotationsByPeriod,
+  attachClientSelectorUiHint,
   normalizeBusinessChatResult,
   readChatRequestBody,
   resolveExpensePeriodFilter,
@@ -408,6 +409,38 @@ test("normalizeBusinessChatResult uses canonical client data for existing client
   });
 });
 
+test("normalizeBusinessChatResult matches quotation drafts by client name when id is missing", () => {
+  const result = normalizeBusinessChatResult(
+    {
+      reply: "Preparo el borrador para el cliente elegido.",
+      suggestedAction: {
+        type: "draft_quotation_create",
+        clientName: "Cliente 2",
+        items: [
+          {
+            name: "Arena",
+            quantity: 2,
+            unit: "bolsa",
+            unitPrice: 1500,
+          },
+        ],
+      },
+    },
+    {
+      clients: [createClient(1), createClient(2)],
+      catalogItems: [],
+    },
+  );
+
+  assert.equal(result.suggestedAction?.type, "draft_quotation_create");
+  assert.equal(
+    result.suggestedAction?.type === "draft_quotation_create"
+      ? result.suggestedAction.clientId
+      : null,
+    "client-2",
+  );
+});
+
 test("normalizeBusinessChatResult rejects quotation drafts without a valid existing client", () => {
   const result = normalizeBusinessChatResult(
     {
@@ -435,6 +468,44 @@ test("normalizeBusinessChatResult rejects quotation drafts without a valid exist
 
   assert.equal(result.suggestedAction, null);
   assert.match(result.reply, /cliente/i);
+});
+
+test("normalizeBusinessChatResult blocks false save replies before confirmation", () => {
+  const result = normalizeBusinessChatResult(
+    {
+      reply: "Quedó lista la cotización para tu cliente.",
+      suggestedAction: null,
+    },
+    {
+      clients: [createClient(1)],
+      catalogItems: [],
+    },
+  );
+
+  assert.equal(result.suggestedAction, null);
+  assert.match(result.reply, /Todavía no guardé nada/i);
+});
+
+test("attachClientSelectorUiHint upgrades plain client list replies", () => {
+  const clients = [
+    {
+      id: "client-1",
+      nombre: "Cliente 1",
+      email: null,
+      telefono: null,
+    },
+  ];
+
+  const payload = attachClientSelectorUiHint(
+    {
+      reply: "Estos son tus clientes:\n1. Cliente 1",
+      suggestedAction: null,
+    },
+    clients,
+  );
+
+  assert.equal(payload.uiHint?.type, "client_selector");
+  assert.equal(payload.reply, "¿Para cuál cliente es la cotización?");
 });
 
 test("normalizeBusinessChatResult removes unsupported or unsafe suggestions", () => {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  attachClientSelectorUiHint,
   buildBusinessChatContext,
   loadBusinessChatExpenseContext,
   readChatRequestBody,
@@ -12,13 +13,23 @@ import {
   consumeChatRateLimit,
 } from "@/lib/ai/rate-limit";
 import { getCatalogItems } from "@/lib/catalog";
-import { getClientesList } from "@/lib/chat/chat-tools";
+import { getClients } from "@/lib/clients";
 import { getCurrentUser, getProfile } from "@/lib/profile";
 import { getQuotations } from "@/lib/quotations";
-import type { ChatConversationMessage, Client } from "@/types";
+import type { ChatClientListItem, ChatConversationMessage, Client } from "@/types";
 
 const CHAT_CONTEXT_QUOTATION_LIMIT = 30;
 const CHAT_CONTEXT_CATALOG_LIMIT = 50;
+const CHAT_CONTEXT_CLIENT_LIMIT = 100;
+
+function toAvailableClients(clients: Client[]): ChatClientListItem[] {
+  return clients.slice(0, CHAT_CONTEXT_CLIENT_LIMIT).map((client) => ({
+    id: client.id,
+    nombre: client.name,
+    email: client.email,
+    telefono: client.phone,
+  }));
+}
 
 const MAX_MESSAGES = 10;
 const MAX_MESSAGE_LENGTH = 1500;
@@ -130,23 +141,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const [availableClients, catalogItems, quotations, profile] = await Promise.all([
-      getClientesList(user.id),
+    const [clients, catalogItems, quotations, profile] = await Promise.all([
+      getClients(user.id),
       getCatalogItems(user.id).then((rows) =>
         rows.slice(0, CHAT_CONTEXT_CATALOG_LIMIT),
       ),
       getQuotations(user.id, { limit: CHAT_CONTEXT_QUOTATION_LIMIT }),
       getProfile(user.id),
     ]);
-    const clients: Client[] = availableClients.map((client) => ({
-      id: client.id,
-      user_id: user.id,
-      name: client.nombre,
-      email: client.email,
-      phone: client.telefono,
-      address: null,
-      created_at: null,
-    }));
+    const referenceClients = clients.slice(0, CHAT_CONTEXT_CLIENT_LIMIT);
+    const availableClients = toAvailableClients(clients);
     const quotationPeriodFilter = resolveQuotationPeriodFilter(
       latestMessage.content,
     );
@@ -157,23 +161,26 @@ export async function POST(request: Request) {
     });
     const context = buildBusinessChatContext({
       profile,
-      clients,
+      clients: referenceClients,
       availableClients,
       catalogItems,
       quotations,
       expenses,
       quotationPeriodFilter,
     });
-    const result = await runBusinessChat(
-      latestMessage.content,
-      context,
-      {
-        clients,
-        catalogItems,
-      },
-      {
-        history: messages.slice(0, -1),
-      },
+    const result = attachClientSelectorUiHint(
+      await runBusinessChat(
+        latestMessage.content,
+        context,
+        {
+          clients: referenceClients,
+          catalogItems,
+        },
+        {
+          history: messages.slice(0, -1),
+        },
+      ),
+      availableClients,
     );
 
     return NextResponse.json(result);

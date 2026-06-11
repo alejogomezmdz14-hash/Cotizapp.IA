@@ -354,7 +354,20 @@ export type ChatSuggestedAction =
   | ChatCatalogPriceUpdateAction
   | ChatExpenseCreateAction;
 
+export type ChatClientListItem = {
+  id: string;
+  nombre: string;
+  email: string | null;
+  telefono: string | null;
+};
+
+export type ChatUiHint = {
+  type: "client_selector";
+  clients: ChatClientListItem[];
+};
+
 export type ChatReplyPayload = {
   reply: string;
   suggestedAction: ChatSuggestedAction | null;
+  uiHint?: ChatUiHint | null;
 };

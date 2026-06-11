@@ -1,9 +1,6 @@
 import { normalizeCatalogUnit } from "@/lib/catalog-units";
 import { getOpenAIApiKey, getOpenAIClient } from "@/lib/ai/openai";
-import {
-  formatClientesListForChatReply,
-  type ChatClientListItem,
-} from "@/lib/chat/client-list-format";
+import { buildClientSelectorReply } from "@/lib/chat/client-list-format";
 import { normalizeExpenseCategory } from "@/lib/expense-categories";
 import type {
   CatalogItem,
@@ -12,6 +9,7 @@ import type {
   ChatReplyPayload,
   ChatSuggestedAction,
   ChatSuggestedQuotationItem,
+  ChatClientListItem,
   Client,
   Expense,
   ExpenseCurrencyTotal,
@@ -27,7 +25,7 @@ const MAX_HISTORY_MESSAGES = 8;
 const MAX_NOTES_LENGTH = 96;
 
 const FALSE_SAVE_REPLY_PATTERN =
-  /\b(y[aá]|listo|guard[eé]|cre[eé]|registr[eé]|actualic[eé])\b.*\b(cotizaci[oó]n|borrador|gasto)\b/i;
+  /(y[aá]|listo|guard[eé]|cre[eé]|registr[eé]|actualic[eé]|qued[oó]).{0,120}(cotizaci[oó]n|borrador|gasto)/i;
 
 type BusinessChatContextInput = {
   profile: Profile | null;
@@ -604,7 +602,24 @@ function normalizeSuggestedAction(
     }
 
     const clientId = getTrimmedString(input.clientId);
-    const matchedClient = clientId ? clientById.get(clientId) ?? null : null;
+    const inputClientName = getTrimmedString(input.clientName);
+    let matchedClient = clientId ? clientById.get(clientId) ?? null : null;
+
+    if (!matchedClient && inputClientName) {
+      const normalizedInputName = inputClientName.toLowerCase();
+
+      matchedClient =
+        references.clients.find(
+          (client) => client.name.toLowerCase() === normalizedInputName,
+        ) ?? null;
+
+      if (!matchedClient) {
+        matchedClient =
+          references.clients.find((client) =>
+            client.name.toLowerCase().includes(normalizedInputName),
+          ) ?? null;
+      }
+    }
 
     if (!matchedClient) {
       return null;
@@ -849,11 +864,27 @@ export async function runBusinessChat(
     context.availableClients.length > 0 &&
     !result.reply.includes("¿Para cuál cliente")
   ) {
-    return {
-      reply: formatClientesListForChatReply(context.availableClients),
-      suggestedAction: null,
-    };
+    return buildClientSelectorReply(context.availableClients);
   }
 
   return result;
+}
+
+export function attachClientSelectorUiHint(
+  result: ChatReplyPayload,
+  availableClients: ChatClientListItem[],
+): ChatReplyPayload {
+  if (result.uiHint?.type === "client_selector" || result.suggestedAction) {
+    return result;
+  }
+
+  if (
+    availableClients.length === 0 ||
+    (!result.reply.includes("¿Para cuál cliente") &&
+      !result.reply.includes("Estos son tus clientes:"))
+  ) {
+    return result;
+  }
+
+  return buildClientSelectorReply(availableClients);
 }

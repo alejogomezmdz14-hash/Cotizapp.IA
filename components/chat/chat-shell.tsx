@@ -11,13 +11,20 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
-import type { ChatReplyPayload, ChatRole, ChatSuggestedAction } from "@/types";
+import type {
+  ChatClientListItem,
+  ChatReplyPayload,
+  ChatRole,
+  ChatSuggestedAction,
+  ChatUiHint,
+} from "@/types";
 
 type ChatUiMessage = {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
+  uiHint?: ChatUiHint | null;
 };
 
 type ChatResponse = ChatReplyPayload & {
@@ -71,7 +78,11 @@ export function ChatShell() {
   const [pendingSuggestion, setPendingSuggestion] = useState<ChatSuggestedAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function createMessage(role: ChatRole, content: string): ChatUiMessage {
+  function createMessage(
+    role: ChatRole,
+    content: string,
+    uiHint?: ChatUiHint | null,
+  ): ChatUiMessage {
     const id = `message-${nextMessageIdRef.current}`;
     nextMessageIdRef.current += 1;
 
@@ -80,22 +91,23 @@ export function ChatShell() {
       role,
       content,
       createdAt: new Date().toISOString(),
+      uiHint,
     };
   }
 
-  async function handleSubmit() {
-    const content = inputValue.trim();
+  async function sendUserMessage(content: string) {
+    const trimmedContent = content.trim();
 
-    if (!content || isSubmitting) {
+    if (!trimmedContent || isSubmitting) {
       return;
     }
 
-    const userMessage = createMessage("user", content);
+    const userMessage = createMessage("user", trimmedContent);
 
     setMessages((currentMessages) => [...currentMessages, userMessage]);
     setInputValue("");
 
-    if (pendingSuggestion && CONFIRM_REGEX.test(content)) {
+    if (pendingSuggestion && CONFIRM_REGEX.test(trimmedContent)) {
       setIsSubmitting(true);
       try {
         if (pendingSuggestion.type === "draft_quotation_create") {
@@ -133,7 +145,7 @@ export function ChatShell() {
       return;
     }
 
-    if (pendingSuggestion && CANCEL_REGEX.test(content)) {
+    if (pendingSuggestion && CANCEL_REGEX.test(trimmedContent)) {
       setPendingSuggestion(null);
       setMessages((currentMessages) => [
         ...currentMessages,
@@ -168,7 +180,7 @@ export function ChatShell() {
 
       setMessages((currentMessages) => [
         ...currentMessages,
-        createMessage("assistant", payload.reply),
+        createMessage("assistant", payload.reply, payload.uiHint),
       ]);
       const nextSuggestion = getNextPendingSuggestion({
         type: "response",
@@ -197,6 +209,14 @@ export function ChatShell() {
     }
   }
 
+  async function handleSubmit() {
+    await sendUserMessage(inputValue);
+  }
+
+  function handleClientSelect(client: ChatClientListItem) {
+    void sendUserMessage(client.nombre);
+  }
+
   function handleQuickPrompt(prompt: string) {
     setInputValue(prompt);
   }
@@ -220,7 +240,9 @@ export function ChatShell() {
 
       <ChatMessageList
         messages={messages}
+        isSubmitting={isSubmitting}
         onQuickPrompt={handleQuickPrompt}
+        onClientSelect={handleClientSelect}
       />
 
       <ChatInput
