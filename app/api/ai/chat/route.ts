@@ -6,6 +6,7 @@ import {
   loadBusinessChatExpenseContext,
   readChatRequestBody,
   resolveQuotationPeriodFilter,
+  resolveSelectedClientFromRequest,
   runBusinessChat,
 } from "@/lib/ai/chat";
 import {
@@ -20,10 +21,8 @@ import type { ChatClientListItem, ChatConversationMessage, Client } from "@/type
 
 const CHAT_CONTEXT_QUOTATION_LIMIT = 30;
 const CHAT_CONTEXT_CATALOG_LIMIT = 50;
-const CHAT_CONTEXT_CLIENT_LIMIT = 100;
-
 function toAvailableClients(clients: Client[]): ChatClientListItem[] {
-  return clients.slice(0, CHAT_CONTEXT_CLIENT_LIMIT).map((client) => ({
+  return clients.map((client) => ({
     id: client.id,
     nombre: client.name,
     email: client.email,
@@ -149,8 +148,11 @@ export async function POST(request: Request) {
       getQuotations(user.id, { limit: CHAT_CONTEXT_QUOTATION_LIMIT }),
       getProfile(user.id),
     ]);
-    const referenceClients = clients.slice(0, CHAT_CONTEXT_CLIENT_LIMIT);
     const availableClients = toAvailableClients(clients);
+    const selectedClient = resolveSelectedClientFromRequest(
+      body.selectedClientId,
+      availableClients,
+    );
     const quotationPeriodFilter = resolveQuotationPeriodFilter(
       latestMessage.content,
     );
@@ -161,8 +163,9 @@ export async function POST(request: Request) {
     });
     const context = buildBusinessChatContext({
       profile,
-      clients: referenceClients,
+      clients,
       availableClients,
+      selectedClient,
       catalogItems,
       quotations,
       expenses,
@@ -173,11 +176,12 @@ export async function POST(request: Request) {
         latestMessage.content,
         context,
         {
-          clients: referenceClients,
+          clients,
           catalogItems,
         },
         {
           history: messages.slice(0, -1),
+          selectedClient,
         },
       ),
       availableClients,

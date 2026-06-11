@@ -12,6 +12,7 @@ import {
   filterQuotationsByPeriod,
   attachClientSelectorUiHint,
   normalizeBusinessChatResult,
+  resolveSelectedClientFromRequest,
   readChatRequestBody,
   resolveExpensePeriodFilter,
   resolveQuotationPeriodFilter,
@@ -176,6 +177,7 @@ test("buildBusinessChatContext limits lists and summarizes account activity", ()
   });
   assert.equal(context.recentClients.length, 8);
   assert.equal(context.availableClients.length, 8);
+  assert.equal(context.selectedClient, null);
   assert.equal(context.recentCatalogItems.length, 8);
   assert.equal(context.recentQuotations.length, 6);
   assert.match(context.recentQuotations[0]!.notes ?? "", /^Necesita entrega urgente/);
@@ -470,7 +472,7 @@ test("normalizeBusinessChatResult rejects quotation drafts without a valid exist
   assert.match(result.reply, /cliente/i);
 });
 
-test("normalizeBusinessChatResult blocks false save replies before confirmation", () => {
+test("normalizeBusinessChatResult blocks false save replies on quotation create intent", () => {
   const result = normalizeBusinessChatResult(
     {
       reply: "Quedó lista la cotización para tu cliente.",
@@ -480,10 +482,47 @@ test("normalizeBusinessChatResult blocks false save replies before confirmation"
       clients: [createClient(1)],
       catalogItems: [],
     },
+    {
+      userPrompt: "Creame una cotización",
+    },
   );
 
   assert.equal(result.suggestedAction, null);
   assert.match(result.reply, /Todavía no guardé nada/i);
+});
+
+test("normalizeBusinessChatResult keeps intermediate replies after client selection", () => {
+  const result = normalizeBusinessChatResult(
+    {
+      reply: "Quedó lista la cotización para tu cliente.",
+      suggestedAction: null,
+    },
+    {
+      clients: [createClient(1)],
+      catalogItems: [],
+    },
+    {
+      userPrompt: "Cliente seleccionado: Alejandro Leonangeli",
+    },
+  );
+
+  assert.equal(result.suggestedAction, null);
+  assert.match(result.reply, /Quedó lista la cotización/i);
+});
+
+test("resolveSelectedClientFromRequest returns only clients from available list", () => {
+  const clients = [
+    {
+      id: "client-1",
+      nombre: "Cliente 1",
+      email: null,
+      telefono: null,
+    },
+  ];
+
+  assert.deepEqual(resolveSelectedClientFromRequest("client-1", clients), clients[0]);
+  assert.equal(resolveSelectedClientFromRequest("client-missing", clients), null);
+  assert.equal(resolveSelectedClientFromRequest(123, clients), null);
 });
 
 test("attachClientSelectorUiHint upgrades plain client list replies", () => {

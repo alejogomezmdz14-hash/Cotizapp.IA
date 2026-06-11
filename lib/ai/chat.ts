@@ -31,6 +31,7 @@ type BusinessChatContextInput = {
   profile: Profile | null;
   clients: Client[];
   availableClients: ChatClientListItem[];
+  selectedClient?: ChatClientListItem | null;
   catalogItems: CatalogItem[];
   quotations: Quotation[];
   expenses?: BusinessChatExpenseSnapshot | null;
@@ -41,8 +42,9 @@ type BusinessChatReferences = {
   catalogItems: CatalogItem[];
 };
 
-type ChatRequestBody = {
+export type ChatRequestBody = {
   messages?: unknown;
+  selectedClientId?: unknown;
 };
 
 export type QuotationPeriodFilter = "day" | "week" | "month";
@@ -73,6 +75,7 @@ export type BusinessChatContext = {
     phone: string | null;
   }>;
   availableClients: ChatClientListItem[];
+  selectedClient: ChatClientListItem | null;
   recentCatalogItems: Array<{
     id: string;
     name: string;
@@ -131,11 +134,32 @@ export function isQuotationCreateIntent(prompt: string) {
   ) || /\bcotizaci[oó]n\b/i.test(normalizedPrompt);
 }
 
+function isClientSelectionPrompt(prompt: string) {
+  return /^cliente seleccionado:/i.test(prompt.trim());
+}
+
+function shouldSanitizeFalseSaveReply(userPrompt?: string) {
+  if (!userPrompt) {
+    return false;
+  }
+
+  if (isClientSelectionPrompt(userPrompt)) {
+    return false;
+  }
+
+  return isQuotationCreateIntent(userPrompt);
+}
+
 function sanitizeChatReply(
   reply: string,
   suggestedAction: ChatSuggestedAction | null,
+  userPrompt?: string,
 ) {
   if (suggestedAction) {
+    return reply;
+  }
+
+  if (!shouldSanitizeFalseSaveReply(userPrompt)) {
     return reply;
   }
 
@@ -144,6 +168,27 @@ function sanitizeChatReply(
   }
 
   return "Todavía no guardé nada en tu cuenta. Si querés crear una cotización, primero elegí un cliente de tu lista y después confirmame con «sí» cuando veas el preview.";
+}
+
+export function resolveSelectedClientFromRequest(
+  selectedClientId: unknown,
+  availableClients: ChatClientListItem[],
+): ChatClientListItem | null {
+  if (typeof selectedClientId !== "string") {
+    return null;
+  }
+
+  const normalizedId = selectedClientId.trim();
+
+  if (!normalizedId) {
+    return null;
+  }
+
+  return availableClients.find((client) => client.id === normalizedId) ?? null;
+}
+
+function buildSelectedClientPromptHint(selectedClient: ChatClientListItem) {
+  return `[Contexto: el usuario ya eligió el cliente id=${selectedClient.id}, nombre="${selectedClient.nombre}". Usá ese clientId en draft_quotation_create.]`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -725,6 +770,7 @@ export function buildBusinessChatContext({
   profile,
   clients,
   availableClients,
+  selectedClient = null,
   catalogItems,
   quotations,
   expenses = null,
@@ -773,6 +819,7 @@ export function buildBusinessChatContext({
       phone: client.phone,
     })),
     availableClients,
+    selectedClient,
     recentCatalogItems: catalogItems
       .slice(0, MAX_CONTEXT_CATALOG_ITEMS)
       .map((item) => ({
@@ -801,6 +848,9 @@ export function buildBusinessChatContext({
 export function normalizeBusinessChatResult(
   input: unknown,
   references: BusinessChatReferences,
+  options?: {
+    userPrompt?: string;
+  },
 ): ChatReplyPayload {
   const source = isRecord(input) ? input : {};
   const suggestedAction = normalizeSuggestedAction(source.suggestedAction, references);
@@ -809,7 +859,7 @@ export function normalizeBusinessChatResult(
     "No pude generar una respuesta útil en este momento. Intenta reformular tu consulta.";
 
   return {
-    reply: sanitizeChatReply(rawReply, suggestedAction),
+    reply: sanitizeChatReply(rawReply, suggestedAction, options?.userPrompt),
     suggestedAction,
   };
 }
@@ -820,6 +870,7 @@ export async function runBusinessChat(
   references: BusinessChatReferences,
   options?: {
     history?: ChatConversationMessage[];
+    selectedClient?: ChatClientListItem | null;
   },
 ): Promise<ChatReplyPayload> {
   const apiKey = getOpenAIApiKey();
@@ -831,6 +882,10 @@ export async function runBusinessChat(
   const client = getOpenAIClient();
   const model = getChatModel();
   const history = (options?.history ?? []).slice(-MAX_HISTORY_MESSAGES);
+  const selectedClient = options?.selectedClient ?? context.selectedClient ?? null;
+  const modelPrompt = selectedClient
+    ? `${prompt}\n\n${buildSelectedClientPromptHint(selectedClient)}`
+    : prompt;
   const completion = await client.chat.completions.create({
     model,
     response_format: {
@@ -849,18 +904,21 @@ export async function runBusinessChat(
       ...formatHistoryMessages(history),
       {
         role: "user",
-        content: `${prompt}\n\nDevuelve solo JSON con esta forma exacta: {"reply":"string","suggestedAction":null|{...}}. reply debe estar en español.`,
+        content: `${modelPrompt}\n\nDevuelve solo JSON con esta forma exacta: {"reply":"string","suggestedAction":null|{...}}. reply debe estar en español.`,
       },
     ],
   });
 
   const content = completion.choices[0]?.message?.content ?? "";
   const parsed = extractJsonObjectFromText(content);
-  const result = normalizeBusinessChatResult(parsed, references);
+  const result = normalizeBusinessChatResult(parsed, references, {
+    userPrompt: prompt,
+  });
 
   if (
     isQuotationCreateIntent(prompt) &&
     !result.suggestedAction &&
+    !selectedClient &&
     context.availableClients.length > 0 &&
     !result.reply.includes("¿Para cuál cliente")
   ) {

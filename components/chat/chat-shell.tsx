@@ -76,6 +76,7 @@ export function ChatShell() {
   const [messages, setMessages] = useState<ChatUiMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [pendingSuggestion, setPendingSuggestion] = useState<ChatSuggestedAction | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ChatClientListItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function createMessage(
@@ -95,12 +96,19 @@ export function ChatShell() {
     };
   }
 
-  async function sendUserMessage(content: string) {
+  async function sendUserMessage(
+    content: string,
+    options?: {
+      selectedClient?: ChatClientListItem | null;
+    },
+  ) {
     const trimmedContent = content.trim();
 
     if (!trimmedContent || isSubmitting) {
       return;
     }
+
+    const activeSelectedClient = options?.selectedClient ?? selectedClient;
 
     const userMessage = createMessage("user", trimmedContent);
 
@@ -130,6 +138,7 @@ export function ChatShell() {
           ]);
         }
         setPendingSuggestion(null);
+        setSelectedClient(null);
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim()
@@ -170,6 +179,7 @@ export function ChatShell() {
         },
         body: JSON.stringify({
           messages: requestMessages,
+          selectedClientId: activeSelectedClient?.id ?? null,
         }),
       });
       const payload = await getJsonResponse<ChatResponse>(response);
@@ -214,7 +224,10 @@ export function ChatShell() {
   }
 
   function handleClientSelect(client: ChatClientListItem) {
-    void sendUserMessage(client.nombre);
+    setSelectedClient(client);
+    void sendUserMessage(`Cliente seleccionado: ${client.nombre}`, {
+      selectedClient: client,
+    });
   }
 
   function handleQuickPrompt(prompt: string) {

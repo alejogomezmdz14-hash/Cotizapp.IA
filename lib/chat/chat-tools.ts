@@ -38,8 +38,6 @@ type ClientRecord = {
   name: string;
 };
 
-const MAX_CHAT_CLIENTS = 100;
-
 function parseDecimal(value: unknown) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
@@ -121,7 +119,7 @@ function normalizeCreateCotizacionInput(input: CreateCotizacionInput) {
 export async function getClientesList(userId: string): Promise<ChatClientListItem[]> {
   const clients = await getClients(userId);
 
-  return clients.slice(0, MAX_CHAT_CLIENTS).map((client) => ({
+  return clients.map((client) => ({
     id: client.id,
     nombre: client.name,
     email: client.email,
