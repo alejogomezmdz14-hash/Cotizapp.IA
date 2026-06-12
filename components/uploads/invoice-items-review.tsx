@@ -15,15 +15,19 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatCurrencyAmount } from "@/lib/formatting";
 import {
+  applyInvoiceReviewMargin,
   createInvoiceReviewItems,
   markSavedCatalogRows,
+  parseInvoiceDecimalValue,
   removeAppliedQuotationRows,
   toInvoiceDraft,
   updateInvoiceReviewDestination,
   type EditableInvoiceReviewItem,
   type InvoiceReviewDestination,
 } from "@/lib/invoice-scan/review";
+import { cn } from "@/lib/utils";
 import type { InvoiceScanItemDraft, InvoiceScanResult } from "@/types";
 
 type InvoiceItemsReviewProps = {
@@ -37,40 +41,34 @@ type InvoiceItemsReviewProps = {
 const textareaClassName =
   "flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-function parseDecimalValue(rawValue: string) {
-  const compactValue = rawValue.trim().replace(/\s+/g, "");
+type RowFieldDraft = {
+  quantity: string;
+  unitPrice: string;
+  margin: string;
+};
 
-  if (!compactValue) {
-    return 0;
+function buildFieldDrafts(rows: EditableInvoiceReviewItem[]) {
+  const drafts: Record<string, RowFieldDraft> = {};
+
+  for (const row of rows) {
+    drafts[row.id] = {
+      quantity: String(row.quantity),
+      unitPrice: String(row.unitPrice),
+      margin: row.marginPct > 0 ? String(row.marginPct) : "",
+    };
   }
 
-  const sanitizedValue = compactValue.replace(/[^\d,.-]/g, "");
-  const lastCommaIndex = sanitizedValue.lastIndexOf(",");
-  const lastDotIndex = sanitizedValue.lastIndexOf(".");
-
-  let normalizedValue = sanitizedValue;
-
-  if (lastCommaIndex !== -1 && lastDotIndex !== -1) {
-    const decimalSeparator = lastCommaIndex > lastDotIndex ? "," : ".";
-    const thousandsSeparator = decimalSeparator === "," ? /\./g : /,/g;
-    normalizedValue = sanitizedValue
-      .replace(thousandsSeparator, "")
-      .replace(decimalSeparator, ".");
-  } else if (lastCommaIndex !== -1) {
-    const parts = sanitizedValue.split(",");
-    normalizedValue =
-      parts.length > 2
-        ? `${parts.slice(0, -1).join("")}.${parts[parts.length - 1]}`
-        : sanitizedValue.replace(",", ".");
-  }
-
-  if (!/^\d+(?:\.\d*)?$/.test(normalizedValue)) {
-    return 0;
-  }
-
-  const parsedValue = Number.parseFloat(normalizedValue);
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
+  return drafts;
 }
+
+const destinationOptions: Array<{
+  value: InvoiceReviewDestination;
+  label: string;
+}> = [
+  { value: "quotation", label: "Cotización" },
+  { value: "catalog", label: "Catálogo" },
+  { value: "discard", label: "Descartar" },
+];
 
 function getDestinationCardClassName(destination: InvoiceReviewDestination) {
   switch (destination) {
@@ -79,7 +77,7 @@ function getDestinationCardClassName(destination: InvoiceReviewDestination) {
     case "catalog":
       return "border-token/80 bg-background/70";
     case "discard":
-      return "border-token/70 bg-background/45";
+      return "border-token/70 bg-background/45 opacity-70";
     default:
       return "border-token/80 bg-background/70";
   }
@@ -96,13 +94,20 @@ export function InvoiceItemsReview({
   const [rows, setRows] = useState<EditableInvoiceReviewItem[]>(() =>
     createInvoiceReviewItems(result),
   );
+  const [fieldDrafts, setFieldDrafts] = useState<Record<string, RowFieldDraft>>(
+    () => buildFieldDrafts(createInvoiceReviewItems(result)),
+  );
+  const [globalMargin, setGlobalMargin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isSavingCatalog, setIsSavingCatalog] = useState(false);
   const [isApplyingQuotation, setIsApplyingQuotation] = useState(false);
 
   useEffect(() => {
-    setRows(createInvoiceReviewItems(result));
+    const nextRows = createInvoiceReviewItems(result);
+    setRows(nextRows);
+    setFieldDrafts(buildFieldDrafts(nextRows));
+    setGlobalMargin("");
     setError(null);
     setStatus(null);
   }, [result, fileName]);
@@ -120,6 +125,8 @@ export function InvoiceItemsReview({
     [rows],
   );
 
+  const isBusy = disabled || isSavingCatalog || isApplyingQuotation;
+
   function updateRow(
     rowId: string,
     updates: Partial<EditableInvoiceReviewItem>,
@@ -127,6 +134,58 @@ export function InvoiceItemsReview({
     setRows((currentRows) =>
       currentRows.map((row) => (row.id === rowId ? { ...row, ...updates } : row)),
     );
+  }
+
+  function updateFieldDraft(rowId: string, updates: Partial<RowFieldDraft>) {
+    setFieldDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [rowId]: { ...currentDrafts[rowId], ...updates } as RowFieldDraft,
+    }));
+  }
+
+  function commitQuantity(rowId: string) {
+    const draft = fieldDrafts[rowId];
+    if (!draft) return;
+    const parsed = parseInvoiceDecimalValue(draft.quantity);
+    const quantity = parsed > 0 ? parsed : 1;
+    updateRow(rowId, { quantity });
+    updateFieldDraft(rowId, { quantity: String(quantity) });
+  }
+
+  function commitUnitPrice(rowId: string) {
+    const draft = fieldDrafts[rowId];
+    if (!draft) return;
+    const unitPrice = Math.round(parseInvoiceDecimalValue(draft.unitPrice) * 100) / 100;
+    updateRow(rowId, { unitPrice });
+    updateFieldDraft(rowId, { unitPrice: String(unitPrice) });
+  }
+
+  function commitMargin(rowId: string) {
+    const draft = fieldDrafts[rowId];
+    if (!draft) return;
+    const parsed = parseInvoiceDecimalValue(draft.margin);
+    const marginPct = parsed > 0 && parsed <= 1000 ? parsed : 0;
+    updateRow(rowId, { marginPct });
+    updateFieldDraft(rowId, { margin: marginPct > 0 ? String(marginPct) : "" });
+  }
+
+  function handleApplyGlobalMargin() {
+    const parsed = parseInvoiceDecimalValue(globalMargin);
+    const marginPct = parsed > 0 && parsed <= 1000 ? parsed : 0;
+
+    setRows((currentRows) =>
+      currentRows.map((row) => ({ ...row, marginPct })),
+    );
+    setFieldDrafts((currentDrafts) => {
+      const nextDrafts: Record<string, RowFieldDraft> = {};
+      for (const [rowId, draft] of Object.entries(currentDrafts)) {
+        nextDrafts[rowId] = {
+          ...draft,
+          margin: marginPct > 0 ? String(marginPct) : "",
+        };
+      }
+      return nextDrafts;
+    });
   }
 
   function handleDestinationChange(
@@ -145,7 +204,7 @@ export function InvoiceItemsReview({
     }
 
     const confirmed = window.confirm(
-      `Se agregarán ${quotationSelection.length} ítem(s) editados a la cotización actual. Podés seguir ajustándolos después. ¿Deseas continuar?`,
+      `Se van a agregar ${quotationSelection.length} ítem(s) a la cotización actual. Podés seguir ajustándolos después. ¿Querés continuar?`,
     );
 
     if (!confirmed) {
@@ -172,7 +231,7 @@ export function InvoiceItemsReview({
     }
 
     const confirmed = window.confirm(
-      `Esto guardará ${catalogSelection.length} ítem(s) en tu catálogo. Esta acción persiste los datos detectados por AI y solo debería hacerse después de revisarlos. ¿Deseas continuar?`,
+      `Esto va a guardar ${catalogSelection.length} ítem(s) en tu catálogo con los datos que revisaste. ¿Querés continuar?`,
     );
 
     if (!confirmed) {
@@ -216,20 +275,21 @@ export function InvoiceItemsReview({
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Revisión del escaneo</CardTitle>
           <CardDescription className="leading-6">
-            Cuando la IA termine de leer tu factura, aquí podrás editar cada
-            renglón y decidir si va a la cotización actual, al catálogo o se
+            Cuando la IA termine de leer tu factura, acá vas a poder corregir
+            cada renglón y decidir si va a la cotización, al catálogo o se
             descarta.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-            Carga una factura para abrir la revisión editable y decidir destino por
-            destino antes de persistir nada.
+            Cargá una factura para empezar. Nada se guarda sin tu revisión.
           </div>
         </CardContent>
       </Card>
     );
   }
+
+  const currency = result.currency ?? null;
 
   return (
     <Card className="shell-panel overflow-hidden shadow-none">
@@ -238,21 +298,21 @@ export function InvoiceItemsReview({
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-sm font-medium text-accent-token">
               <FileSpreadsheet className="h-4 w-4" />
-              Resultado editable
+              Resultado del escaneo
             </div>
-            <CardTitle className="text-xl">Revisar ítems detectados</CardTitle>
+            <CardTitle className="text-xl">Revisá los ítems detectados</CardTitle>
             <CardDescription>
-              Nada se guarda automáticamente. Edita los datos, marca el destino
-              exclusivo de cada ítem y confirma la acción correspondiente.
+              Nada se guarda automáticamente. Corregí los datos, elegí el
+              destino de cada ítem y confirmá abajo.
             </CardDescription>
           </div>
 
           <Button
             type="button"
             variant="outline"
-            className="bg-background/75"
+            className="min-h-11 bg-background/75"
             onClick={onClear}
-            disabled={disabled || isSavingCatalog || isApplyingQuotation}
+            disabled={isBusy}
           >
             <RefreshCcw className="mr-2 h-4 w-4" />
             Limpiar revisión
@@ -261,7 +321,23 @@ export function InvoiceItemsReview({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Archivo
+            </p>
+            <p className="mt-2 truncate text-sm font-medium text-foreground">
+              {fileName ?? "Factura sin nombre"}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Proveedor
+            </p>
+            <p className="mt-2 truncate text-sm font-medium text-foreground">
+              {result.supplierName ?? "No detectado"}
+            </p>
+          </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Ítems detectados
@@ -278,57 +354,6 @@ export function InvoiceItemsReview({
               {quotationSelection.length}
             </p>
           </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Para catálogo
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {catalogSelection.length}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Para descarte
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {discardedSelection.length}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Archivo
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {fileName ?? "Factura sin nombre"}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Proveedor
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {result.supplierName ?? "No detectado"}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Número
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {result.invoiceNumber ?? "No detectado"}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-token/80 bg-background/70 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Moneda
-            </p>
-            <p className="mt-2 text-sm font-medium text-foreground">
-              {result.currency ?? "No detectada"}
-            </p>
-          </div>
         </div>
 
         {result.notes ? (
@@ -340,7 +365,7 @@ export function InvoiceItemsReview({
 
         {result.warnings.length > 0 ? (
           <div className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-            <p className="font-medium">Advertencias detectadas</p>
+            <p className="font-medium">Revisá estos avisos</p>
             <ul className="mt-2 space-y-1">
               {result.warnings.map((warning) => (
                 <li key={warning}>- {warning}</li>
@@ -351,188 +376,217 @@ export function InvoiceItemsReview({
           <div className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             <div className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              El resultado ya está listo para revisar y confirmar.
+              Escaneo listo. Revisá los datos antes de confirmar.
             </div>
           </div>
         )}
 
+        {rows.length > 0 ? (
+          <div className="flex flex-col gap-3 rounded-[1.5rem] border border-token/80 bg-background/70 p-4 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor="invoice-global-margin">
+                Margen de ganancia (%)
+              </Label>
+              <Input
+                id="invoice-global-margin"
+                type="text"
+                inputMode="decimal"
+                placeholder="Ej: 30"
+                value={globalMargin}
+                onChange={(event) => setGlobalMargin(event.target.value)}
+                disabled={isBusy}
+                className="min-h-12"
+              />
+              <p className="text-xs text-muted-foreground">
+                Lo que detecta la factura es tu costo. El margen se suma para
+                calcular el precio que le cobrás a tu cliente.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 bg-background/75"
+              onClick={handleApplyGlobalMargin}
+              disabled={isBusy}
+            >
+              Aplicar a todos
+            </Button>
+          </div>
+        ) : null}
+
         {rows.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
             {result.items.length === 0
-              ? "No encontramos ítems claros en esta factura. Podés intentar con otra imagen más nítida o cargar los conceptos manualmente."
+              ? "No encontramos ítems claros en esta factura. Probá con otra imagen más nítida o cargá los conceptos a mano."
               : "No quedan ítems pendientes en esta revisión. Podés limpiar la revisión o subir otra factura."}
           </div>
         ) : (
           <div className="grid gap-4">
-            {rows.map((row, index) => (
-              <div
-                key={row.id}
-                className={`space-y-4 rounded-[1.75rem] border p-4 ${getDestinationCardClassName(row.destination)}`}
-              >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-1">
+            {rows.map((row, index) => {
+              const draft = fieldDrafts[row.id] ?? {
+                quantity: String(row.quantity),
+                unitPrice: String(row.unitPrice),
+                margin: row.marginPct > 0 ? String(row.marginPct) : "",
+              };
+              const salePrice = applyInvoiceReviewMargin(
+                row.unitPrice,
+                row.marginPct,
+              );
+
+              return (
+                <div
+                  key={row.id}
+                  className={`space-y-4 rounded-[1.75rem] border p-4 transition ${getDestinationCardClassName(row.destination)}`}
+                >
+                  <div className="flex flex-col gap-3">
                     <p className="text-sm font-medium text-foreground">
-                      Ítem detectado {index + 1}
+                      Ítem {index + 1}
                     </p>
+
+                    <div className="grid grid-cols-3 gap-1 rounded-xl border border-token/80 bg-background/60 p-1">
+                      {destinationOptions.map((option) => {
+                        const isActive = row.destination === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() =>
+                              handleDestinationChange(row.id, option.value)
+                            }
+                            className={cn(
+                              "min-h-11 rounded-lg px-2 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50",
+                              isActive
+                                ? option.value === "discard"
+                                  ? "bg-destructive/15 text-destructive"
+                                  : "bg-[rgb(var(--accent-rgb)/0.16)] text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                    <div className="space-y-2">
+                      <Label htmlFor={`${row.id}-name`}>Concepto</Label>
+                      <Input
+                        id={`${row.id}-name`}
+                        value={row.name}
+                        onChange={(event) =>
+                          updateRow(row.id, { name: event.target.value })
+                        }
+                        disabled={isBusy}
+                        className="min-h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`${row.id}-unit`}>Unidad</Label>
+                      <Input
+                        id={`${row.id}-unit`}
+                        value={row.unit}
+                        onChange={(event) =>
+                          updateRow(row.id, { unit: event.target.value })
+                        }
+                        disabled={isBusy}
+                        className="min-h-12"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`${row.id}-quantity`}>Cantidad</Label>
+                      <Input
+                        id={`${row.id}-quantity`}
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.quantity}
+                        onChange={(event) =>
+                          updateFieldDraft(row.id, {
+                            quantity: event.target.value,
+                          })
+                        }
+                        onBlur={() => commitQuantity(row.id)}
+                        disabled={isBusy}
+                        className="min-h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`${row.id}-price`}>Costo unitario</Label>
+                      <Input
+                        id={`${row.id}-price`}
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.unitPrice}
+                        onChange={(event) =>
+                          updateFieldDraft(row.id, {
+                            unitPrice: event.target.value,
+                          })
+                        }
+                        onBlur={() => commitUnitPrice(row.id)}
+                        disabled={isBusy}
+                        placeholder="0,00"
+                        spellCheck={false}
+                        className="min-h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`${row.id}-margin`}>Margen (%)</Label>
+                      <Input
+                        id={`${row.id}-margin`}
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.margin}
+                        onChange={(event) =>
+                          updateFieldDraft(row.id, {
+                            margin: event.target.value,
+                          })
+                        }
+                        onBlur={() => commitMargin(row.id)}
+                        disabled={isBusy}
+                        placeholder="0"
+                        className="min-h-12"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] px-4 py-3">
                     <p className="text-sm text-muted-foreground">
-                      Corrige nombre, detalle, cantidad, unidad y precio antes de
-                      confirmar cualquier acción.
+                      Precio de venta
+                      {row.marginPct > 0 ? ` (costo + ${row.marginPct}%)` : ""}
+                    </p>
+                    <p className="text-base font-semibold text-foreground">
+                      {formatCurrencyAmount(salePrice, currency)}
                     </p>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
-                      <input
-                        type="radio"
-                        name={`${row.id}-destination`}
-                        checked={row.destination === "quotation"}
-                        onChange={(event) =>
-                          event.target.checked
-                            ? handleDestinationChange(row.id, "quotation")
-                            : undefined
-                        }
-                        disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                        className="h-4 w-4 rounded border-input"
-                      />
-                      Agregar a esta cotización
-                    </label>
-                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
-                      <input
-                        type="radio"
-                        name={`${row.id}-destination`}
-                        checked={row.destination === "catalog"}
-                        onChange={(event) =>
-                          event.target.checked
-                            ? handleDestinationChange(row.id, "catalog")
-                            : undefined
-                        }
-                        disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                        className="h-4 w-4 rounded border-input"
-                      />
-                      Guardar en catálogo
-                    </label>
-                    <label className="flex items-center gap-2 rounded-full border border-token/80 bg-background/70 px-3 py-2 text-sm text-foreground">
-                      <input
-                        type="radio"
-                        name={`${row.id}-destination`}
-                        checked={row.destination === "discard"}
-                        onChange={(event) =>
-                          event.target.checked
-                            ? handleDestinationChange(row.id, "discard")
-                            : undefined
-                        }
-                        disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                        className="h-4 w-4 rounded border-input"
-                      />
-                      Descartar
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
                   <div className="space-y-2">
-                    <Label htmlFor={`${row.id}-name`}>Concepto</Label>
-                    <Input
-                      id={`${row.id}-name`}
-                      value={row.name}
-                      onChange={(event) =>
-                        updateRow(row.id, { name: event.target.value })
-                      }
-                      disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${row.id}-unit`}>Unidad</Label>
-                    <Input
-                      id={`${row.id}-unit`}
-                      value={row.unit}
-                      onChange={(event) =>
-                        updateRow(row.id, { unit: event.target.value })
-                      }
-                      disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor={`${row.id}-quantity`}>Cantidad</Label>
-                    <Input
-                      id={`${row.id}-quantity`}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={row.quantity}
+                    <Label htmlFor={`${row.id}-description`}>Detalle opcional</Label>
+                    <textarea
+                      id={`${row.id}-description`}
+                      rows={2}
+                      value={row.description ?? ""}
                       onChange={(event) =>
                         updateRow(row.id, {
-                          quantity: parseDecimalValue(event.target.value),
+                          description: event.target.value || null,
                         })
                       }
-                      disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${row.id}-price`}>Precio unitario</Label>
-                    <Input
-                      id={`${row.id}-price`}
-                      type="text"
-                      inputMode="decimal"
-                      value={row.unitPrice}
-                      onChange={(event) =>
-                        updateRow(row.id, {
-                          unitPrice: parseDecimalValue(event.target.value),
-                        })
-                      }
-                      disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                      placeholder="0.00"
-                      spellCheck={false}
+                      disabled={isBusy}
+                      className={textareaClassName}
                     />
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`${row.id}-description`}>Detalle opcional</Label>
-                  <textarea
-                    id={`${row.id}-description`}
-                    rows={3}
-                    value={row.description ?? ""}
-                    onChange={(event) =>
-                      updateRow(row.id, {
-                        description: event.target.value || null,
-                      })
-                    }
-                    disabled={disabled || isSavingCatalog || isApplyingQuotation}
-                    className={textareaClassName}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
-
-        <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4 text-sm text-muted-foreground">
-          <p>
-            Seleccionados para cotización:{" "}
-            <span className="font-medium text-foreground">
-              {quotationSelection.length}
-            </span>
-          </p>
-          <p>
-            Seleccionados para catálogo:{" "}
-            <span className="font-medium text-foreground">
-              {catalogSelection.length}
-            </span>
-          </p>
-          <p>
-            Marcados para descarte:{" "}
-            <span className="font-medium text-foreground">
-              {discardedSelection.length}
-            </span>
-          </p>
-        </div>
 
         {status ? (
           <p className="rounded-[1.5rem] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
@@ -551,23 +605,31 @@ export function InvoiceItemsReview({
             type="button"
             onClick={handleApplyToQuotation}
             disabled={disabled || isApplyingQuotation || rows.length === 0}
+            className="min-h-12"
           >
             {isApplyingQuotation
               ? "Agregando a la cotización..."
-              : "Agregar seleccionados a la cotización"}
+              : `Agregar a la cotización (${quotationSelection.length})`}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleSaveToCatalog}
             disabled={disabled || isSavingCatalog || rows.length === 0}
-            className="bg-background/75"
+            className="min-h-12 bg-background/75"
           >
             {isSavingCatalog
               ? "Guardando en catálogo..."
-              : "Guardar seleccionados en catálogo"}
+              : `Guardar en catálogo (${catalogSelection.length})`}
           </Button>
         </div>
+
+        {discardedSelection.length > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {discardedSelection.length} ítem(s) marcados para descartar — no se
+            van a guardar en ningún lado.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
