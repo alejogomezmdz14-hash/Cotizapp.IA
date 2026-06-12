@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import { Bot, Circle } from "lucide-react";
@@ -6,9 +6,12 @@ import { Bot, Circle } from "lucide-react";
 import {
   confirmDraftQuotationSuggestionAction,
   confirmExpenseCreateSuggestionAction,
+  getCatalogItemsAction,
 } from "@/app/actions/ai";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
+import type { ChatUiMessage } from "@/components/chat/chat-message-list";
+import { SuggestionChips } from "@/components/chat/suggestion-chips";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
 import type {
@@ -16,20 +19,14 @@ import type {
   ChatReplyPayload,
   ChatRole,
   ChatSuggestedAction,
-  ChatUiHint,
+  ChatSuggestedQuotationItem,
 } from "@/types";
-
-type ChatUiMessage = {
-  id: string;
-  role: ChatRole;
-  content: string;
-  createdAt: string;
-  uiHint?: ChatUiHint | null;
-};
 
 type ChatResponse = ChatReplyPayload & {
   error?: string;
 };
+
+type QuotationPhase = "idle" | "with_client" | "with_items" | "post_saved";
 
 async function getJsonResponse<T>(response: Response): Promise<T> {
   try {
@@ -40,7 +37,7 @@ async function getJsonResponse<T>(response: Response): Promise<T> {
 }
 
 const CONFIRM_REGEX = /^(si|sí|dale|confirma|confirmá|ok|de una|mandale)\b/i;
-const CANCEL_REGEX = /^(no|cancel(a|á)|descarta|dejalo|dejalo)\b/i;
+const CANCEL_REGEX = /^(no|cancel(a|á)|descarta|dejalo)\b/i;
 
 function buildSuggestionPreview(suggestion: ChatSuggestedAction) {
   if (suggestion.type === "draft_quotation_create") {
@@ -78,11 +75,17 @@ export function ChatShell() {
   const [pendingSuggestion, setPendingSuggestion] = useState<ChatSuggestedAction | null>(null);
   const [selectedClient, setSelectedClient] = useState<ChatClientListItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quotationPhase, setQuotationPhase] = useState<QuotationPhase>("idle");
+  const pendingPreviewRef = useRef<{
+    clientId: string;
+    clientName: string;
+    items: ChatSuggestedQuotationItem[];
+  } | null>(null);
 
   function createMessage(
     role: ChatRole,
     content: string,
-    uiHint?: ChatUiHint | null,
+    extra?: Partial<Omit<ChatUiMessage, "id" | "role" | "content" | "createdAt">>,
   ): ChatUiMessage {
     const id = `message-${nextMessageIdRef.current}`;
     nextMessageIdRef.current += 1;
@@ -92,7 +95,7 @@ export function ChatShell() {
       role,
       content,
       createdAt: new Date().toISOString(),
-      uiHint,
+      ...extra,
     };
   }
 
@@ -116,19 +119,31 @@ export function ChatShell() {
     setInputValue("");
 
     if (pendingSuggestion && CONFIRM_REGEX.test(trimmedContent)) {
+      const suggestionToConfirm = pendingSuggestion;
       setIsSubmitting(true);
       try {
-        if (pendingSuggestion.type === "draft_quotation_create") {
-          const result = await confirmDraftQuotationSuggestionAction(pendingSuggestion);
+        if (suggestionToConfirm.type === "draft_quotation_create") {
+          const result = await confirmDraftQuotationSuggestionAction(suggestionToConfirm);
+          const total = suggestionToConfirm.items.reduce(
+            (sum, item) => sum + item.quantity * item.unitPrice,
+            0,
+          );
           setMessages((currentMessages) => [
             ...currentMessages,
-            createMessage(
-              "assistant",
-              `Listo. Guardé la cotización ${result.number} en tu cuenta. Podés verla en /cotizaciones/${result.quotationId}`,
-            ),
+            createMessage("assistant", "", {
+              savedQuotation: {
+                quotationId: result.quotationId,
+                quotationNumber: result.number,
+                clientName: suggestionToConfirm.clientName ?? "Cliente",
+                total,
+              },
+            }),
           ]);
-        } else if (pendingSuggestion.type === "expense_create") {
-          const result = await confirmExpenseCreateSuggestionAction(pendingSuggestion);
+          setPendingSuggestion(null);
+          setSelectedClient(null);
+          setQuotationPhase("post_saved");
+        } else if (suggestionToConfirm.type === "expense_create") {
+          const result = await confirmExpenseCreateSuggestionAction(suggestionToConfirm);
           setMessages((currentMessages) => [
             ...currentMessages,
             createMessage(
@@ -136,9 +151,10 @@ export function ChatShell() {
               `Listo. Registré el gasto "${result.description}" por ${formatCurrencyAmount(result.amount, result.currency)} en ${result.category}.`,
             ),
           ]);
+          setPendingSuggestion(null);
+          setSelectedClient(null);
+          setQuotationPhase("idle");
         }
-        setPendingSuggestion(null);
-        setSelectedClient(null);
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim()
@@ -156,6 +172,7 @@ export function ChatShell() {
 
     if (pendingSuggestion && CANCEL_REGEX.test(trimmedContent)) {
       setPendingSuggestion(null);
+      setQuotationPhase("idle");
       setMessages((currentMessages) => [
         ...currentMessages,
         createMessage("assistant", "Perfecto, descarté esa acción."),
@@ -163,10 +180,12 @@ export function ChatShell() {
       return;
     }
 
-    const requestMessages = [...messages, userMessage].map((message) => ({
-      role: message.role,
-      content: message.content,
-    }));
+    const requestMessages = [...messages, userMessage]
+      .filter((message) => message.content)
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
 
     setPendingSuggestion(getNextPendingSuggestion({ type: "submit" }));
     setIsSubmitting(true);
@@ -190,7 +209,9 @@ export function ChatShell() {
 
       setMessages((currentMessages) => [
         ...currentMessages,
-        createMessage("assistant", payload.reply, payload.uiHint),
+        createMessage("assistant", payload.reply, {
+          uiHint: payload.uiHint ?? null,
+        }),
       ]);
       const nextSuggestion = getNextPendingSuggestion({
         type: "response",
@@ -223,15 +244,131 @@ export function ChatShell() {
     await sendUserMessage(inputValue);
   }
 
-  function handleClientSelect(client: ChatClientListItem) {
+  async function handleClientSelect(client: ChatClientListItem) {
+    if (isSubmitting) {
+      return;
+    }
+
     setSelectedClient(client);
-    void sendUserMessage(`Cliente seleccionado: ${client.nombre}`, {
-      selectedClient: client,
-    });
+    setQuotationPhase("with_client");
+    setIsSubmitting(true);
+
+    try {
+      const catalogItems = await getCatalogItemsAction();
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("user", `Cliente seleccionado: ${client.nombre}`),
+        createMessage("assistant", "¿Qué ítems incluís en la cotización?", {
+          uiHint: {
+            type: "catalog_picker",
+            items: catalogItems,
+            clientId: client.id,
+            clientName: client.nombre,
+          },
+        }),
+      ]);
+      setIsSubmitting(false);
+    } catch {
+      setIsSubmitting(false);
+      void sendUserMessage(`Cliente seleccionado: ${client.nombre}`, {
+        selectedClient: client,
+      });
+    }
+  }
+
+  function handleCatalogConfirm(
+    clientId: string,
+    clientName: string,
+    items: ChatSuggestedQuotationItem[],
+  ) {
+    pendingPreviewRef.current = { clientId, clientName, items };
+    setQuotationPhase("with_items");
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      createMessage("assistant", "", {
+        pendingPreview: { clientName, items },
+      }),
+    ]);
+  }
+
+  async function handlePreviewConfirm(
+    clientName: string,
+    items: ChatSuggestedQuotationItem[],
+  ) {
+    const pendingPreview = pendingPreviewRef.current;
+
+    if (!pendingPreview || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await confirmDraftQuotationSuggestionAction({
+        type: "draft_quotation_create" as const,
+        clientId: pendingPreview.clientId,
+        clientName,
+        clientSource: "existing" as const,
+        notes: null,
+        items,
+      });
+      const total = items.reduce(
+        (sum, item) => sum + item.quantity * item.unitPrice,
+        0,
+      );
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("assistant", "", {
+          savedQuotation: {
+            quotationId: result.quotationId,
+            quotationNumber: result.number,
+            clientName,
+            total,
+          },
+        }),
+      ]);
+      setSelectedClient(null);
+      pendingPreviewRef.current = null;
+      setQuotationPhase("post_saved");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : "No se pudo guardar la cotización.";
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("assistant", `No se pudo guardar: ${message}`),
+      ]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handlePreviewEdit() {
+    pendingPreviewRef.current = null;
+    setQuotationPhase("with_client");
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      createMessage(
+        "assistant",
+        "Ok, descartamos esa selección. Decime qué querés agregar o cambiar.",
+      ),
+    ]);
+  }
+
+  function handleNewQuotation() {
+    setQuotationPhase("idle");
+    setSelectedClient(null);
+    setPendingSuggestion(null);
+    pendingPreviewRef.current = null;
+    void sendUserMessage("Crear una nueva cotización");
   }
 
   function handleQuickPrompt(prompt: string) {
     setInputValue(prompt);
+  }
+
+  function handleChipClick(prompt: string) {
+    void sendUserMessage(prompt);
   }
 
   return (
@@ -256,6 +393,16 @@ export function ChatShell() {
         isSubmitting={isSubmitting}
         onQuickPrompt={handleQuickPrompt}
         onClientSelect={handleClientSelect}
+        onCatalogConfirm={handleCatalogConfirm}
+        onPreviewConfirm={handlePreviewConfirm}
+        onPreviewEdit={handlePreviewEdit}
+        onNewQuotation={handleNewQuotation}
+      />
+
+      <SuggestionChips
+        phase={quotationPhase}
+        disabled={isSubmitting}
+        onChipClick={handleChipClick}
       />
 
       <ChatInput
