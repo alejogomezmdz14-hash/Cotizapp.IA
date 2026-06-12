@@ -8,7 +8,8 @@ personalizada, chat con agente IA, registro de gastos y compartir por WhatsApp.
 
 ## Stack
 - Next.js 14 con App Router y TypeScript
-- Supabase (auth + base de datos + storage)
+- Clerk (@clerk/nextjs) para autenticación
+- Supabase (base de datos + storage; RLS validado con el JWT de Clerk)
 - Tailwind CSS + shadcn/ui
 - next-themes para dark/light mode
 - lucide-react para iconos
@@ -50,7 +51,7 @@ El dark mode es solo para la interfaz, nunca para documentos generados.
 
 ## Estructura de rutas
 /                          → Landing page pública (minimalista, sin texto largo)
-/login                     → Auth con Google
+/sign-in y /sign-up        → Auth con Clerk (/login es legacy: redirige a /sign-in)
 /onboarding                → Setup inicial 2 pasos: datos negocio + logo
 /dashboard                 → Home con KPIs reales (solo cotizaciones aceptadas)
 /cotizaciones              → Lista con filtros, búsqueda y vista tabla/tarjetas
@@ -70,7 +71,7 @@ El dark mode es solo para la interfaz, nunca para documentos generados.
 
 ## Base de datos (Supabase)
 Tablas principales:
-- profiles → datos del negocio (logo_url, pdf_color, pdf_template, 
+- profiles → datos del negocio (clerk_id, logo_url, pdf_color, pdf_template, 
              quotation_prefix, quotation_counter, tax_id, pdf_accent_color,
              logo_onboarding_completed, avatar_url, first_name, last_name,
              phone, country, city, birth_date)
@@ -92,10 +93,23 @@ Buckets de Storage:
 - avatars → fotos de perfil de usuario
 
 Todas las tablas tienen RLS activado.
-Siempre filtrar por auth.uid() o user_id.
+Las políticas RLS usan public.current_profile_id() (mapea el JWT de Clerk
+→ profiles.clerk_id → UUID). NUNCA usar auth.uid() en políticas: bajo Clerk
+devuelve NULL y bloquea todo. En queries de la app, filtrar por user_id
+con el UUID que devuelve requireUser().id.
 
 ## Auth
-Google OAuth vía Supabase Auth.
+Clerk (@clerk/nextjs) con clerkMiddleware en middleware.ts.
+Rutas públicas: /, /sign-in, /sign-up y /api/quotations/share/* (PDFs compartidos).
+
+REGLA CRÍTICA: el userId de Clerk ("user_xxx") NUNCA se usa directo en queries.
+requireUser() y getCurrentUser() (lib/profile.ts) resuelven Clerk ID → UUID del
+perfil vía ensureProfileForClerkUser(). AppUser.id ya es el UUID de profiles
+(el user_id de las tablas); AppUser.clerkId es el ID de Clerk.
+El cliente Supabase server-side (lib/supabase/server.ts) usa el JWT de Clerk
+como accessToken — RLS valida con ese token.
+
+Flujo post-login:
 Si no tiene profile → /onboarding paso 1 (datos negocio).
 Si tiene profile pero no logo_onboarding_completed → /onboarding?step=logo.
 Si tiene todo completo → /dashboard.
@@ -180,15 +194,23 @@ Clientes, Catálogo, Gastos, Chat IA, Ajustes (abajo), Cerrar sesión (abajo).
 - Antes de deploy manual, verificar `.vercel/project.json` → `projectName: cotizapp-ia`.
 
 ## Variables de entorno requeridas
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
-OPENAI_CHAT_MODEL=gpt-4o-mini
-OPENAI_VISION_MODEL=gpt-4o
-NEXT_PUBLIC_APP_URL=https://cotizapp-ia.vercel.app
+OPENAI_CHAT_MODEL=gpt-4o-mini        (opcional, default en código)
+OPENAI_VISION_MODEL=gpt-4o           (opcional, default en código)
+NEXT_PUBLIC_APP_URL=https://cotizapp.lat
 
 ## Lo que NO hacer
 - **No desplegar ni vincular a ningún proyecto Vercel que no sea `cotizapp-ia`**
+- No usar el userId de Clerk ("user_xxx") directo en queries — siempre requireUser().id
+- No usar auth.uid() en políticas RLS — bajo Clerk devuelve NULL; usar current_profile_id()
 - No mostrar /facturas en ninguna parte de la UI hasta nuevo aviso
 - No mostrar el costo ni el margen en el PDF — es información privada
 - No usar páginas /api para cosas que Supabase puede hacer directo
