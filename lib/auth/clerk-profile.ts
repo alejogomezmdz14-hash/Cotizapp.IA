@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache } from "@/lib/react-cache";
 import { currentUser } from "@clerk/nextjs/server";
 
 import { createClient } from "@/lib/supabase/server";
