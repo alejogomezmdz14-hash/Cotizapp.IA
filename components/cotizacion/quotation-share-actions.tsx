@@ -14,6 +14,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { buildPublicAppPath } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/formatting";
+import {
+  shareQuotationPdfFile,
+  supportsQuotationPdfFileShare,
+} from "@/lib/quotation-pdf-share";
 import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
 type QuotationShareActionsProps = {
@@ -202,11 +206,71 @@ export function QuotationShareActions({
     }
   }
 
+  /**
+   * En celulares con Web Share API compartimos el PDF como archivo (el
+   * cliente lo recibe como documento, sin links ni inicio de sesión).
+   * Devuelve true si el PDF se compartió o el usuario canceló el menú.
+   */
+  async function tryNativePdfShare() {
+    if (!supportsQuotationPdfFileShare()) {
+      return false;
+    }
+
+    setError(null);
+    setStatusMessage(null);
+    setIsSharing(true);
+
+    try {
+      const result = await confirmQuotationWhatsappShareAction(quotationId);
+
+      setShareToken(result.shareToken);
+      setSentAt(result.sentAt);
+      setShareStatus(result.shareStatus);
+      onStateChange?.({
+        pdfGeneratedAt,
+        shareToken: result.shareToken,
+        sentAt: result.sentAt,
+        status: result.shareStatus,
+      });
+
+      const shareOutcome = await shareQuotationPdfFile({
+        pdfUrl: pdfViewUrl,
+        quotationNumber,
+        text: result.whatsappText,
+      });
+
+      if (shareOutcome === "unsupported") {
+        return false;
+      }
+
+      if (shareOutcome === "shared") {
+        setStatusMessage("PDF compartido. Quedó marcada como pendiente.");
+        toast({
+          title: "PDF listo para enviar",
+          description: "Elegí WhatsApp y el contacto para mandarlo.",
+        });
+      }
+
+      return true;
+    } catch {
+      // Si algo falla en el camino nativo, seguimos con el fallback de wa.me.
+      return false;
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   async function handleShareWhatsapp() {
     setError(null);
     setStatusMessage(null);
 
     try {
+      const sharedNatively = await tryNativePdfShare();
+
+      if (sharedNatively) {
+        return;
+      }
+
       const normalizedPhone = await resolveNormalizedSharePhone();
 
       if (!normalizedPhone) {
