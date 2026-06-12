@@ -78,7 +78,7 @@ export function QuotationAttachments({
     }
 
     if (selectedFiles.length === 0) {
-      setError("Selecciona al menos un archivo para adjuntar.");
+      setError("Seleccioná al menos un archivo para adjuntar.");
       return;
     }
 

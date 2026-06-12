@@ -75,7 +75,7 @@ function normalizePriceInput(value: string) {
   }
 
   if (!/^\d+(?:[.,]\d+)?$/.test(compactValue)) {
-    throw new Error("Ingresa un precio válido mayor a cero.");
+    throw new Error("Ingresá un precio válido mayor a cero.");
   }
 
   return compactValue.replace(",", ".");
@@ -93,7 +93,7 @@ function parseCatalogPrice(formData: FormData) {
   const price = Number.parseFloat(normalizedValue);
 
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("Ingresa un precio válido mayor a cero.");
+    throw new Error("Ingresá un precio válido mayor a cero.");
   }
 
   return price;

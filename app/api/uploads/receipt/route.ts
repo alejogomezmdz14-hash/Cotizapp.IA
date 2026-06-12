@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Debes iniciar sesión para subir recibos." },
+        { error: "Tenés que iniciar sesión para subir recibos." },
         { status: 401 },
       );
     }

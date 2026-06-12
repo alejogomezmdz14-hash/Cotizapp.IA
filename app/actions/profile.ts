@@ -196,7 +196,7 @@ export async function saveBusinessProfileAction(formData: FormData) {
   const currency = getRequiredValue(formData, "currency");
 
   if (!businessName || !industry || !currency) {
-    throw new Error("Completa el nombre del negocio, rubro y moneda antes de guardar.");
+    throw new Error("Completá el nombre del negocio, rubro y moneda antes de guardar.");
   }
 
   const supabase = await createClient();

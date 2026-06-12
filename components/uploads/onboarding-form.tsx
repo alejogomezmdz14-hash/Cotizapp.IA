@@ -128,8 +128,8 @@ export function OnboardingForm({
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Antes de continuar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Revisa que la moneda y los datos de contacto representen la forma en
-              que quieres que tu negocio aparezca en las cotizaciones.
+              Revisá que la moneda y los datos de contacto representen la forma en
+              que querés que tu negocio aparezca en las cotizaciones.
             </p>
           </div>
         </div>

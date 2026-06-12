@@ -151,7 +151,7 @@ export async function uploadLogoFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesión para subir un logo.",
+      "Tenés que iniciar sesión para subir un logo.",
       401,
     );
   }
@@ -268,7 +268,7 @@ export async function uploadAvatarFromFormData(
   const user = await getCurrentUser();
 
   if (!user) {
-    throw new UploadActionError("Debes iniciar sesión para subir una foto.", 401);
+    throw new UploadActionError("Tenés que iniciar sesión para subir una foto.", 401);
   }
 
   const supabase = await createClient();
@@ -397,7 +397,7 @@ export async function uploadQuotationSignatureFromFormData(
   const user = await getCurrentUser();
 
   if (!user) {
-    throw new UploadActionError("Debes iniciar sesión para subir una firma.", 401);
+    throw new UploadActionError("Tenés que iniciar sesión para subir una firma.", 401);
   }
 
   const signaturePath = pathsModule.buildQuotationSignaturePath(
@@ -446,7 +446,7 @@ export async function uploadExpenseReceiptFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesión para subir un recibo.",
+      "Tenés que iniciar sesión para subir un recibo.",
       401,
     );
   }
@@ -491,7 +491,7 @@ export async function uploadInvoiceForScanFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesión para subir una factura.",
+      "Tenés que iniciar sesión para subir una factura.",
       401,
     );
   }
@@ -603,7 +603,7 @@ export async function uploadQuotationAttachmentsFromFormData(
 
   if (!user) {
     throw new UploadActionError(
-      "Debes iniciar sesión para subir adjuntos.",
+      "Tenés que iniciar sesión para subir adjuntos.",
       401,
     );
   }

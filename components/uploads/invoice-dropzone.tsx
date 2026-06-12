@@ -136,8 +136,8 @@ export function InvoiceDropzone({
       });
       setStatus(
         scanPayload.result.items.length > 0
-          ? "Escaneo listo. Revisa y confirma los items antes de agregarlos."
-          : "No detectamos items claros. Puedes volver a intentar con otra imagen o PDF.",
+          ? "Escaneo listo. Revisá y confirmá los ítems antes de agregarlos."
+          : "No detectamos ítems claros. Podés volver a intentar con otra imagen o PDF.",
       );
       clearSelectedFile();
     } catch (scanError) {
@@ -153,7 +153,7 @@ export function InvoiceDropzone({
 
   async function handleUploadAndScan() {
     if (!selectedFile) {
-      setError("Selecciona una factura antes de iniciar el escaneo.");
+      setError("Seleccioná una factura antes de iniciar el escaneo.");
       return;
     }
 
@@ -263,7 +263,7 @@ export function InvoiceDropzone({
               1. Carga
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Elige una imagen nítida o un PDF de la factura o remito.
+              Elegí una imagen nítida o un PDF de la factura o remito.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">

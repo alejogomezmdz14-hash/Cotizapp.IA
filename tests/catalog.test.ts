@@ -45,7 +45,7 @@ test("parseCatalogFormData rejects invalid prices", () => {
 
   assert.throws(
     () => parseCatalogFormData(formData),
-    /Ingresa un precio válido mayor a cero\./,
+    /Ingresá un precio válido mayor a cero\./,
   );
 });
 
@@ -57,7 +57,7 @@ test("parseCatalogFormData rejects malformed numeric strings", () => {
 
     assert.throws(
       () => parseCatalogFormData(formData),
-      /Ingresa un precio válido mayor a cero\./,
+      /Ingresá un precio válido mayor a cero\./,
     );
   }
 });

@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         {
-          error: "Debes iniciar sesión para usar el chat.",
+          error: "Tenés que iniciar sesión para usar el chat.",
         },
         {
           status: 401,

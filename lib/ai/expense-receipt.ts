@@ -117,7 +117,7 @@ export async function scanExpenseReceiptWithAi({
     messages: [
       {
         role: "system",
-        content: `Analiza la imagen de un recibo o ticket de compra y devuelve solo JSON con: description (texto corto del gasto), amount (número), currency (código ISO de 3 letras o null), category (una de: ${EXPENSE_CATEGORIES.join(", ")}), date (YYYY-MM-DD o null). Si no puedes leer un dato con certeza, usa null. No inventes valores.`,
+        content: `Analiza la imagen de un recibo o ticket de compra y devuelve solo JSON con: description (texto corto del gasto), amount (número), currency (código ISO de 3 letras o null), category (una de: ${EXPENSE_CATEGORIES.join(", ")}), date (YYYY-MM-DD o null). Si no podés leer un dato con certeza, usa null. No inventes valores.`,
       },
       {
         role: "user",

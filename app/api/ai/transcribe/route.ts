@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Debes iniciar sesión para transcribir audio." },
+        { error: "Tenés que iniciar sesión para transcribir audio." },
         { status: 401 },
       );
     }

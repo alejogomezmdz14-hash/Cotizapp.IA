@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         {
-          error: "Debes iniciar sesión para escanear facturas.",
+          error: "Tenés que iniciar sesión para escanear facturas.",
         },
         {
           status: 401,
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     if (!scanId) {
       return NextResponse.json(
         {
-          error: "Falta indicar que factura quieres escanear.",
+          error: "Falta indicar que factura querés escanear.",
         },
         {
           status: 400,

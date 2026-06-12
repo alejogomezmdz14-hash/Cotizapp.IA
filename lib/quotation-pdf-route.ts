@@ -147,7 +147,7 @@ export function createQuotationPdfRouteHandlers(
         if (!user) {
           return NextResponse.json(
             {
-              error: "Debes iniciar sesión para descargar cotizaciones.",
+              error: "Tenés que iniciar sesión para descargar cotizaciones.",
             },
             {
               status: 401,
@@ -160,7 +160,7 @@ export function createQuotationPdfRouteHandlers(
         if (!quotationId) {
           return NextResponse.json(
             {
-              error: "Falta indicar qué cotización quieres descargar.",
+              error: "Falta indicar qué cotización querés descargar.",
             },
             {
               status: 400,
@@ -248,7 +248,7 @@ export function createQuotationPdfRouteHandlers(
         if (!user) {
           return NextResponse.json(
             {
-              error: "Debes iniciar sesión para generar cotizaciones.",
+              error: "Tenés que iniciar sesión para generar cotizaciones.",
             },
             {
               status: 401,
@@ -261,7 +261,7 @@ export function createQuotationPdfRouteHandlers(
         if (!quotationId) {
           return NextResponse.json(
             {
-              error: "Falta indicar qué cotización quieres generar.",
+              error: "Falta indicar qué cotización querés generar.",
             },
             {
               status: 400,

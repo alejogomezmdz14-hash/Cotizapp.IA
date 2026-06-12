@@ -188,7 +188,7 @@ export function CatalogTable({
               <span>
                 {normalizedSearch
                   ? "No hubo coincidencias en los resultados actuales."
-                  : "Empieza cargando un ítem desde el formulario de esta pantalla."}
+                  : "Empezá cargando un ítem desde el formulario de esta pantalla."}
               </span>
             </div>
           </CardContent>

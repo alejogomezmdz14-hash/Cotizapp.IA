@@ -56,7 +56,7 @@ export function AvatarUploader({
 
   async function handleUpload() {
     if (!selectedFile) {
-      setError("Selecciona una imagen antes de subir la foto.");
+      setError("Seleccioná una imagen antes de subir la foto.");
       return;
     }
 
