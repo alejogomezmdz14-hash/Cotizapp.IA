@@ -2,15 +2,37 @@
 
 import { Bot } from "lucide-react";
 
+import { CatalogPicker } from "@/components/chat/catalog-picker";
 import { ClientSelectorMessage } from "@/components/chat/client-selector-message";
-import type { ChatClientListItem, ChatRole, ChatUiHint } from "@/types";
+import { CotizacionCreada } from "@/components/chat/cotizacion-creada";
+import { CotizacionPreview } from "@/components/chat/cotizacion-preview";
+import type {
+  ChatClientListItem,
+  ChatRole,
+  ChatSuggestedQuotationItem,
+  ChatUiHint,
+} from "@/types";
 
-type ChatUiMessage = {
+type SavedQuotationInfo = {
+  quotationId: string;
+  quotationNumber: string;
+  clientName: string;
+  total: number;
+};
+
+type PendingPreviewInfo = {
+  clientName: string;
+  items: ChatSuggestedQuotationItem[];
+};
+
+export type ChatUiMessage = {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
   uiHint?: ChatUiHint | null;
+  savedQuotation?: SavedQuotationInfo | null;
+  pendingPreview?: PendingPreviewInfo | null;
 };
 
 type ChatMessageListProps = {
@@ -18,6 +40,17 @@ type ChatMessageListProps = {
   isSubmitting?: boolean;
   onQuickPrompt: (prompt: string) => void;
   onClientSelect: (client: ChatClientListItem) => void;
+  onCatalogConfirm: (
+    clientId: string,
+    clientName: string,
+    items: ChatSuggestedQuotationItem[],
+  ) => void;
+  onPreviewConfirm: (
+    clientName: string,
+    items: ChatSuggestedQuotationItem[],
+  ) => void;
+  onPreviewEdit: () => void;
+  onNewQuotation: () => void;
 };
 
 function formatTimestamp(value: string) {
@@ -33,11 +66,23 @@ function formatTimestamp(value: string) {
   });
 }
 
+function AssistantAvatar() {
+  return (
+    <div className="mb-5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00E5A0] text-black">
+      <Bot className="h-4 w-4" />
+    </div>
+  );
+}
+
 export function ChatMessageList({
   messages,
   isSubmitting = false,
   onQuickPrompt,
   onClientSelect,
+  onCatalogConfirm,
+  onPreviewConfirm,
+  onPreviewEdit,
+  onNewQuotation,
 }: ChatMessageListProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -74,8 +119,70 @@ export function ChatMessageList({
             {messages.map((message) => {
               const isAssistant = message.role === "assistant";
               const timestamp = formatTimestamp(message.createdAt);
+
+              if (message.savedQuotation) {
+                const savedQuotation = message.savedQuotation;
+
+                return (
+                  <div key={message.id} className="flex justify-start">
+                    <div className="flex w-full max-w-[90%] items-end gap-2">
+                      <AssistantAvatar />
+                      <div className="w-full">
+                        <CotizacionCreada
+                          quotationId={savedQuotation.quotationId}
+                          quotationNumber={savedQuotation.quotationNumber}
+                          clientName={savedQuotation.clientName}
+                          total={savedQuotation.total}
+                          onNewQuotation={onNewQuotation}
+                        />
+                        {timestamp ? (
+                          <p className="mt-1 px-1 text-left text-[11px] text-muted-foreground">
+                            {timestamp}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (message.pendingPreview) {
+                const pendingPreview = message.pendingPreview;
+
+                return (
+                  <div key={message.id} className="flex justify-start">
+                    <div className="flex w-full max-w-[90%] items-end gap-2">
+                      <AssistantAvatar />
+                      <div className="w-full">
+                        <CotizacionPreview
+                          clientName={pendingPreview.clientName}
+                          items={pendingPreview.items}
+                          isSaving={isSubmitting}
+                          onConfirm={() =>
+                            onPreviewConfirm(
+                              pendingPreview.clientName,
+                              pendingPreview.items,
+                            )
+                          }
+                          onEdit={onPreviewEdit}
+                        />
+                        {timestamp ? (
+                          <p className="mt-1 px-1 text-left text-[11px] text-muted-foreground">
+                            {timestamp}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               const clientSelectorHint =
                 isAssistant && message.uiHint?.type === "client_selector"
+                  ? message.uiHint
+                  : null;
+              const catalogPickerHint =
+                isAssistant && message.uiHint?.type === "catalog_picker"
                   ? message.uiHint
                   : null;
 
@@ -89,11 +196,7 @@ export function ChatMessageList({
                       isAssistant ? "" : "flex-row-reverse"
                     }`}
                   >
-                    {isAssistant ? (
-                      <div className="mb-5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00E5A0] text-black">
-                        <Bot className="h-4 w-4" />
-                      </div>
-                    ) : null}
+                    {isAssistant ? <AssistantAvatar /> : null}
                     <div>
                       <div
                         className={`px-4 py-3 text-sm leading-6 shadow-sm ${
@@ -108,6 +211,20 @@ export function ChatMessageList({
                             clients={clientSelectorHint.clients}
                             disabled={isSubmitting}
                             onSelect={onClientSelect}
+                          />
+                        ) : null}
+                        {catalogPickerHint ? (
+                          <CatalogPicker
+                            items={catalogPickerHint.items}
+                            clientName={catalogPickerHint.clientName}
+                            disabled={isSubmitting}
+                            onConfirm={(selectedItems) =>
+                              onCatalogConfirm(
+                                catalogPickerHint.clientId,
+                                catalogPickerHint.clientName,
+                                selectedItems,
+                              )
+                            }
                           />
                         ) : null}
                       </div>
