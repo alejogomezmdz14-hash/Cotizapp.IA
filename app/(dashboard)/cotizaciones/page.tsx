@@ -57,10 +57,6 @@ export default async function QuotationsPage() {
       </section>
 
       <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
-        <div className="mb-5">
-          <h3 className="text-xl font-semibold tracking-tight">Tus cotizaciones</h3>
-        </div>
-
         <QuotationsList
           quotations={quotations}
           currency={profile?.currency ?? null}
