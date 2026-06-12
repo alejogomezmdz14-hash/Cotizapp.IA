@@ -9,6 +9,7 @@ import { normalizeExpenseCategory, normalizeExpenseDateInput } from "@/lib/expen
 import { requireUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  CatalogPickerItem,
   ChatCatalogPriceUpdateAction,
   ChatDraftQuotationCreateAction,
   ChatExpenseCreateAction,
@@ -335,4 +336,19 @@ export async function confirmExpenseCreateSuggestionAction(input: unknown) {
     category: String(data.category),
     date: String(data.date),
   };
+}
+
+export async function getCatalogItemsAction(): Promise<CatalogPickerItem[]> {
+  const user = await requireUser();
+  const { getCatalogItems } = await import("@/lib/catalog");
+  const items = await getCatalogItems(user.id);
+
+  return items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    unit: item.unit,
+    category: item.category,
+    description: item.description,
+  }));
 }

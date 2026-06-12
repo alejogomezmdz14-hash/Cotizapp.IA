@@ -46,7 +46,7 @@ test("parseQuotationFormData accepts an existing client selection and normalizes
     ]),
   );
 
-  assert.deepEqual(parseQuotationFormData(formData), {
+  assert.deepEqual(parseQuotationFormData(formData, { now: new Date("2026-05-26T12:00:00.000Z") }), {
     clientId: "client-1",
     inlineClient: null,
     taxRate: 21,

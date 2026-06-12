@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache } from "@/lib/react-cache";
 import { auth } from "@clerk/nextjs/server";
 
 import { ensureProfileForClerkUser } from "@/lib/auth/clerk-profile";

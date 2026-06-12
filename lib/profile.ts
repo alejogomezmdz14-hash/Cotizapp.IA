@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache } from "@/lib/react-cache";
 import { redirect } from "next/navigation";
 
 import { ensureProfileForClerkUser } from "@/lib/auth/clerk-profile";

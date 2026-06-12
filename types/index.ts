@@ -361,10 +361,26 @@ export type ChatClientListItem = {
   telefono: string | null;
 };
 
-export type ChatUiHint = {
-  type: "client_selector";
-  clients: ChatClientListItem[];
+export type CatalogPickerItem = {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  category: string | null;
+  description: string | null;
 };
+
+export type ChatUiHint =
+  | {
+      type: "client_selector";
+      clients: ChatClientListItem[];
+    }
+  | {
+      type: "catalog_picker";
+      items: CatalogPickerItem[];
+      clientId: string;
+      clientName: string;
+    };
 
 export type ChatReplyPayload = {
   reply: string;
