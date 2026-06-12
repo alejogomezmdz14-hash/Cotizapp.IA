@@ -140,12 +140,12 @@ export function InvoiceItemsReview({
 
   async function handleApplyToQuotation() {
     if (quotationSelection.length === 0) {
-      setError("Selecciona al menos un ítem para agregar a la cotización.");
+      setError("Seleccioná al menos un ítem para agregar a la cotización.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Se agregarán ${quotationSelection.length} ítem(s) editados a la cotización actual. Puedes seguir ajustándolos después. ¿Deseas continuar?`,
+      `Se agregarán ${quotationSelection.length} ítem(s) editados a la cotización actual. Podés seguir ajustándolos después. ¿Deseas continuar?`,
     );
 
     if (!confirmed) {
@@ -167,7 +167,7 @@ export function InvoiceItemsReview({
 
   async function handleSaveToCatalog() {
     if (catalogSelection.length === 0) {
-      setError("Selecciona al menos un ítem para guardar en el catálogo.");
+      setError("Seleccioná al menos un ítem para guardar en el catálogo.");
       return;
     }
 
@@ -359,8 +359,8 @@ export function InvoiceItemsReview({
         {rows.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token/80 bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
             {result.items.length === 0
-              ? "No encontramos ítems claros en esta factura. Puedes intentar con otra imagen más nítida o cargar los conceptos manualmente."
-              : "No quedan ítems pendientes en esta revisión. Puedes limpiar la revisión o subir otra factura."}
+              ? "No encontramos ítems claros en esta factura. Podés intentar con otra imagen más nítida o cargar los conceptos manualmente."
+              : "No quedan ítems pendientes en esta revisión. Podés limpiar la revisión o subir otra factura."}
           </div>
         ) : (
           <div className="grid gap-4">

@@ -80,7 +80,7 @@ export function isPreviewableAttachmentType(fileType: string | null) {
 export function parseLogoUploadFormData(formData: FormData): ParsedLogoUpload {
   const file = assertFileWasSelected(
     formData.get("file"),
-    "Selecciona una imagen para continuar.",
+    "Seleccioná una imagen para continuar.",
   );
 
   if (!IMAGE_ALLOWED_TYPES.has(file.type)) {
@@ -128,7 +128,7 @@ export function parseInvoiceUploadFormData(
 ): ParsedInvoiceUpload {
   const file = assertFileWasSelected(
     formData.get("file"),
-    "Selecciona una factura en imagen o PDF para continuar.",
+    "Seleccioná una factura en imagen o PDF para continuar.",
   );
 
   if (!INVOICE_ALLOWED_TYPES.has(file.type)) {
@@ -166,7 +166,7 @@ export function parseQuotationAttachmentUploadFormData(
   );
 
   if (files.length === 0) {
-    throw new UploadActionError("Selecciona al menos un archivo para adjuntar.");
+    throw new UploadActionError("Seleccioná al menos un archivo para adjuntar.");
   }
 
   if (files.some((file) => file.size > QUOTATION_ATTACHMENT_MAX_BYTES)) {

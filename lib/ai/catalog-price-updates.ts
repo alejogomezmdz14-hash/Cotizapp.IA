@@ -16,6 +16,6 @@ export function assertCatalogPriceSuggestionIsCurrent({
   }
 
   throw new Error(
-    `El precio actual de ${itemName} ya cambio desde que la IA genero la sugerencia. Revisa el valor vigente antes de confirmar.`,
+    `El precio actual de ${itemName} ya cambio desde que la IA genero la sugerencia. Revisá el valor vigente antes de confirmar.`,
   );
 }

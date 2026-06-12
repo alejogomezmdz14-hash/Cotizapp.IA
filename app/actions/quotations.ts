@@ -495,7 +495,7 @@ export async function saveQuotationClientPhoneAction(
   const phoneState = getWhatsAppSharePhoneState(normalizedPhoneInput);
 
   if (!normalizedPhoneInput || !phoneState.normalizedPhone) {
-    throw new Error("Ingresa un teléfono válido antes de compartir por WhatsApp.");
+    throw new Error("Ingresá un teléfono válido antes de compartir por WhatsApp.");
   }
 
   const supabase = await createClient();
@@ -541,7 +541,7 @@ export async function updateQuotationStatusAction(
   const normalizedStatus = normalizeQuotationStatus(nextStatus);
 
   if (!normalizedStatus || !EDITABLE_QUOTATION_STATUSES.has(normalizedStatus)) {
-    throw new Error("Selecciona un estado válido para la cotización.");
+    throw new Error("Seleccioná un estado válido para la cotización.");
   }
 
   const supabase = await createClient();

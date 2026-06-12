@@ -48,7 +48,7 @@ export function OnboardingLogoStep({
     setError(null);
 
     if (!selectedFile) {
-      setError("Selecciona una imagen antes de subir el logo.");
+      setError("Seleccioná una imagen antes de subir el logo.");
       return;
     }
 

@@ -9,18 +9,18 @@ import { OnboardingLogoStep } from "@/components/uploads/onboarding-logo-step";
 
 const onboardingHighlights = [
   {
-    title: "Identidad clara",
-    description: "Nombre, rubro y logo para que tus cotizaciones salgan listas.",
+    title: "Tu marca en cada cotización",
+    description: "Tus cotizaciones salen con tu nombre y tu logo, como las de una empresa grande.",
     icon: Building2,
   },
   {
-    title: "Presentación consistente",
-    description: "Moneda, datos y branding conectados con el nuevo shell visual.",
+    title: "PDF listo para mandar",
+    description: "Generás el PDF y lo compartís por WhatsApp con un toque.",
     icon: Palette,
   },
   {
-    title: "Contacto disponible",
-    description: "Teléfono, email y dirección para acompañar cada envío comercial.",
+    title: "Tu cliente sabe cómo contactarte",
+    description: "Tu teléfono y email aparecen en cada cotización que enviás.",
     icon: PhoneCall,
   },
 ] as const;
@@ -81,16 +81,16 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
           <section className="order-2 shell-panel-strong shell-highlight flex flex-col justify-between gap-6 p-6 sm:p-8 lg:order-1">
             <div className="space-y-4">
               <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                Onboarding
+                Último paso
               </span>
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Terminá la configuración de tu negocio con una superficie más pulida
+                  Contanos de tu negocio
                 </h1>
                 <p className="text-sm leading-7 text-muted-foreground sm:text-base">
-                  Necesitamos algunos datos para personalizar tus cotizaciones,
-                  dejar tu cuenta lista para usar y conectar el branding con el
-                  nuevo sistema visual.
+                  Son 2 minutos. Con estos datos tus cotizaciones salen con tu
+                  nombre, tu logo y tus datos de contacto — listas para mandar
+                  al cliente.
                 </p>
               </div>
             </div>
@@ -115,10 +115,10 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
             <div className="rounded-md border border-token bg-background/70 px-4 py-4 text-sm text-muted-foreground">
               <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
                 <BadgeCheck className="h-4 w-4 text-accent-token" />
-                Qué vas a dejar listo
+                Después de esto, a cotizar
               </div>
-              Nombre comercial, rubro, moneda, contacto y logo para que las
-              futuras cotizaciones ya salgan con mejor presentación.
+              Completás el nombre de tu negocio, a qué te dedicás y cómo
+              contactarte. Nada más. Todo se puede cambiar después desde Ajustes.
             </div>
           </section>
 
@@ -126,15 +126,15 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
               <div className="space-y-3">
                 <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Datos del negocio
+                  Paso 1 de 2
                 </span>
                 <div className="space-y-2">
                   <h2 className="text-3xl font-semibold tracking-tight">
-                    Configuración inicial
+                    Datos de tu negocio
                   </h2>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Completa solo lo necesario para entrar al panel con una base
-                    visual y comercial consistente.
+                    Completá lo básico y entrá a tu cuenta. El logo lo cargás
+                    en el paso siguiente.
                   </p>
                 </div>
               </div>

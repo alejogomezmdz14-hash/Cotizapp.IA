@@ -84,7 +84,7 @@ export function QuotationSummary({
 
         <div className="flex items-start justify-between gap-3 rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] px-4 py-4">
           <div>
-            <p className="text-sm text-muted-foreground">Total estimado</p>
+            <p className="text-sm text-muted-foreground">Total</p>
             <p className="text-2xl font-semibold text-foreground">
               {formatCurrencyAmount(totals.total, currency)}
             </p>

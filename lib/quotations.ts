@@ -391,7 +391,7 @@ function parseNonNegativeDecimal(value: unknown) {
 
 function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
   if (typeof rawValue !== "string" || !rawValue.trim()) {
-    throw new Error("Completa los datos del cliente antes de guardar la cotización.");
+    throw new Error("Completá los datos del cliente antes de guardar la cotización.");
   }
 
   try {
@@ -399,7 +399,7 @@ function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
     const name = getOptionalStringValue(parsedValue.name);
 
     if (!name) {
-      throw new Error("Completa los datos del cliente antes de guardar la cotización.");
+      throw new Error("Completá los datos del cliente antes de guardar la cotización.");
     }
 
     return {
@@ -409,25 +409,25 @@ function parseInlineClientPayload(rawValue: FormDataEntryValue | null) {
       address: getOptionalStringValue(parsedValue.address),
     };
   } catch {
-    throw new Error("Completa los datos del cliente antes de guardar la cotización.");
+    throw new Error("Completá los datos del cliente antes de guardar la cotización.");
   }
 }
 
 function parseItemsPayload(rawValue: FormDataEntryValue | null) {
   const validationMessages = new Set([
-    "Agrega al menos un ítem a la cotización antes de guardarla.",
+    "Agregá al menos un ítem a la cotización antes de guardarla.",
     "Cada ítem necesita un concepto, una cantidad válida y un precio válido.",
   ]);
 
   if (typeof rawValue !== "string" || !rawValue.trim()) {
-    throw new Error("Agrega al menos un ítem a la cotización antes de guardarla.");
+    throw new Error("Agregá al menos un ítem a la cotización antes de guardarla.");
   }
 
   try {
     const parsedValue = JSON.parse(rawValue) as Array<Record<string, unknown>>;
 
     if (!Array.isArray(parsedValue) || parsedValue.length === 0) {
-      throw new Error("Agrega al menos un ítem a la cotización antes de guardarla.");
+      throw new Error("Agregá al menos un ítem a la cotización antes de guardarla.");
     }
 
     return parsedValue.map((item) => {
@@ -463,7 +463,7 @@ function parseTaxRate(formData: FormData) {
   const parsedValue = parseNonNegativeDecimal(getStringValue(formData, "tax_rate"));
 
   if (parsedValue === null) {
-    throw new Error("Ingresa una tasa de impuesto válida.");
+    throw new Error("Ingresá una tasa de impuesto válida.");
   }
 
   return parsedValue;
@@ -495,7 +495,7 @@ function parseValidUntil(
       throw new Error("La fecha de validez no puede superar 5 años desde hoy.");
     }
 
-    throw new Error("Ingresa una fecha de validez válida.");
+    throw new Error("Ingresá una fecha de validez válida.");
   }
 
   return normalizeDateOnlyString(value);
@@ -608,7 +608,7 @@ export function parseQuotationFormData(
 
   if (!clientId) {
     throw new Error(
-      "Selecciona un cliente existente o crea uno nuevo dentro de la cotización.",
+      "Seleccioná un cliente existente o creá uno nuevo dentro de la cotización.",
     );
   }
 
@@ -1279,7 +1279,7 @@ export async function getSharedQuotationPdf(
   const normalizedToken = shareToken.trim();
 
   if (!normalizedToken) {
-    throw new Error("Falta indicar qué cotización compartida quieres abrir.");
+    throw new Error("Falta indicar qué cotización compartida querés abrir.");
   }
 
   const quotation = await dependencies.getSharedQuotation(normalizedToken);

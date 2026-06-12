@@ -88,7 +88,7 @@ export function OnboardingForm({
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="Ej. +52 81 1234 5678"
+                placeholder="Ej. +54 261 555 1234"
                 defaultValue={profile?.phone ?? ""}
                 autoComplete="tel"
               />
@@ -111,7 +111,7 @@ export function OnboardingForm({
               <Input
                 id="address"
                 name="address"
-                placeholder="Ej. Av. Principal 123, Monterrey"
+                placeholder="Ej. Av. San Martín 1234, Mendoza"
                 defaultValue={profile?.address ?? ""}
                 autoComplete="street-address"
               />
@@ -128,8 +128,8 @@ export function OnboardingForm({
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Antes de continuar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Revisa que la moneda y los datos de contacto representen la forma en
-              que quieres que tu negocio aparezca en las cotizaciones.
+              Revisá que la moneda y los datos de contacto representen la forma en
+              que querés que tu negocio aparezca en las cotizaciones.
             </p>
           </div>
         </div>

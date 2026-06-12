@@ -164,7 +164,7 @@ export function ClientList({ clients, search }: ClientListProps) {
             </CardTitle>
             <CardDescription>
               {normalizedSearch
-                ? `Proba con otro nombre, email o teléfono. Búsqueda actual: "${normalizedSearch}".`
+                ? `Probá con otro nombre, email o teléfono. Búsqueda actual: "${normalizedSearch}".`
                   : "Cuando registres tu primer cliente, aparecerá acá. Tocá «Agregar cliente» para empezar."}
             </CardDescription>
           </CardHeader>

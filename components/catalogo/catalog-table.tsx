@@ -178,7 +178,7 @@ export function CatalogTable({
             </CardTitle>
             <CardDescription>
               {normalizedSearch
-                ? `Proba con otro termino. Filtro actual: "${normalizedSearch}".`
+                ? `Probá con otro término. Filtro actual: "${normalizedSearch}".`
                 : "Cuando cargues tu primer producto o servicio, aparecerá acá listo para usarlo en nuevas cotizaciones."}
             </CardDescription>
           </CardHeader>
@@ -188,7 +188,7 @@ export function CatalogTable({
               <span>
                 {normalizedSearch
                   ? "No hubo coincidencias en los resultados actuales."
-                  : "Empieza cargando un ítem desde el formulario de esta pantalla."}
+                  : "Empezá cargando un ítem desde el formulario de esta pantalla."}
               </span>
             </div>
           </CardContent>

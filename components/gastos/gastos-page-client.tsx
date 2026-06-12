@@ -63,6 +63,7 @@ export function GastosPageClient({
       <ExpenseList
         monthGroups={monthGroups.filter((group) => group.monthKey === selectedMonthKey)}
         defaultCurrency={currency}
+        onAddExpense={() => setIsCreateOpen(true)}
       />
 
       <ExpenseFormSheet

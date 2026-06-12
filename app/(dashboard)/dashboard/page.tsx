@@ -33,6 +33,10 @@ export default async function DashboardPage() {
   );
 
   const recentQuotations = quotations.slice(0, 5);
+  const greetingName =
+    formatDisplayName(profile?.first_name ?? null) ||
+    formatDisplayName(profile?.business_name ?? null) ||
+    null;
   const panelClassName = "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
   const statCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
@@ -41,10 +45,13 @@ export default async function DashboardPage() {
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <h3 className="text-xl font-semibold tracking-tight">Métricas</h3>
+            <h3 className="text-xl font-semibold tracking-tight">
+              {greetingName ? `Hola, ${greetingName} 👋` : "Hola 👋"}
+            </h3>
+            <p className="text-sm text-muted-foreground">Así va tu mes</p>
           </div>
           <Button asChild variant="outline" className="min-h-12 bg-background/75">
-            <Link href="/cotizaciones">Ver cotizaciones</Link>
+            <Link href="/cotizaciones">Ver mis cotizaciones</Link>
           </Button>
         </div>
 
@@ -76,19 +83,25 @@ export default async function DashboardPage() {
               Tus últimas cotizaciones de un vistazo.
             </p>
           </div>
-          <Button asChild variant="outline" className="bg-background/75">
-            <Link href="/cotizaciones">Abrir cotizaciones</Link>
+          <Button asChild variant="outline" className="min-h-12 bg-background/75">
+            <Link href="/cotizaciones">Ver todas</Link>
           </Button>
         </div>
 
         {recentQuotations.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
             <p className="text-lg font-semibold text-foreground">
-              Todavía no tienes cotizaciones
+              Todavía no tenés cotizaciones
             </p>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Creá tu primera cotización para ver el historial reciente acá.
+              Armá la primera en menos de un minuto y mandásela a tu cliente
+              por WhatsApp.
             </p>
+            <div className="mt-5 flex justify-center">
+              <Button asChild className="min-h-12">
+                <Link href="/cotizaciones/nueva">Crear mi primera cotización</Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4">

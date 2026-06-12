@@ -6,13 +6,13 @@ import { LandingNavbar } from "@/components/layout/landing-navbar";
 const features = [
   {
     icon: FileText,
-    title: "Catalogo propio",
-    description: "Tus items listos para cotizar",
+    title: "Catálogo propio",
+    description: "Tus ítems listos para cotizar",
   },
   {
     icon: Camera,
     title: "Escanear facturas",
-    description: "Foto a items en segundos",
+    description: "De la foto a los ítems en segundos",
   },
   {
     icon: FileOutput,
@@ -47,9 +47,9 @@ export default function HomePage() {
           </span>
 
           <h1 className="text-balance text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-white sm:text-[4rem]">
-            Cotiza. Envia.
+            Cotizá. Enviá.
             <br />
-            Cobra.
+            Cobrá.
           </h1>
 
           <p className="mt-6 max-w-xl text-lg text-[rgb(var(--text-secondary-rgb))]">
@@ -62,12 +62,6 @@ export default function HomePage() {
               className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl bg-[rgb(var(--accent-rgb))] px-6 text-sm font-bold text-black transition hover:bg-[rgb(var(--accent-rgb)/0.9)]"
             >
               Empezar gratis
-            </Link>
-            <Link
-              href="/sign-in"
-              className="inline-flex h-12 min-w-[11rem] items-center justify-center rounded-xl border border-white/20 bg-transparent px-6 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-            >
-              Ver demo
             </Link>
           </div>
 
@@ -103,7 +97,7 @@ export default function HomePage() {
       <section className="border-t border-white/6 bg-[rgb(var(--background-rgb))] px-6 py-24">
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <h2 className="text-[2.5rem] font-extrabold tracking-tight text-white">
-            Empieza hoy. Gratis.
+            Empezá hoy. Gratis.
           </h2>
           <Link
             href="/sign-in"

@@ -43,7 +43,7 @@ export function parseClientFormData(formData: FormData): ClientFormValues {
   }
 
   if (!hasMinimumPhoneDigits(phone)) {
-    throw new Error("Ingresa un teléfono válido con al menos 8 dígitos.");
+    throw new Error("Ingresá un teléfono válido con al menos 8 dígitos.");
   }
 
   return {

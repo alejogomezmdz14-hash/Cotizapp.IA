@@ -58,7 +58,7 @@ export function LogoUploader({
 
   async function handleUpload() {
     if (!selectedFile) {
-      setError("Selecciona una imagen antes de subir el logo.");
+      setError("Seleccioná una imagen antes de subir el logo.");
       return;
     }
 
@@ -123,7 +123,7 @@ export function LogoUploader({
           </div>
           <h3 className="text-base font-semibold text-foreground">Logo del negocio</h3>
           <p className="text-sm leading-6 text-muted-foreground">
-            Puedes subirlo ahora para dejar tu marca lista en futuras cotizaciones.
+            Podés subirlo ahora para dejar tu marca lista en futuras cotizaciones.
           </p>
         </div>
         <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

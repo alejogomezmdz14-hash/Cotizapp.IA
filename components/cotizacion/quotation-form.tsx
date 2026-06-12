@@ -306,7 +306,7 @@ export function QuotationForm({
     clients.find((client) => client.id === selectedClientId)?.name ?? null;
   const clientSnapshotLabel =
     clientMode === "existing"
-      ? selectedExistingClientName ?? (clients.length > 0 ? "Selecciona un cliente" : "Sin clientes")
+      ? selectedExistingClientName ?? (clients.length > 0 ? "Seleccioná un cliente" : "Sin clientes")
       : inlineClient.name.trim() || "Nuevo cliente inline";
   const invoiceSnapshotLabel =
     invoiceScanReview?.result
@@ -485,19 +485,19 @@ export function QuotationForm({
 
     if (clientMode === "existing" && !selectedClientId) {
       setError(
-        "Selecciona un cliente existente o crea uno nuevo dentro de la cotización.",
+        "Seleccioná un cliente existente o creá uno nuevo dentro de la cotización.",
       );
       return;
     }
 
     if (clientMode === "inline" && !inlineClient.name.trim()) {
-      setError("Completa los datos del cliente antes de guardar la cotización.");
+      setError("Completá los datos del cliente antes de guardar la cotización.");
       return;
     }
 
     if (!canSaveQuotation) {
       if (items.length === 0) {
-        setError("Agrega al menos un ítem a la cotización antes de guardarla.");
+        setError("Agregá al menos un ítem a la cotización antes de guardarla.");
       } else if (isValidityInPast) {
         setError("La fecha de validez no puede estar en el pasado.");
       }
@@ -567,8 +567,8 @@ export function QuotationForm({
                 </h3>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
                   {attachmentsReadOnly
-                    ? "Esta cotización ya fue compartida. Desde aquí puedes revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
-                    : "Este borrador ya existe. Desde esta vista puedes completar adjuntos, regenerar el PDF o volver al historial sin duplicar información."}
+                    ? "Esta cotización ya fue compartida. Desde acá podés revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
+                    : "Este borrador ya existe. Desde esta vista podés completar adjuntos, regenerar el PDF o volver al historial sin duplicar información."}
                 </p>
               </div>
             </div>
@@ -670,7 +670,7 @@ export function QuotationForm({
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Total estimado
+              Total
             </p>
             <p className="text-lg font-semibold text-foreground">
               {formatCurrencyAmount(summaryTotals.total, currency)}
@@ -714,7 +714,7 @@ export function QuotationForm({
             <p>
               El borrador <span className="font-semibold">{savedDraft.number}</span> ya
               fue creado. Los datos quedaron bloqueados para evitar duplicados y ya
-              puedes seguir con adjuntos y acciones de salida.
+              podés seguir con adjuntos y acciones de salida.
             </p>
             <Button
               type="button"

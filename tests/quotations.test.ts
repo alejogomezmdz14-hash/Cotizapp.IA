@@ -162,7 +162,7 @@ test("parseQuotationFormData rejects existing mode without a selected client", (
 
   assert.throws(
     () => parseQuotationFormData(formData),
-    /Selecciona un cliente existente o crea uno nuevo dentro de la cotización\./,
+    /Seleccioná un cliente existente o creá uno nuevo dentro de la cotización\./,
   );
 });
 
@@ -174,7 +174,7 @@ test("parseQuotationFormData rejects missing items", () => {
 
   assert.throws(
     () => parseQuotationFormData(formData),
-    /Agrega al menos un ítem a la cotización antes de guardarla\./,
+    /Agregá al menos un ítem a la cotización antes de guardarla\./,
   );
 });
 

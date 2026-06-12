@@ -15,7 +15,7 @@ export function normalizeProfileCurrency(currency: string) {
   const normalizedCurrency = currency.trim().toUpperCase();
 
   if (!SUPPORTED_PROFILE_CURRENCIES.has(normalizedCurrency)) {
-    throw new Error("Selecciona una moneda válida para el perfil.");
+    throw new Error("Seleccioná una moneda válida para el perfil.");
   }
 
   return normalizedCurrency;

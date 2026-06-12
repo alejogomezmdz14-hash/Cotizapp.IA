@@ -48,7 +48,7 @@ test("GET returns 400 when the share token is missing", async () => {
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
-    error: "Falta indicar qué cotización compartida quieres abrir.",
+    error: "Falta indicar qué cotización compartida querés abrir.",
   });
 });
 

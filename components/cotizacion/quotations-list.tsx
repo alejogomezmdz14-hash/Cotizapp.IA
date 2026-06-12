@@ -91,9 +91,12 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
         <p className="text-lg font-semibold text-foreground">
           Todavía no creaste cotizaciones
         </p>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+          Armá la primera en menos de un minuto.
+        </p>
         <div className="mt-5 flex justify-center">
-          <Button asChild>
-            <Link href="/cotizaciones/nueva">Ir a nueva cotización</Link>
+          <Button asChild className="min-h-12">
+            <Link href="/cotizaciones/nueva">Crear mi primera cotización</Link>
           </Button>
         </div>
       </div>
@@ -141,9 +144,9 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
             type="button"
             onClick={() => setStatusFilter(filter.id)}
             className={cn(
-              "rounded-full border px-3 py-1 text-[11px] font-medium transition",
+              "min-h-11 rounded-full border px-4 text-sm font-medium transition active:scale-[0.97]",
               statusFilter === filter.id
-                ? "border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.12)] text-foreground"
+                ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.14)] text-foreground"
                 : "border-token/80 bg-background/70 text-muted-foreground hover:text-foreground",
             )}
           >

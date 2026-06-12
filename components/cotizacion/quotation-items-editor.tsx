@@ -199,7 +199,7 @@ export function QuotationItemsEditor({
             <div className="space-y-1">
               <CardTitle className="text-xl">Ítems de la cotización</CardTitle>
               <CardDescription>
-                Agrega conceptos manuales o importa ítems del catálogo como una
+                Agregá conceptos manuales o importa ítems del catálogo como una
                 copia editable.
               </CardDescription>
             </div>

@@ -18,7 +18,7 @@ function getErrorResponse(error: unknown, fallbackMessage: string) {
       ? error.message
       : fallbackMessage;
   const status =
-    message === "Falta indicar qué cotización compartida quieres abrir."
+    message === "Falta indicar qué cotización compartida querés abrir."
       ? 400
       : message === "La cotización compartida no existe o ya no está disponible." ||
           message === "El PDF de la cotización aún no fue generado."
@@ -65,7 +65,7 @@ export function createQuotationShareRouteHandlers(
         if (!shareToken) {
           return NextResponse.json(
             {
-              error: "Falta indicar qué cotización compartida quieres abrir.",
+              error: "Falta indicar qué cotización compartida querés abrir.",
             },
             {
               status: 400,
