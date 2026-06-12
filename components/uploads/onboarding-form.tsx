@@ -88,7 +88,7 @@ export function OnboardingForm({
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="Ej. +52 81 1234 5678"
+                placeholder="Ej. +54 261 555 1234"
                 defaultValue={profile?.phone ?? ""}
                 autoComplete="tel"
               />
@@ -111,7 +111,7 @@ export function OnboardingForm({
               <Input
                 id="address"
                 name="address"
-                placeholder="Ej. Av. Principal 123, Monterrey"
+                placeholder="Ej. Av. San Martín 1234, Mendoza"
                 defaultValue={profile?.address ?? ""}
                 autoComplete="street-address"
               />
