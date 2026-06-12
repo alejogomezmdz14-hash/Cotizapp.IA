@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase, Zustand, shadcn/ui
 
-> **IMPORTANT — Auth is Supabase Auth (not Clerk).** `requireUser()` from `@/lib/profile` returns the Supabase auth user. `user.id` is the Supabase UUID used in all DB queries. The audit prompt was incorrect about Clerk — ignore any Clerk references.
+> **IMPORTANT — Auth is Clerk + Supabase DB.** `requireUser()` from `@/lib/profile` resolves the Clerk user to the profile UUID via `ensureProfileForClerkUser()` — `user.id` is ALWAYS the Supabase profile UUID, never the Clerk ID. The Clerk→UUID mapping is centralized; never do it manually in actions or routes. RLS uses `current_profile_id()` (Clerk JWT), not `auth.uid()`.
 
 > **CONFIRMED WORKING — Do not touch:**
 > - `app/api/ai/chat/route.ts` — chat route is correct, uses JSON mode, parallel queries
@@ -1664,7 +1664,7 @@ git commit -m "feat: auditoría y mejora total del chat IA y bugs críticos"
 | BUG 2 — ClientPicker roto | Task 3 | ✓ COVERED |
 | BUG 3 — CatalogPicker no existe | Tasks 4 + 9 | ✓ COVERED |
 | BUG 4 — PDF en producción | N/A — **ya tiene `runtime = 'nodejs'` y headers correctos** | ✓ VERIFIED |
-| BUG 5 — Logo upload Clerk vs UUID | N/A — **auth es Supabase, no Clerk; upload funciona** | ✓ VERIFIED |
+| BUG 5 — Logo upload Clerk vs UUID | N/A — **resolución Clerk→UUID centralizada en `requireUser()`; upload usa el UUID correcto** | ✓ VERIFIED |
 | BUG 6 — Tax button | No evidencia de bug en el código; investigar en cotizaciones/nueva si hace falta | ⚠️ OUT OF SCOPE |
 | PERF 1 — Promise.all | N/A — **ya usa Promise.all en route handler y pages** | ✓ VERIFIED |
 | PERF 2 — use client | No `use client` innecesarios detectados | ✓ VERIFIED |
@@ -1693,4 +1693,4 @@ WHERE schemaname = 'public'
 ORDER BY tablename;
 ```
 
-Verificar que todas las políticas que filtran por usuario usen `auth.uid()` (que es el ID de Supabase Auth) y no valores incorrectos. El proyecto usa Supabase Auth (Google OAuth), **no Clerk** — el `user.id` de `requireUser()` ya es el UUID de Supabase Auth correcto.
+Verificar que TODAS las políticas usen `public.current_profile_id()` (o `clerk_id = public.clerk_user_id()` en `profiles`) y **ninguna** use `auth.uid()` — bajo Clerk, `auth.uid()` devuelve NULL y la política bloquea todo. Las migraciones `20260602_clerk_auth_rls.sql`, `20260603_repair_profiles_rls_clerk.sql` y `20260605_fix_clerk_rls_remaining_policies.sql` hacen esta conversión; confirmar que la última esté aplicada en el Dashboard (está sin trackear en git).
