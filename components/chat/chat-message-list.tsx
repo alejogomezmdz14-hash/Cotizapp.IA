@@ -6,6 +6,8 @@ import { CatalogPicker } from "@/components/chat/catalog-picker";
 import { ClientSelectorMessage } from "@/components/chat/client-selector-message";
 import { CotizacionCreada } from "@/components/chat/cotizacion-creada";
 import { CotizacionPreview } from "@/components/chat/cotizacion-preview";
+import { CotizacionResumen } from "@/components/chat/cotizacion-resumen";
+import type { CotizacionResumenValues } from "@/components/chat/cotizacion-resumen";
 import type {
   ChatClientListItem,
   ChatRole,
@@ -23,6 +25,16 @@ type SavedQuotationInfo = {
 type PendingPreviewInfo = {
   clientName: string;
   items: ChatSuggestedQuotationItem[];
+  taxRate: number | null;
+  validUntil: string | null;
+  notes: string | null;
+};
+
+type PendingSummaryInfo = {
+  items: ChatSuggestedQuotationItem[];
+  initialTaxRate: number | null;
+  initialValidUntil: string | null;
+  initialNotes: string | null;
 };
 
 export type ChatUiMessage = {
@@ -33,6 +45,7 @@ export type ChatUiMessage = {
   uiHint?: ChatUiHint | null;
   savedQuotation?: SavedQuotationInfo | null;
   pendingPreview?: PendingPreviewInfo | null;
+  pendingSummary?: PendingSummaryInfo | null;
 };
 
 type ChatMessageListProps = {
@@ -45,6 +58,7 @@ type ChatMessageListProps = {
     clientName: string,
     items: ChatSuggestedQuotationItem[],
   ) => void;
+  onSummaryConfirm: (values: CotizacionResumenValues) => void;
   onPreviewConfirm: (
     clientName: string,
     items: ChatSuggestedQuotationItem[],
@@ -80,6 +94,7 @@ export function ChatMessageList({
   onQuickPrompt,
   onClientSelect,
   onCatalogConfirm,
+  onSummaryConfirm,
   onPreviewConfirm,
   onPreviewEdit,
   onNewQuotation,
@@ -146,6 +161,33 @@ export function ChatMessageList({
                 );
               }
 
+              if (message.pendingSummary) {
+                const pendingSummary = message.pendingSummary;
+
+                return (
+                  <div key={message.id} className="flex justify-start">
+                    <div className="flex w-full max-w-[90%] items-end gap-2">
+                      <AssistantAvatar />
+                      <div className="w-full">
+                        <CotizacionResumen
+                          items={pendingSummary.items}
+                          disabled={isSubmitting}
+                          initialTaxRate={pendingSummary.initialTaxRate}
+                          initialValidUntil={pendingSummary.initialValidUntil}
+                          initialNotes={pendingSummary.initialNotes}
+                          onConfirm={onSummaryConfirm}
+                        />
+                        {timestamp ? (
+                          <p className="mt-1 px-1 text-left text-[11px] text-muted-foreground">
+                            {timestamp}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               if (message.pendingPreview) {
                 const pendingPreview = message.pendingPreview;
 
@@ -157,6 +199,9 @@ export function ChatMessageList({
                         <CotizacionPreview
                           clientName={pendingPreview.clientName}
                           items={pendingPreview.items}
+                          taxRate={pendingPreview.taxRate}
+                          validUntil={pendingPreview.validUntil}
+                          notes={pendingPreview.notes}
                           isSaving={isSubmitting}
                           onConfirm={() =>
                             onPreviewConfirm(
@@ -218,6 +263,7 @@ export function ChatMessageList({
                             items={catalogPickerHint.items}
                             clientName={catalogPickerHint.clientName}
                             disabled={isSubmitting}
+                            initialItems={catalogPickerHint.initialItems}
                             onConfirm={(selectedItems) =>
                               onCatalogConfirm(
                                 catalogPickerHint.clientId,

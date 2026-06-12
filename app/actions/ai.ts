@@ -130,6 +130,8 @@ function normalizeDraftQuotationSuggestion(
       throw new Error("La sugerencia no incluye un cliente existente válido.");
     }
 
+    const taxRate = parseDecimal(input.taxRate);
+
     return {
       type: "draft_quotation_create",
       clientId,
@@ -137,6 +139,8 @@ function normalizeDraftQuotationSuggestion(
       clientSource,
       notes: getTrimmedString(input.notes),
       items,
+      taxRate: taxRate !== null && taxRate >= 0 && taxRate <= 100 ? taxRate : null,
+      validUntil: getTrimmedString(input.validUntil),
     };
   }
 
@@ -292,6 +296,8 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
       unidad: item.unit,
     })),
     notas: suggestion.notes,
+    descuento: suggestion.taxRate ?? null,
+    valid_until: suggestion.validUntil ?? null,
   });
 
   revalidateAiViews();
