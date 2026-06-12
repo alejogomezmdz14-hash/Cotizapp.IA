@@ -32,21 +32,31 @@ AS $$
 $$;
 
 -- 1. invoice_items (tabla) ---------------------------------------------------
-DROP POLICY IF EXISTS "Users manage own invoice items" ON public.invoice_items;
-CREATE POLICY "Users manage own invoice items"
-  ON public.invoice_items
-  FOR ALL
-  TO authenticated
-  USING (
-    public.current_profile_id() = (
-      SELECT user_id FROM public.invoices WHERE id = invoice_id
-    )
-  )
-  WITH CHECK (
-    public.current_profile_id() = (
-      SELECT user_id FROM public.invoices WHERE id = invoice_id
-    )
-  );
+-- El módulo /facturas está oculto y sus tablas (invoices, invoice_items)
+-- todavía no existen en la DB. Solo aplicar la policy si existen.
+DO $$
+BEGIN
+  IF to_regclass('public.invoice_items') IS NOT NULL
+     AND to_regclass('public.invoices') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users manage own invoice items" ON public.invoice_items';
+    EXECUTE $policy$
+      CREATE POLICY "Users manage own invoice items"
+        ON public.invoice_items
+        FOR ALL
+        TO authenticated
+        USING (
+          public.current_profile_id() = (
+            SELECT user_id FROM public.invoices WHERE id = invoice_id
+          )
+        )
+        WITH CHECK (
+          public.current_profile_id() = (
+            SELECT user_id FROM public.invoices WHERE id = invoice_id
+          )
+        )
+    $policy$;
+  END IF;
+END $$;
 
 -- 2. storage: quotation-signatures ------------------------------------------
 DROP POLICY IF EXISTS "Users manage own quotation signatures" ON storage.objects;
