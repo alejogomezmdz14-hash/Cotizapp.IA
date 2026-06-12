@@ -61,7 +61,7 @@ export function CotizacionPreview({
       </div>
 
       <div className="flex items-center justify-between border-t border-[#2A2D3E] pt-3">
-        <p className="text-sm font-medium text-[#8B8FA8]">Total estimado</p>
+        <p className="text-sm font-medium text-[#8B8FA8]">Total</p>
         <p className="text-xl font-bold text-[#00E5A0]">
           {formatCurrencyAmount(subtotal, "ARS")}
         </p>

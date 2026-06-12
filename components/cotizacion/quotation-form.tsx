@@ -670,7 +670,7 @@ export function QuotationForm({
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Total estimado
+              Total
             </p>
             <p className="text-lg font-semibold text-foreground">
               {formatCurrencyAmount(summaryTotals.total, currency)}

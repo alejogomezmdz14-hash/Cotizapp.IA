@@ -21,9 +21,10 @@ import type { Expense, ExpenseMonthGroup } from "@/types";
 type ExpenseListProps = {
   monthGroups: ExpenseMonthGroup[];
   defaultCurrency: string;
+  onAddExpense?: () => void;
 };
 
-export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) {
+export function ExpenseList({ monthGroups, defaultCurrency, onAddExpense }: ExpenseListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -60,8 +61,16 @@ export function ExpenseList({ monthGroups, defaultCurrency }: ExpenseListProps) 
           Todavía no registraste gastos este mes.
         </p>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          Empezá agregando uno.
+          Anotá lo que gastás en materiales y combustible para saber cuánto
+          ganás de verdad.
         </p>
+        {onAddExpense ? (
+          <div className="mt-5 flex justify-center">
+            <Button onClick={onAddExpense} className="min-h-12">
+              Registrar mi primer gasto
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }

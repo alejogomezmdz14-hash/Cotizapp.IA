@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -11,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { Button } from "@/components/ui/button";
 import type { DashboardMonthlyPoint } from "@/types";
 
 type DashboardMonthlyChartProps = {
@@ -42,10 +44,13 @@ export function DashboardMonthlyChart({
 
   if (!hasData) {
     return (
-      <div className="flex h-72 w-full items-center justify-center rounded-md border border-dashed border-token/80 bg-background/60 px-6 text-center">
+      <div className="flex h-72 w-full flex-col items-center justify-center gap-4 rounded-md border border-dashed border-token/80 bg-background/60 px-6 text-center">
         <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-          Todavía no hay datos para mostrar. Creá tu primera cotización.
+          Acá vas a ver cuánto cotizaste y cuánto gastaste cada mes.
         </p>
+        <Button asChild className="min-h-12">
+          <Link href="/cotizaciones/nueva">Crear cotización</Link>
+        </Button>
       </div>
     );
   }
