@@ -4,12 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Camera,
+  Check,
   ChevronRight,
   Mic,
   PackagePlus,
   Plus,
   Search,
-  UserPlus,
 } from "lucide-react";
 
 import type { QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
@@ -43,6 +43,7 @@ import type {
 } from "@/types";
 
 const validityPresets = [30, 60, 90] as const;
+const stepTitles = ["Cliente", "Ítems", "Detalles", "Revisar"] as const;
 const textareaClassName =
   "flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -160,10 +161,11 @@ export function QuotationWizard({
   const [newItemDraft, setNewItemDraft] = useState({
     name: "",
     quantity: "1",
-    unitPrice: "0",
+    unitPrice: "",
   });
   const [inlineNameError, setInlineNameError] = useState<string | null>(null);
   const [existingClientError, setExistingClientError] = useState<string | null>(null);
+  const [itemsStepError, setItemsStepError] = useState<string | null>(null);
   const [newItemFieldErrors, setNewItemFieldErrors] = useState<{
     quantity?: string;
     unitPrice?: string;
@@ -247,8 +249,14 @@ export function QuotationWizard({
       return;
     }
 
+    if (step === 2 && !canAdvanceFromStep(2)) {
+      setItemsStepError("Agregá al menos un trabajo o material para continuar.");
+      return;
+    }
+
     setInlineNameError(null);
     setExistingClientError(null);
+    setItemsStepError(null);
 
     if (step === 3) {
       syncTaxRateFromInput();
@@ -292,7 +300,7 @@ export function QuotationWizard({
       unitPrice,
     };
     addItem(item);
-    setNewItemDraft({ name: "", quantity: "1", unitPrice: "0" });
+    setNewItemDraft({ name: "", quantity: "1", unitPrice: "" });
     handleItemSheetOpenChange(false);
   }
 
@@ -397,11 +405,11 @@ export function QuotationWizard({
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="grid grid-cols-[4rem_1fr_4rem] items-center px-4 py-3">
           {step > 1 ? (
             <button
               type="button"
-              className="inline-flex min-h-12 items-center gap-1 text-sm font-medium text-muted-foreground"
+              className="inline-flex min-h-12 items-center gap-1 justify-self-start text-sm font-medium text-muted-foreground"
               onClick={goBack}
               disabled={disabled}
             >
@@ -411,8 +419,11 @@ export function QuotationWizard({
           ) : (
             <span className="min-h-12" />
           )}
-          <span className="min-h-12" aria-hidden />
-          <span className="min-h-12 w-12" />
+          <span className="justify-self-center text-sm font-medium text-foreground">
+            Paso {step} de {totalSteps}
+            <span className="text-muted-foreground"> · {stepTitles[step - 1]}</span>
+          </span>
+          <span className="min-h-12" />
         </div>
       </div>
 
@@ -449,7 +460,7 @@ export function QuotationWizard({
                 }}
                 disabled={disabled || clients.length === 0}
               >
-                Guardado
+                Mis clientes
               </Button>
               <Button
                 type="button"
@@ -481,7 +492,7 @@ export function QuotationWizard({
                         key={client.id}
                         type="button"
                         className={cn(
-                          "flex min-h-16 w-full items-center rounded-xl border px-4 text-left transition",
+                          "flex min-h-16 w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition active:scale-[0.99]",
                           selected
                             ? "border-accent-token bg-[rgb(var(--accent-rgb)/0.08)]"
                             : "border-token bg-background/75",
@@ -492,7 +503,22 @@ export function QuotationWizard({
                         }}
                         disabled={disabled}
                       >
-                        <span className="text-base font-medium">{client.name}</span>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent-rgb)/0.15)] text-base font-bold text-accent-token">
+                          {client.name.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-base font-medium">
+                            {client.name}
+                          </span>
+                          {client.phone ? (
+                            <span className="block text-sm text-muted-foreground">
+                              {client.phone}
+                            </span>
+                          ) : null}
+                        </span>
+                        {selected ? (
+                          <Check className="h-5 w-5 shrink-0 text-accent-token" />
+                        ) : null}
                       </button>
                     );
                   })
@@ -556,9 +582,14 @@ export function QuotationWizard({
             </div>
 
             {draft.items.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-token px-4 py-8 text-center text-sm text-muted-foreground">
-                Todavía no agregaste ítems.
-              </p>
+              <div className="space-y-2">
+                <p className="rounded-xl border border-dashed border-token px-4 py-8 text-center text-sm text-muted-foreground">
+                  Agregá el primer trabajo o material con el botón de abajo.
+                </p>
+                {itemsStepError ? (
+                  <p className="text-sm text-destructive">{itemsStepError}</p>
+                ) : null}
+              </div>
             ) : (
               <div className="space-y-3">
                 {draft.items.map((item, index) => (
@@ -591,6 +622,15 @@ export function QuotationWizard({
                     </Button>
                   </div>
                 ))}
+                <div className="flex items-center justify-between rounded-xl border border-[rgb(var(--accent-rgb)/0.24)] bg-[rgb(var(--accent-rgb)/0.08)] px-4 py-3">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Subtotal ({draft.items.length}{" "}
+                    {draft.items.length === 1 ? "ítem" : "ítems"})
+                  </span>
+                  <span className="text-lg font-semibold text-foreground">
+                    {formatCurrencyAmount(summaryTotals.subtotal, currency)}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -689,18 +729,26 @@ export function QuotationWizard({
             <div className="space-y-2">
               <Label>¿Cuándo vence?</Label>
               <div className="flex flex-wrap gap-2">
-                {validityPresets.map((days) => (
-                  <Button
-                    key={days}
-                    type="button"
-                    variant="outline"
-                    className="min-h-12 px-6 bg-background/75"
-                    onClick={() => setValidUntil(getQuotationValidityPresetDate(days))}
-                    disabled={disabled}
-                  >
-                    {days} días
-                  </Button>
-                ))}
+                {validityPresets.map((days) => {
+                  const presetDate = getQuotationValidityPresetDate(days);
+                  const isActive = draft.validUntil === presetDate;
+
+                  return (
+                    <Button
+                      key={days}
+                      type="button"
+                      variant={isActive ? "default" : "outline"}
+                      className={cn(
+                        "min-h-12 px-6",
+                        !isActive && "bg-background/75",
+                      )}
+                      onClick={() => setValidUntil(presetDate)}
+                      disabled={disabled}
+                    >
+                      {days} días
+                    </Button>
+                  );
+                })}
               </div>
               <Input
                 type="date"
@@ -749,9 +797,9 @@ export function QuotationWizard({
         {step < 4 ? (
           <Button
             type="button"
-            className="min-h-14 w-full text-base"
+            className="min-h-14 w-full text-base active:scale-[0.99]"
             onClick={goNext}
-            disabled={disabled || !canAdvanceFromStep(step)}
+            disabled={disabled}
           >
             Siguiente
             <ChevronRight className="ml-2 h-5 w-5" />
@@ -775,19 +823,6 @@ export function QuotationWizard({
           </div>
         )}
       </div>
-
-      {draft.clientMode === "existing" ? (
-        <Button
-          type="button"
-          size="icon"
-          className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-4 z-30 h-14 w-14 rounded-full shadow-lg"
-          onClick={() => setClientMode("inline")}
-          disabled={disabled}
-          aria-label="Cliente nuevo"
-        >
-          <UserPlus className="h-6 w-6" />
-        </Button>
-      ) : null}
 
       <Sheet open={itemSheetOpen} onOpenChange={handleItemSheetOpenChange}>
         <SheetContent
@@ -841,6 +876,7 @@ export function QuotationWizard({
                   pattern="[0-9]*"
                   min="0.01"
                   step="0.01"
+                  placeholder="Ej: 15000"
                   value={newItemDraft.unitPrice}
                   onChange={(event) => {
                     setNewItemDraft((current) => ({
