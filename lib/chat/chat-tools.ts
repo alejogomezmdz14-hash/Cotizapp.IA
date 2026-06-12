@@ -3,6 +3,7 @@ import type { ChatClientListItem } from "@/types";
 import { normalizeCatalogUnit } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
+import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import {
   assertSingleQuotationRollbackMutation,
   buildQuotationItemInsertRows,
@@ -31,6 +32,7 @@ export type CreateCotizacionInput = {
   items: CreateCotizacionItemInput[];
   notas?: string | null;
   descuento?: number | null;
+  valid_until?: string | null;
 };
 
 type ClientRecord = {
@@ -112,6 +114,7 @@ function normalizeCreateCotizacionInput(input: CreateCotizacionInput) {
     items,
     notas: input.notas?.trim() || null,
     taxRate,
+    validUntil: sanitizeQuotationValidityDate(input.valid_until ?? null),
   };
 }
 
@@ -252,7 +255,7 @@ export async function createCotizacion(userId: string, input: CreateCotizacionIn
         inlineClient: null,
         notes: normalized.notas,
         taxRate: normalized.taxRate,
-        validUntil: null,
+        validUntil: normalized.validUntil,
         items,
       },
       quotationNumber: await reserveNextQuotationNumber(),

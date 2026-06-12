@@ -14,6 +14,7 @@ type CatalogPickerProps = {
   items: CatalogPickerItem[];
   clientName: string;
   disabled?: boolean;
+  initialItems?: ChatSuggestedQuotationItem[];
   onConfirm: (selectedItems: ChatSuggestedQuotationItem[]) => void;
   onManualItem?: () => void;
 };
@@ -22,12 +23,30 @@ export function CatalogPicker({
   items,
   clientName,
   disabled = false,
+  initialItems,
   onConfirm,
   onManualItem,
 }: CatalogPickerProps) {
-  const [selected, setSelected] = useState<Map<string, SelectedItem>>(
-    new Map(),
-  );
+  const [selected, setSelected] = useState<Map<string, SelectedItem>>(() => {
+    const initial = new Map<string, SelectedItem>();
+
+    for (const draftItem of initialItems ?? []) {
+      if (!draftItem.catalogItemId) {
+        continue;
+      }
+      const catalogItem = items.find(
+        (item) => item.id === draftItem.catalogItemId,
+      );
+      if (catalogItem) {
+        initial.set(catalogItem.id, {
+          item: catalogItem,
+          quantity: draftItem.quantity,
+        });
+      }
+    }
+
+    return initial;
+  });
 
   function toggleItem(item: CatalogPickerItem) {
     setSelected((prev) => {

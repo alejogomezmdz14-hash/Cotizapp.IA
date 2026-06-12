@@ -328,6 +328,8 @@ export type ChatDraftQuotationCreateAction = {
   clientSource: "existing" | "inline";
   notes: string | null;
   items: ChatSuggestedQuotationItem[];
+  taxRate?: number | null;
+  validUntil?: string | null;
 };
 
 export type ChatCatalogPriceUpdateAction = {
@@ -380,6 +382,7 @@ export type ChatUiHint =
       items: CatalogPickerItem[];
       clientId: string;
       clientName: string;
+      initialItems?: ChatSuggestedQuotationItem[];
     };
 
 export type ChatReplyPayload = {

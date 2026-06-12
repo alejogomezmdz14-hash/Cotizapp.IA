@@ -11,7 +11,9 @@ import {
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
 import type { ChatUiMessage } from "@/components/chat/chat-message-list";
+import type { CotizacionResumenValues } from "@/components/chat/cotizacion-resumen";
 import { SuggestionChips } from "@/components/chat/suggestion-chips";
+import type { SuggestionChipAction } from "@/components/chat/suggestion-chips";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { getNextPendingSuggestion } from "@/lib/chat/pending-suggestion";
 import type {
@@ -76,10 +78,13 @@ export function ChatShell() {
   const [selectedClient, setSelectedClient] = useState<ChatClientListItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quotationPhase, setQuotationPhase] = useState<QuotationPhase>("idle");
-  const pendingPreviewRef = useRef<{
+  const draftRef = useRef<{
     clientId: string;
     clientName: string;
     items: ChatSuggestedQuotationItem[];
+    taxRate: number | null;
+    validUntil: string | null;
+    notes: string | null;
   } | null>(null);
 
   function createMessage(
@@ -117,6 +122,17 @@ export function ChatShell() {
 
     setMessages((currentMessages) => [...currentMessages, userMessage]);
     setInputValue("");
+
+    // "Agregar más ítems" con un borrador activo: reabrir el selector de
+    // catálogo en vez de mandarle el pedido a la IA (que pide texto libre).
+    if (
+      draftRef.current &&
+      /\bagregar\s+(m[áa]s|otro)\b/i.test(trimmedContent) &&
+      /[íi]tems?|productos?|materiales?|trabajos?|m[áa]s\b/i.test(trimmedContent)
+    ) {
+      void openCatalogPickerForDraft();
+      return;
+    }
 
     if (pendingSuggestion && CONFIRM_REGEX.test(trimmedContent)) {
       const suggestionToConfirm = pendingSuggestion;
@@ -252,6 +268,14 @@ export function ChatShell() {
     setSelectedClient(client);
     setQuotationPhase("with_client");
     setIsSubmitting(true);
+    draftRef.current = {
+      clientId: client.id,
+      clientName: client.nombre,
+      items: [],
+      taxRate: null,
+      validUntil: null,
+      notes: null,
+    };
 
     try {
       const catalogItems = await getCatalogItemsAction();
@@ -276,17 +300,101 @@ export function ChatShell() {
     }
   }
 
+  /** Reabre el selector de catálogo con la selección actual del borrador. */
+  async function openCatalogPickerForDraft() {
+    const draft = draftRef.current;
+
+    if (!draft || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const catalogItems = await getCatalogItemsAction();
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("assistant", "Dale, agregá o sacá ítems de la cotización:", {
+          uiHint: {
+            type: "catalog_picker",
+            items: catalogItems,
+            clientId: draft.clientId,
+            clientName: draft.clientName,
+            initialItems: draft.items,
+          },
+        }),
+      ]);
+    } catch {
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage(
+          "assistant",
+          "No pude cargar tu catálogo. Probá de nuevo en un momento.",
+        ),
+      ]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   function handleCatalogConfirm(
     clientId: string,
     clientName: string,
     items: ChatSuggestedQuotationItem[],
   ) {
-    pendingPreviewRef.current = { clientId, clientName, items };
+    const previousDraft = draftRef.current;
+    // La selección nueva reemplaza los ítems de catálogo; los ítems manuales
+    // (sin catalogItemId) agregados antes se conservan.
+    const manualItems =
+      previousDraft && previousDraft.clientId === clientId
+        ? previousDraft.items.filter((item) => !item.catalogItemId)
+        : [];
+    const mergedItems = [...items, ...manualItems];
+
+    draftRef.current = {
+      clientId,
+      clientName,
+      items: mergedItems,
+      taxRate: previousDraft?.taxRate ?? null,
+      validUntil: previousDraft?.validUntil ?? null,
+      notes: previousDraft?.notes ?? null,
+    };
     setQuotationPhase("with_items");
     setMessages((currentMessages) => [
       ...currentMessages,
       createMessage("assistant", "", {
-        pendingPreview: { clientName, items },
+        pendingSummary: {
+          items: mergedItems,
+          initialTaxRate: previousDraft?.taxRate ?? null,
+          initialValidUntil: previousDraft?.validUntil ?? null,
+          initialNotes: previousDraft?.notes ?? null,
+        },
+      }),
+    ]);
+  }
+
+  function handleSummaryConfirm(values: CotizacionResumenValues) {
+    const draft = draftRef.current;
+
+    if (!draft) {
+      return;
+    }
+
+    draftRef.current = {
+      ...draft,
+      taxRate: values.taxRate > 0 ? values.taxRate : null,
+      validUntil: values.validUntil || null,
+      notes: values.notes,
+    };
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      createMessage("assistant", "", {
+        pendingPreview: {
+          clientName: draft.clientName,
+          items: draft.items,
+          taxRate: values.taxRate > 0 ? values.taxRate : null,
+          validUntil: values.validUntil || null,
+          notes: values.notes,
+        },
       }),
     ]);
   }
@@ -295,9 +403,9 @@ export function ChatShell() {
     clientName: string,
     items: ChatSuggestedQuotationItem[],
   ) {
-    const pendingPreview = pendingPreviewRef.current;
+    const draft = draftRef.current;
 
-    if (!pendingPreview || isSubmitting) {
+    if (!draft || isSubmitting) {
       return;
     }
 
@@ -305,16 +413,21 @@ export function ChatShell() {
     try {
       const result = await confirmDraftQuotationSuggestionAction({
         type: "draft_quotation_create" as const,
-        clientId: pendingPreview.clientId,
+        clientId: draft.clientId,
         clientName,
         clientSource: "existing" as const,
-        notes: null,
+        notes: draft.notes,
         items,
+        taxRate: draft.taxRate,
+        validUntil: draft.validUntil,
       });
-      const total = items.reduce(
+      const subtotal = items.reduce(
         (sum, item) => sum + item.quantity * item.unitPrice,
         0,
       );
+      const total = draft.taxRate
+        ? subtotal * (1 + draft.taxRate / 100)
+        : subtotal;
       setMessages((currentMessages) => [
         ...currentMessages,
         createMessage("assistant", "", {
@@ -327,7 +440,7 @@ export function ChatShell() {
         }),
       ]);
       setSelectedClient(null);
-      pendingPreviewRef.current = null;
+      draftRef.current = null;
       setQuotationPhase("post_saved");
     } catch (error) {
       const message =
@@ -344,22 +457,21 @@ export function ChatShell() {
   }
 
   function handlePreviewEdit() {
-    pendingPreviewRef.current = null;
-    setQuotationPhase("with_client");
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      createMessage(
-        "assistant",
-        "Ok, descartamos esa selección. Decime qué querés agregar o cambiar.",
-      ),
-    ]);
+    // Reabrir el selector de ítems con la selección actual, sin descartar nada.
+    void openCatalogPickerForDraft();
+  }
+
+  function handleChipAction(action: SuggestionChipAction) {
+    if (action === "add_items") {
+      void openCatalogPickerForDraft();
+    }
   }
 
   function handleNewQuotation() {
     setQuotationPhase("idle");
     setSelectedClient(null);
     setPendingSuggestion(null);
-    pendingPreviewRef.current = null;
+    draftRef.current = null;
     void sendUserMessage("Crear una nueva cotización");
   }
 
@@ -394,6 +506,7 @@ export function ChatShell() {
         onQuickPrompt={handleQuickPrompt}
         onClientSelect={handleClientSelect}
         onCatalogConfirm={handleCatalogConfirm}
+        onSummaryConfirm={handleSummaryConfirm}
         onPreviewConfirm={handlePreviewConfirm}
         onPreviewEdit={handlePreviewEdit}
         onNewQuotation={handleNewQuotation}
@@ -403,6 +516,7 @@ export function ChatShell() {
         phase={quotationPhase}
         disabled={isSubmitting}
         onChipClick={handleChipClick}
+        onAction={handleChipAction}
       />
 
       <ChatInput
