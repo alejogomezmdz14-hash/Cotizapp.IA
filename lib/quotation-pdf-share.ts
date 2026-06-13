@@ -1,10 +1,20 @@
 /**
  * Compartir el PDF de una cotización como archivo usando la Web Share API.
  * En celulares abre el menú nativo (WhatsApp adjunta el PDF como documento).
- * En navegadores sin soporte se usa el fallback de wa.me con link público.
+ *
+ * iOS exige que navigator.share() se llame inmediatamente después del toque
+ * del usuario (sin awaits largos en el medio). Por eso el flujo es en dos
+ * fases: `prepareQuotationPdfShare` descarga el PDF y arma el File, y
+ * `presentQuotationPdfShare` abre el menú nativo sin ninguna espera previa.
  */
 
-export type QuotationPdfShareResult = "shared" | "cancelled" | "unsupported";
+export type QuotationPdfShareOutcome = "shared" | "cancelled" | "blocked";
+
+export type PreparedQuotationPdfShare = {
+  file: File;
+  title: string;
+  text?: string;
+};
 
 function buildPdfFileName(quotationNumber: string, clientName?: string | null) {
   const todayLabel = new Intl.DateTimeFormat("es-AR", {
@@ -41,14 +51,16 @@ export function supportsQuotationPdfFileShare() {
   }
 }
 
-export async function shareQuotationPdfFile(options: {
+/** Descarga el PDF y arma el archivo listo para compartir. Null si el
+ * dispositivo no soporta compartir archivos. */
+export async function prepareQuotationPdfShare(options: {
   pdfUrl: string;
   quotationNumber: string;
   clientName?: string | null;
   text?: string;
-}): Promise<QuotationPdfShareResult> {
+}): Promise<PreparedQuotationPdfShare | null> {
   if (!supportsQuotationPdfFileShare()) {
-    return "unsupported";
+    return null;
   }
 
   const response = await fetch(options.pdfUrl);
@@ -67,14 +79,26 @@ export async function shareQuotationPdfFile(options: {
   );
 
   if (!navigator.canShare({ files: [file] })) {
-    return "unsupported";
+    return null;
   }
 
+  return {
+    file,
+    title: `Cotización ${options.quotationNumber}`,
+    text: options.text,
+  };
+}
+
+/** Abre el menú nativo de compartir. Llamar directo desde el tap del
+ * usuario, sin awaits previos (requisito de iOS). */
+export async function presentQuotationPdfShare(
+  prepared: PreparedQuotationPdfShare,
+): Promise<QuotationPdfShareOutcome> {
   try {
     await navigator.share({
-      files: [file],
-      title: `Cotización ${options.quotationNumber}`,
-      text: options.text,
+      files: [prepared.file],
+      title: prepared.title,
+      text: prepared.text,
     });
     return "shared";
   } catch (shareError) {
@@ -86,8 +110,8 @@ export async function shareQuotationPdfFile(options: {
       shareError instanceof DOMException &&
       shareError.name === "NotAllowedError"
     ) {
-      // El permiso del gesto expiró (ej. PDF lento de generar): fallback.
-      return "unsupported";
+      // El permiso del gesto expiró: hace falta un toque nuevo del usuario.
+      return "blocked";
     }
 
     throw shareError;

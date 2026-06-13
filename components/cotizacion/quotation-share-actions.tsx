@@ -15,8 +15,10 @@ import { useToast } from "@/components/ui/toast-provider";
 import { buildPublicAppPath } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/formatting";
 import {
-  shareQuotationPdfFile,
+  prepareQuotationPdfShare,
+  presentQuotationPdfShare,
   supportsQuotationPdfFileShare,
+  type PreparedQuotationPdfShare,
 } from "@/lib/quotation-pdf-share";
 import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
@@ -81,6 +83,8 @@ export function QuotationShareActions({
   const [clientPhone, setClientPhone] = useState<string | null>(null);
   const [phoneInput, setPhoneInput] = useState("");
   const [needsPhoneInput, setNeedsPhoneInput] = useState(false);
+  const [preparedShare, setPreparedShare] =
+    useState<PreparedQuotationPdfShare | null>(null);
 
   const pdfViewUrl = useMemo(
     () => `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
@@ -209,7 +213,11 @@ export function QuotationShareActions({
   /**
    * En celulares con Web Share API compartimos el PDF como archivo (el
    * cliente lo recibe como documento, sin links ni inicio de sesión).
-   * Devuelve true si el PDF se compartió o el usuario canceló el menú.
+   *
+   * iOS suele rechazar el primer intento porque el "gesto" del toque vence
+   * mientras se genera el PDF: en ese caso dejamos el archivo preparado y
+   * mostramos el botón «Compartir PDF» para abrir el menú con un toque
+   * directo. Devuelve true si el camino nativo quedó manejado.
    */
   async function tryNativePdfShare() {
     if (!supportsQuotationPdfFileShare()) {
@@ -233,25 +241,35 @@ export function QuotationShareActions({
         status: result.shareStatus,
       });
 
-      const shareOutcome = await shareQuotationPdfFile({
+      const prepared = await prepareQuotationPdfShare({
         pdfUrl: pdfViewUrl,
         quotationNumber,
         clientName: result.clientName,
         text: result.whatsappFileText,
       });
 
-      if (shareOutcome === "unsupported") {
+      if (!prepared) {
         return false;
       }
 
+      const shareOutcome = await presentQuotationPdfShare(prepared);
+
       if (shareOutcome === "shared") {
+        setPreparedShare(null);
         setStatusMessage("PDF compartido. Quedó marcada como pendiente.");
         toast({
           title: "PDF listo para enviar",
           description: "Elegí WhatsApp y el contacto para mandarlo.",
         });
+        return true;
       }
 
+      // "blocked" (gesto vencido, típico de iPhone) o "cancelled": dejamos
+      // el PDF preparado para compartir con un toque directo.
+      setPreparedShare(prepared);
+      setStatusMessage(
+        "El PDF está listo. Tocá «Compartir PDF» para mandarlo por WhatsApp.",
+      );
       return true;
     } catch {
       // Si algo falla en el camino nativo, seguimos con el fallback de wa.me.
@@ -259,6 +277,30 @@ export function QuotationShareActions({
     } finally {
       setIsSharing(false);
     }
+  }
+
+  function handleSharePreparedPdf() {
+    const prepared = preparedShare;
+
+    if (!prepared) {
+      return;
+    }
+
+    // Sin awaits antes de navigator.share: el toque habilita el menú nativo.
+    void presentQuotationPdfShare(prepared)
+      .then((outcome) => {
+        if (outcome === "shared") {
+          setPreparedShare(null);
+          setStatusMessage("PDF compartido. Quedó marcada como pendiente.");
+          toast({
+            title: "PDF listo para enviar",
+            description: "Elegí WhatsApp y el contacto para mandarlo.",
+          });
+        }
+      })
+      .catch((shareError: unknown) => {
+        setError(getErrorMessage(shareError));
+      });
   }
 
   async function handleShareWhatsapp() {
@@ -349,7 +391,21 @@ export function QuotationShareActions({
           </p>
         ) : null}
 
-        {needsPhoneInput ? (
+        {statusMessage ? (
+          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+            {statusMessage}
+          </p>
+        ) : null}
+
+        {preparedShare ? (
+          <Button
+            type="button"
+            className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
+            onClick={handleSharePreparedPdf}
+          >
+            📤 Compartir PDF
+          </Button>
+        ) : needsPhoneInput ? (
           <div className="space-y-3 rounded-lg border border-token/80 bg-background/70 px-4 py-3">
             <div className="space-y-1">
               <Label htmlFor={`quotation-share-phone-${quotationId}`}>
@@ -387,7 +443,7 @@ export function QuotationShareActions({
             {isGeneratingPdf
               ? "Generando PDF..."
               : isSharing || isLoadingRecipient
-                ? "Abriendo WhatsApp..."
+                ? "Preparando PDF..."
                 : getListPrimaryLabel()}
           </Button>
         )}
@@ -412,6 +468,16 @@ export function QuotationShareActions({
 
       {shareStatusLabel ? (
         <p className="text-sm text-muted-foreground">{shareStatusLabel}</p>
+      ) : null}
+
+      {preparedShare ? (
+        <Button
+          type="button"
+          className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
+          onClick={handleSharePreparedPdf}
+        >
+          📤 Compartir PDF
+        </Button>
       ) : null}
 
       {clientPhone ? (
