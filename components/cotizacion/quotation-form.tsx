@@ -25,7 +25,7 @@ import { QuotationAttachments } from "@/components/cotizacion/quotation-attachme
 import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
-import { QuotationWizard } from "@/components/cotizacion/quotation-wizard";
+import { QuotationEditorMobile } from "@/components/cotizacion/quotation-editor-mobile";
 import { useCotizacionStore } from "@/store/cotizacion-store";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
@@ -651,7 +651,7 @@ export function QuotationForm({
           </div>
         ) : null}
 
-        <QuotationWizard
+        <QuotationEditorMobile
           clients={clients}
           catalogItems={catalogItems}
           currency={currency}
