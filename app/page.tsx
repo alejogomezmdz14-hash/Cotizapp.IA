@@ -65,7 +65,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-5 max-w-sm text-base leading-relaxed text-[rgb(var(--text-secondary-rgb))] sm:max-w-xl sm:text-lg">
-            Para plomeros, electricistas, jardineros y revendedores.
+            Para autónomos, pymes y revendedores.
           </p>
 
           <Link

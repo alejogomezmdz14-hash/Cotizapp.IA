@@ -1,5 +1,6 @@
 import {
   FileText,
+  Home,
   MessageSquare,
   Package,
   Plus,
@@ -15,6 +16,12 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
+export const dashboardNavItem = {
+  href: "/dashboard",
+  label: "Inicio",
+  icon: Home,
+} as const satisfies NavItem;
+
 export const primaryNavItems = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
@@ -27,6 +34,7 @@ export const primaryNavItems = [
 export const secondaryNavItems = [] as const satisfies readonly NavItem[];
 
 export const sidebarNavItems = [
+  dashboardNavItem,
   ...primaryNavItems,
   ...secondaryNavItems,
 ] as const satisfies readonly NavItem[];
