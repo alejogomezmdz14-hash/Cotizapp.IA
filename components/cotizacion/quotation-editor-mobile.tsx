@@ -623,6 +623,7 @@ export function QuotationEditorMobile({
                   onChange={(event) => setInlineClient({ name: event.target.value })}
                   placeholder="Ej. Juan Pérez"
                   className="min-h-12"
+                  maxLength={120}
                   autoFocus
                 />
               </div>
