@@ -66,7 +66,7 @@ export default async function NewQuotationPage({
           <h1 className="text-[22px] font-bold leading-tight text-foreground">
             Nueva cotización
           </h1>
-          <nav className="flex flex-wrap gap-2 text-sm">
+          <nav className="hidden flex-wrap gap-2 text-sm xl:flex">
             <a className="rounded-full border border-token px-3 py-1 text-foreground" href="#paso-cliente">
               1. Cliente
             </a>
