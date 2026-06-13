@@ -5,7 +5,11 @@ import { CheckCircle2, Eye, Loader2, Plus, Share2 } from "lucide-react";
 import Link from "next/link";
 
 import { confirmQuotationWhatsappShareAction } from "@/app/actions/quotations";
-import { shareQuotationPdfFile } from "@/lib/quotation-pdf-share";
+import {
+  prepareQuotationPdfShare,
+  presentQuotationPdfShare,
+  type PreparedQuotationPdfShare,
+} from "@/lib/quotation-pdf-share";
 import { buildWhatsAppShareHref } from "@/lib/whatsapp";
 
 type CotizacionCreadaProps = {
@@ -28,6 +32,8 @@ export function CotizacionCreada({
   const [visible, setVisible] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [preparedShare, setPreparedShare] =
+    useState<PreparedQuotationPdfShare | null>(null);
 
   useEffect(() => {
     const id = setTimeout(() => setVisible(true), 50);
@@ -40,8 +46,32 @@ export function CotizacionCreada({
     maximumFractionDigits: 0,
   }).format(total);
 
+  function handleSharePrepared() {
+    const prepared = preparedShare;
+
+    if (!prepared) {
+      return;
+    }
+
+    // Sin awaits antes de navigator.share: el toque habilita el menú nativo.
+    void presentQuotationPdfShare(prepared)
+      .then((outcome) => {
+        if (outcome === "shared") {
+          setPreparedShare(null);
+        }
+      })
+      .catch(() => {
+        setShareError("No se pudo abrir el menú de compartir. Probá de nuevo.");
+      });
+  }
+
   async function handleShare() {
     if (isSharing) {
+      return;
+    }
+
+    if (preparedShare) {
+      handleSharePrepared();
       return;
     }
 
@@ -52,14 +82,14 @@ export function CotizacionCreada({
       // Publica el PDF y genera el link público (sin login para el cliente).
       const result = await confirmQuotationWhatsappShareAction(quotationId);
 
-      const shareOutcome = await shareQuotationPdfFile({
+      const prepared = await prepareQuotationPdfShare({
         pdfUrl: `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
         quotationNumber,
         clientName,
         text: result.whatsappFileText,
       });
 
-      if (shareOutcome === "unsupported") {
+      if (!prepared) {
         // Desktop o navegador sin compartir archivos: wa.me con link público.
         const whatsappHref = buildWhatsAppShareHref({
           phone: null,
@@ -73,6 +103,15 @@ export function CotizacionCreada({
         if (!openedWindow) {
           window.location.href = whatsappHref;
         }
+        return;
+      }
+
+      const outcome = await presentQuotationPdfShare(prepared);
+
+      if (outcome !== "shared") {
+        // iOS suele vencer el gesto mientras se genera el PDF: queda listo
+        // para compartir con un toque directo.
+        setPreparedShare(prepared);
       }
     } catch (error) {
       setShareError(
@@ -132,9 +171,15 @@ export function CotizacionCreada({
           {isSharing ? (
             <Loader2 className="h-4 w-4 animate-spin text-[#8B8FA8]" />
           ) : (
-            <Share2 className="h-4 w-4 text-[#8B8FA8]" />
+            <Share2
+              className={`h-4 w-4 ${preparedShare ? "text-[#00E5A0]" : "text-[#8B8FA8]"}`}
+            />
           )}
-          {isSharing ? "Preparando..." : "Enviar PDF"}
+          {isSharing
+            ? "Preparando..."
+            : preparedShare
+              ? "¡Tocá de nuevo!"
+              : "Enviar PDF"}
         </button>
 
         {onNewQuotation && (
