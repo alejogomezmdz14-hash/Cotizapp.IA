@@ -966,7 +966,7 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
     total: 0,
     validUntil: null,
   };
-  const whatsappText = buildQuotationWhatsAppShareMessage({
+  const shareMessageBase = {
     clientName: messageContext.clientName,
     businessName: profile?.business_name?.trim() || "Cotizapp",
     quotationNumber: result.quotationNumber,
@@ -977,12 +977,19 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
     validUntilLabel: formatDateOnly(
       sanitizeQuotationValidityDate(messageContext.validUntil),
     ),
+  };
+  const whatsappText = buildQuotationWhatsAppShareMessage({
+    ...shareMessageBase,
     shareUrl,
   });
+  // Caption para cuando el PDF viaja adjunto: sin link.
+  const whatsappFileText = buildQuotationWhatsAppShareMessage(shareMessageBase);
 
   return {
     ...result,
     shareUrl,
     whatsappText,
+    whatsappFileText,
+    clientName: messageContext.clientName,
   };
 }

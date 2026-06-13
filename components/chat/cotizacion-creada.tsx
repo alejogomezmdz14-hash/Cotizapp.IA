@@ -55,7 +55,8 @@ export function CotizacionCreada({
       const shareOutcome = await shareQuotationPdfFile({
         pdfUrl: `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
         quotationNumber,
-        text: result.whatsappText,
+        clientName,
+        text: result.whatsappFileText,
       });
 
       if (shareOutcome === "unsupported") {

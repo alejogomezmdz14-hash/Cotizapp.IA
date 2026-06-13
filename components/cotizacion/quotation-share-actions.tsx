@@ -236,7 +236,8 @@ export function QuotationShareActions({
       const shareOutcome = await shareQuotationPdfFile({
         pdfUrl: pdfViewUrl,
         quotationNumber,
-        text: result.whatsappText,
+        clientName: result.clientName,
+        text: result.whatsappFileText,
       });
 
       if (shareOutcome === "unsupported") {
