@@ -6,9 +6,20 @@
 
 export type QuotationPdfShareResult = "shared" | "cancelled" | "unsupported";
 
-function buildPdfFileName(quotationNumber: string) {
-  const safeNumber = quotationNumber.replace(/[^\w.-]+/g, "-");
-  return `cotizacion-${safeNumber}.pdf`;
+function buildPdfFileName(quotationNumber: string, clientName?: string | null) {
+  const todayLabel = new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+    .format(new Date())
+    .replace(/\//g, "-");
+  const parts = ["Cotizacion", quotationNumber, clientName?.trim(), todayLabel]
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+
+  // Sin caracteres problemáticos para nombres de archivo.
+  return `${parts.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim()}.pdf`;
 }
 
 export function supportsQuotationPdfFileShare() {
@@ -33,6 +44,7 @@ export function supportsQuotationPdfFileShare() {
 export async function shareQuotationPdfFile(options: {
   pdfUrl: string;
   quotationNumber: string;
+  clientName?: string | null;
   text?: string;
 }): Promise<QuotationPdfShareResult> {
   if (!supportsQuotationPdfFileShare()) {
@@ -46,9 +58,13 @@ export async function shareQuotationPdfFile(options: {
   }
 
   const blob = await response.blob();
-  const file = new File([blob], buildPdfFileName(options.quotationNumber), {
-    type: "application/pdf",
-  });
+  const file = new File(
+    [blob],
+    buildPdfFileName(options.quotationNumber, options.clientName),
+    {
+      type: "application/pdf",
+    },
+  );
 
   if (!navigator.canShare({ files: [file] })) {
     return "unsupported";

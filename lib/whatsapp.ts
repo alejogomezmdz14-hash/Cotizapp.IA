@@ -128,7 +128,8 @@ export type QuotationWhatsAppShareMessageInput = {
   quotationNumber: string;
   totalLabel: string;
   validUntilLabel: string;
-  shareUrl: string;
+  /** Si no se pasa, el mensaje no incluye link (el PDF viaja adjunto). */
+  shareUrl?: string | null;
 };
 
 export function buildQuotationWhatsAppShareMessage(
@@ -138,15 +139,16 @@ export function buildQuotationWhatsAppShareMessage(
   const trimmedBusinessName = input.businessName.trim() || "Cotizapp";
   const shortNumber = formatShortQuotationNumber(input.quotationNumber);
   const greeting = trimmedClientName ? `Hola ${trimmedClientName}! 👋\n\n` : "";
+  const shareLine = input.shareUrl
+    ? `\n👉 Ver y descargar: ${input.shareUrl}\n`
+    : "";
 
   return `${greeting}Te comparto la cotización de ${trimmedBusinessName}:
 
 📄 *${shortNumber}*
 💰 Total: *${input.totalLabel}*
 📅 Válida hasta: *${input.validUntilLabel}*
-
-👉 Ver y descargar: ${input.shareUrl}
-
+${shareLine}
 Cualquier consulta estoy disponible.
 _${trimmedBusinessName}_`;
 }
