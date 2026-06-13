@@ -1,30 +1,55 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-const isPublicPage = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/',
-])
+import { hasActivePlanFromClaims } from '@/lib/auth/plan'
+
+// Páginas públicas que cualquiera puede ver sin sesión.
+const isPublicPage = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
 
 // PDFs compartidos por WhatsApp: los abren clientes sin cuenta.
-const isPublicApiRoute = createRouteMatcher([
-  '/api/quotations/share(.*)',
-])
+const isPublicApiRoute = createRouteMatcher(['/api/quotations/share(.*)'])
+
+// Lista de espera: requiere sesión, pero NO requiere plan activo.
+const isWaitlistRoute = createRouteMatcher(['/waitlist(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicApiRoute(req)) {
     return
   }
 
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
+  const hasPlan = hasActivePlanFromClaims(sessionClaims)
 
-  if (userId && isPublicPage(req)) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  // /waitlist: sólo para usuarios logueados sin plan.
+  if (isWaitlistRoute(req)) {
+    if (!userId) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+    if (hasPlan) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+    return
   }
 
-  if (!isPublicPage(req) && !userId) {
+  // Páginas públicas: si ya hay sesión, mandamos a cada uno a su destino.
+  if (isPublicPage(req)) {
+    if (userId) {
+      return NextResponse.redirect(
+        new URL(hasPlan ? '/dashboard' : '/waitlist', req.url),
+      )
+    }
+    return
+  }
+
+  // Todo el resto de la app (dashboard, cotizaciones, clientes, catálogo,
+  // gastos, chat, ajustes, perfiles, onboarding, APIs internas...) requiere
+  // sesión + plan activo.
+  if (!userId) {
     return NextResponse.redirect(new URL('/sign-in', req.url))
+  }
+
+  if (!hasPlan) {
+    return NextResponse.redirect(new URL('/waitlist', req.url))
   }
 })
 

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { getClerkAuth } from "@/lib/auth/clerk-session";
+import { hasActivePlanFromClaims } from "@/lib/auth/plan";
 import { resolveDashboardBranding } from "@/lib/dashboard-branding";
 import { getProfile, isProfileComplete, requireUser } from "@/lib/profile";
 
@@ -13,6 +15,18 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Segunda capa de autorización (el middleware es la primera). Validamos el
+  // plan antes de tocar el perfil para no crear perfiles de usuarios sin acceso.
+  const { userId, sessionClaims } = await getClerkAuth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  if (!hasActivePlanFromClaims(sessionClaims)) {
+    redirect("/waitlist");
+  }
+
   const user = await requireUser();
   const profile = await getProfile(user.id);
 
