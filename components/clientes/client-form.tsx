@@ -98,6 +98,7 @@ export function ClientForm({
           disabled={isSubmitting}
           className="border-token bg-background/80"
           required
+          maxLength={120}
         />
       </div>
 

@@ -54,6 +54,7 @@ export function CatalogItemForm({
 }: CatalogItemFormProps) {
   const fieldId = useId();
   const [error, setError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoryValue, setCategoryValue] = useState(initialValues?.category ?? "");
   const { toast } = useToast();
@@ -67,7 +68,20 @@ export function CatalogItemForm({
     const form = event.currentTarget;
     const formData = new FormData(form);
 
+    // Validación de precio a nivel campo (antes solo aparecía el error
+    // genérico del server, que se sentía como un rechazo silencioso).
+    const priceRaw = String(formData.get("price") ?? "").trim();
+    const priceValue = Number.parseFloat(priceRaw.replace(",", "."));
+    if (!priceRaw || !Number.isFinite(priceValue) || priceValue <= 0) {
+      setPriceError("Poné un precio mayor a 0.");
+      form
+        .querySelector<HTMLInputElement>(`#${CSS.escape(`${fieldId}-price`)}`)
+        ?.focus();
+      return;
+    }
+
     setError(null);
+    setPriceError(null);
     setIsSubmitting(true);
 
     try {
@@ -112,6 +126,7 @@ export function CatalogItemForm({
           disabled={isSubmitting}
           className="border-token bg-background/80"
           required
+          maxLength={120}
         />
       </div>
 
@@ -194,10 +209,15 @@ export function CatalogItemForm({
               ? initialValues.price.toString()
               : ""
           }
+          onChange={() => setPriceError(null)}
           disabled={isSubmitting}
           className="border-token bg-background/80"
           required
+          aria-invalid={Boolean(priceError)}
         />
+        {priceError ? (
+          <p className="text-sm text-destructive">{priceError}</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">

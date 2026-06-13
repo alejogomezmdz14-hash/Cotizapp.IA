@@ -574,6 +574,30 @@ export function QuotationForm({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
+              {attachmentsReadOnly ? null : (
+                <Button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/cotizaciones/nueva?quotationId=${currentDraft?.quotationId ?? initialDraft.quotationId}&edit=1`,
+                    )
+                  }
+                >
+                  Editar ítems y notas
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-background/75"
+                onClick={() =>
+                  router.push(
+                    `/cotizaciones/${currentDraft?.quotationId ?? initialDraft.quotationId}`,
+                  )
+                }
+              >
+                Ver cotización
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -586,14 +610,6 @@ export function QuotationForm({
                 }}
               >
                 Nueva cotización
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-background/75"
-                onClick={() => router.push("/cotizaciones")}
-              >
-                Volver a cotizaciones
               </Button>
             </div>
           </div>
@@ -797,6 +813,7 @@ export function QuotationForm({
                         }
                         placeholder="Ej. Constructora Andina"
                         disabled={isFormLocked}
+                        maxLength={120}
                       />
                     </div>
 
