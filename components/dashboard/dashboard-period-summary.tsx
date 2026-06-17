@@ -42,6 +42,12 @@ export function DashboardPeriodSummary({
         <div
           role="tablist"
           aria-label="Período del resumen"
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+              event.preventDefault();
+              setPeriod((current) => (current === "week" ? "month" : "week"));
+            }
+          }}
           className="inline-flex rounded-full border border-token bg-background/75 p-1"
         >
           {PERIOD_OPTIONS.map((option) => {
@@ -52,6 +58,7 @@ export function DashboardPeriodSummary({
                 type="button"
                 role="tab"
                 aria-selected={selected}
+                tabIndex={selected ? 0 : -1}
                 onClick={() => setPeriod(option.id)}
                 className={cn(
                   "min-h-9 rounded-full px-4 text-sm font-medium transition",
@@ -101,7 +108,7 @@ export function DashboardPeriodSummary({
         <div className="mt-5">
           <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
             <div
-              className={cn("h-full rounded-full bg-orange-500/70")}
+              className="h-full rounded-full bg-orange-500/70"
               style={{ width: `${spentRatio}%` }}
             />
           </div>
