@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import {
   getActiveNavHref,
-  primaryNavItems,
+  bottomNavItems,
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ const BOTTOM_NAV_HEIGHT_PX = 72;
 
 export function BottomNav() {
   const pathname = usePathname();
-  const activeHref = getActiveNavHref(pathname, primaryNavItems);
+  const activeHref = getActiveNavHref(pathname, bottomNavItems);
 
   return (
     <nav
@@ -22,10 +22,10 @@ export function BottomNav() {
       aria-label="Navegación principal"
     >
       <ul
-        className="grid h-[4.5rem] grid-cols-6 items-stretch"
+        className="grid h-[4.5rem] grid-cols-7 items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {primaryNavItems.map((item) => {
+        {bottomNavItems.map((item) => {
           const active = item.href === activeHref;
           const Icon = item.icon;
           const isPrimary = item.href === "/cotizaciones/nueva";
@@ -36,7 +36,7 @@ export function BottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium transition",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition",
                   isPrimary
                     ? "-mt-3 rounded-t-2xl bg-accent-token pt-2 text-black shadow-[0_-4px_16px_rgb(var(--accent-rgb)/0.35)]"
                     : active
