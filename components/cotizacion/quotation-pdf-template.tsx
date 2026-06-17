@@ -447,7 +447,7 @@ export function QuotationPdfDocument({ data }: QuotationPdfDocumentProps) {
         <View style={styles.separator} />
 
         <View style={styles.clientSection}>
-          <Text style={styles.clientLabel}>Facturar a</Text>
+          <Text style={styles.clientLabel}>Cliente</Text>
           <Text style={styles.clientName}>{data.customerName}</Text>
           {data.customerContact.length > 0 ? (
             data.customerContact.map((line) => (

@@ -92,7 +92,7 @@ function PreviewDocument({
           )}
         >
           <p className="text-[10px] font-semibold uppercase text-gray-500">
-            Facturar a
+            Cliente
           </p>
           <p className="font-semibold">Cliente ejemplo</p>
         </div>
