@@ -6,7 +6,12 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { DashboardMetricCards } from "@/components/dashboard/dashboard-metric-cards";
+import { DashboardPeriodSummary } from "@/components/dashboard/dashboard-period-summary";
 import { EMPTY_DASHBOARD_STATS, getDashboardStats } from "@/lib/dashboard";
+import {
+  getDashboardPeriodSummary,
+  type DashboardPeriodSummary as PeriodSummary,
+} from "@/lib/dashboard-period";
 import { buildDashboardPageCards } from "@/lib/dashboard-page";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { formatCurrencyAmount, formatDateTime } from "@/lib/formatting";
@@ -18,13 +23,26 @@ import {
 } from "@/lib/quotation-status";
 import { cn } from "@/lib/utils";
 
+const EMPTY_PERIOD_SUMMARY: PeriodSummary = {
+  accepted: 0,
+  spent: 0,
+  net: 0,
+  canCalculateNet: false,
+};
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
   const currency = profile?.currency ?? null;
-  const [stats, quotations] = await Promise.all([
+  const [stats, quotations, weekSummary, monthSummary] = await Promise.all([
     getDashboardStats(user.id, currency).catch(() => EMPTY_DASHBOARD_STATS),
     getQuotations(user.id, { limit: 5 }).catch(() => []),
+    getDashboardPeriodSummary(user.id, currency, "week").catch(
+      () => EMPTY_PERIOD_SUMMARY,
+    ),
+    getDashboardPeriodSummary(user.id, currency, "month").catch(
+      () => EMPTY_PERIOD_SUMMARY,
+    ),
   ]);
   const { quotationMetricCards } = buildDashboardPageCards(
     stats,
@@ -37,17 +55,6 @@ export default async function DashboardPage() {
     formatDisplayName(profile?.business_name ?? null) ||
     null;
 
-  const monthLabel = new Intl.DateTimeFormat("es-AR", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date());
-  const acceptedThisMonth = stats.collectedThisMonth;
-  const spentThisMonth = stats.expensesThisMonth;
-  const hasExpensesThisMonth = spentThisMonth > 0;
-  const spentRatio =
-    acceptedThisMonth > 0
-      ? Math.min(100, Math.round((spentThisMonth / acceptedThisMonth) * 100))
-      : 0;
   const panelClassName = "shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6";
   const statCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
@@ -69,58 +76,11 @@ export default async function DashboardPage() {
         <DashboardMetricCards cards={quotationMetricCards} />
       </section>
 
-      <section className={panelClassName}>
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h3 className="text-xl font-semibold tracking-tight">Resumen del mes</h3>
-          <span className="text-sm capitalize text-muted-foreground">
-            {monthLabel}
-          </span>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-md border border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
-            <p className="text-sm text-muted-foreground">Aceptado</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {formatCurrencyAmount(acceptedThisMonth, currency)}
-            </p>
-          </div>
-          <div className="rounded-md border border-orange-500/30 bg-orange-500/8 p-4">
-            <p className="text-sm text-muted-foreground">Gastado</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {formatCurrencyAmount(spentThisMonth, currency)}
-            </p>
-          </div>
-          <div className="rounded-md border border-token bg-background/75 p-4">
-            <p className="text-sm text-muted-foreground">Ganancia neta</p>
-            {hasExpensesThisMonth && stats.canCalculateNetProfit ? (
-              <p className="mt-2 text-2xl font-semibold text-foreground">
-                {formatCurrencyAmount(stats.netProfitThisMonth, currency)}
-              </p>
-            ) : (
-              <Link
-                href="/gastos"
-                className="mt-2 inline-block text-sm font-medium text-accent-token"
-              >
-                Registrá gastos para verla →
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {acceptedThisMonth > 0 && hasExpensesThisMonth ? (
-          <div className="mt-5">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-orange-500/70"
-                style={{ width: `${spentRatio}%` }}
-              />
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Gastaste el {spentRatio}% de lo que aceptaste este mes.
-            </p>
-          </div>
-        ) : null}
-      </section>
+      <DashboardPeriodSummary
+        week={weekSummary}
+        month={monthSummary}
+        currency={currency}
+      />
 
       <section className={panelClassName}>
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
