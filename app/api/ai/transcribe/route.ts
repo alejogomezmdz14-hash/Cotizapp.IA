@@ -5,6 +5,7 @@ import {
   parseTranscriptionUploadFormData,
   transcribeAudioFile,
 } from "@/lib/ai/transcribe";
+import { enforceAiRateLimit } from "@/lib/ai/rate-limit-response";
 import { getCurrentUser } from "@/lib/profile";
 
 function getErrorResponse(error: unknown) {
@@ -32,6 +33,12 @@ export async function POST(request: Request) {
         { error: "Tenés que iniciar sesión para transcribir audio." },
         { status: 401 },
       );
+    }
+
+    const rateLimited = await enforceAiRateLimit("transcribe");
+
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const formData = await request.formData();

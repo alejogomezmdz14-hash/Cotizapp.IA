@@ -184,12 +184,24 @@ async function fetchProfileRow(
 }
 
 async function fetchProfileWithFallback(userId: string) {
+  let lastError: unknown = null;
+
   for (const columns of PROFILE_SELECT_FALLBACKS) {
     try {
       return await fetchProfileRow(userId, columns);
-    } catch {
+    } catch (error) {
+      // Cada variante puede fallar porque al esquema le falta una columna
+      // (drift entre migraciones). Guardamos el último error para no tragarnos
+      // un problema real de DB (permisos, conexión) como si fuera "sin perfil".
+      lastError = error;
       continue;
     }
+  }
+
+  if (lastError) {
+    console.error("[profile] no se pudo leer el perfil con ningún fallback", {
+      reason: lastError instanceof Error ? lastError.message : "unknown",
+    });
   }
 
   return null;

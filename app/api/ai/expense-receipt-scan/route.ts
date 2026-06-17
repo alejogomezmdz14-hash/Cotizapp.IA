@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { scanExpenseReceiptWithAi } from "@/lib/ai/expense-receipt";
+import { enforceAiRateLimit } from "@/lib/ai/rate-limit-response";
 import { getCurrentUser } from "@/lib/profile";
 import { createSignedFileUrl, STORAGE_BUCKETS } from "@/lib/storage/server";
 
@@ -26,6 +27,12 @@ export async function POST(request: Request) {
         { error: "Tenés que iniciar sesión para escanear recibos." },
         { status: 401 },
       );
+    }
+
+    const rateLimited = await enforceAiRateLimit("vision");
+
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const body = (await request.json()) as ExpenseReceiptScanRequestBody;

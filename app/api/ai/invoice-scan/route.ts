@@ -4,6 +4,7 @@ import {
   buildInvoiceScanImageDataUrl,
 } from "@/lib/invoice-scan/image-data-url";
 import { scanInvoiceWithAi } from "@/lib/ai/invoice";
+import { enforceAiRateLimit } from "@/lib/ai/rate-limit-response";
 import {
   PersistedInvoiceScanError,
   processPersistedInvoiceScan,
@@ -89,6 +90,12 @@ export async function POST(request: Request) {
           status: 401,
         },
       );
+    }
+
+    const rateLimited = await enforceAiRateLimit("vision");
+
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const body = (await request.json()) as InvoiceScanRequestBody;

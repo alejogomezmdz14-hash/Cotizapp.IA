@@ -9,10 +9,7 @@ import {
   resolveSelectedClientFromRequest,
   runBusinessChat,
 } from "@/lib/ai/chat";
-import {
-  buildChatRateLimitMessage,
-  consumeChatRateLimit,
-} from "@/lib/ai/rate-limit";
+import { enforceAiRateLimit } from "@/lib/ai/rate-limit-response";
 import { getCatalogItems } from "@/lib/catalog";
 import { getClients } from "@/lib/clients";
 import { getCurrentUser, getProfile } from "@/lib/profile";
@@ -107,22 +104,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const rateLimit = consumeChatRateLimit(user.id);
+    const rateLimited = await enforceAiRateLimit("chat");
 
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error:
-            buildChatRateLimitMessage(rateLimit) ??
-            "Demasiadas consultas al chat. Probá más tarde.",
-        },
-        {
-          status: 429,
-          headers: rateLimit.retryInSeconds
-            ? { "Retry-After": String(rateLimit.retryInSeconds) }
-            : undefined,
-        },
-      );
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const body = await readChatRequestBody(request);
