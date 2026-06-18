@@ -97,8 +97,10 @@ export async function emitirFacturaAction(
       },
     );
 
-    // 5) Persistir el CAE.
-    const { error: updateError } = await supabase
+    // 5) Persistir el CAE. El `.is("cae", null)` hace el guardado condicional:
+    // si una emisión concurrente ya escribió un CAE, no lo sobrescribimos
+    // (afecta 0 filas). Mitiga la ventana de carrera del guard del paso 1.
+    const { data: updated, error: updateError } = await supabase
       .from("quotations")
       .update({
         cae: result.cae,
@@ -107,15 +109,20 @@ export async function emitirFacturaAction(
         facturado_at: new Date().toISOString(),
       })
       .eq("id", quotationId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .is("cae", null)
+      .select("id")
+      .maybeSingle();
 
-    if (updateError) {
-      // ARCA ya aprobó: logueamos el CAE para reconciliación manual.
+    if (updateError || !updated) {
+      // ARCA ya aprobó: logueamos el CAE para reconciliación manual (nunca lo
+      // perdemos en silencio). Esto cubre tanto un fallo de DB como el caso raro
+      // de que otra emisión concurrente ya hubiera guardado un CAE.
       console.error("[facturacion] CAE emitido pero no se pudo guardar", {
         quotationId,
         cae: result.cae,
         numeroFactura: result.numeroFactura,
-        reason: updateError.message,
+        reason: updateError?.message ?? "la cotización ya tenía un CAE",
       });
       return {
         ok: false,

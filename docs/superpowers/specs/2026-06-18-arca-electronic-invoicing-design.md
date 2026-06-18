@@ -37,6 +37,21 @@ y las consume.
 - Nota de crédito / anulación de comprobantes.
 - Generación del PDF de la factura con el CAE/QR (queda anotado como mejora futura).
 
+### Limitaciones conocidas de v1 (de la revisión de código)
+
+- **Reconciliación tras fallo de guardado:** si ARCA aprueba pero el `update` de la
+  cotización falla, el CAE se loguea (`console.error`) y se muestra al usuario, pero
+  no queda persistido; la recuperación es manual. El guardado es condicional
+  (`.is("cae", null)`) para no sobrescribir un CAE ya escrito. Endurecerlo (fila de
+  reconciliación / reintento) queda como mejora futura.
+- **Ventana de carrera mínima:** el guard anti-doble-emisión lee y luego escribe; dos
+  clicks concurrentes (dos pestañas) podrían emitir dos CAE reales antes del guardado.
+  El botón se deshabilita durante la carga y el guardado condicional evita corromper el
+  CAE ya guardado; un lock a nivel DB previo a ARCA sería el fix robusto (futuro).
+- **`CbteFch` en UTC:** se asume server en UTC (Vercel). Cerca de medianoche UTC la
+  fecha del comprobante puede adelantarse un día respecto de la argentina; la tolerancia
+  de ARCA normalmente lo absorbe. Documentado como supuesto.
+
 Stack: Next.js 14 App Router, TypeScript, Clerk + Supabase (anon key + JWT de Clerk +
 RLS), `@arcasdk/core`. Texto UI en voseo rioplatense.
 
