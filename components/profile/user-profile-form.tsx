@@ -8,6 +8,7 @@ import { AvatarUploader } from "@/components/uploads/avatar-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PROFILE_COUNTRIES } from "@/lib/profile-countries";
 import type { Profile } from "@/types";
 
 type UserProfileFormProps = {
@@ -92,13 +93,19 @@ export function UserProfileForm({
 
           <div className="space-y-2">
             <Label htmlFor="country">País</Label>
-            <Input
+            <select
               id="country"
               name="country"
-              placeholder="Ej. Argentina"
               defaultValue={profile?.country ?? ""}
-              autoComplete="country-name"
-            />
+              className="flex h-10 w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <option value="">Seleccioná tu país</option>
+              {PROFILE_COUNTRIES.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">
