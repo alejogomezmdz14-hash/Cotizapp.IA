@@ -1,7 +1,10 @@
 import { BusinessProfileForm } from "@/components/profile/business-profile-form";
+import { FiscalProfileForm } from "@/components/profile/fiscal-profile-form";
 import { PdfTemplateSettings } from "@/components/profile/pdf-template-settings";
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
+import { getFiscalProfile } from "@/lib/fiscal-profile";
 import { getProfile, requireUser } from "@/lib/profile";
+import { isArgentina } from "@/lib/profile-countries";
 
 type BusinessProfilePageProps = {
   searchParams?: {
@@ -23,6 +26,11 @@ export default async function BusinessProfilePage({
     : null;
   const saved = isTruthyFlag(searchParams?.saved);
   const savedPdf = searchParams?.saved === "pdf";
+
+  const showFiscal = isArgentina(profile?.country ?? null);
+  const fiscalProfile = showFiscal
+    ? await getFiscalProfile(user.clerkId).catch(() => null)
+    : null;
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
@@ -63,6 +71,16 @@ export default async function BusinessProfilePage({
               saved={savedPdf}
             />
           </div>
+
+          {showFiscal ? (
+            <div className="border-t border-token/80 pt-8">
+              <FiscalProfileForm
+                fiscalProfile={fiscalProfile}
+                defaultCuit={profile?.tax_id ?? ""}
+                defaultBusinessName={profile?.business_name ?? ""}
+              />
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
