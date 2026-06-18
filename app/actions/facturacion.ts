@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { emitirFacturaC, ArcaEmissionError } from "@/lib/arca/billing";
+import {
+  emitirFacturaC,
+  simulateFacturaC,
+  ArcaEmissionError,
+  type FacturaCResult,
+} from "@/lib/arca/billing";
 import { isFiscalProfileComplete } from "@/lib/arca/eligibility";
 import { getFiscalProfile } from "@/lib/fiscal-profile";
 import { getProfile, requireUser } from "@/lib/profile";
@@ -59,43 +64,57 @@ export async function emitirFacturaAction(
       };
     }
 
+    const rawEnvironment = (fiscal as { environment?: string }).environment;
     const environment =
-      (fiscal as { environment?: string }).environment === "produccion"
+      rawEnvironment === "produccion"
         ? "produccion"
-        : "homologacion";
+        : rawEnvironment === "demo"
+          ? "demo"
+          : "homologacion";
 
-    // 3) Credenciales.
-    let certPem: string;
-    let keyPem: string;
-    try {
-      const [cert, key] = await Promise.all([
-        downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/cert.crt`),
-        downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/private.key`),
-      ]);
-      certPem = Buffer.from(cert.bytes).toString("utf8");
-      keyPem = Buffer.from(key.bytes).toString("utf8");
-    } catch {
-      return {
-        ok: false,
-        error:
-          "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido.",
-      };
+    // 3) Emisión. En modo demo simulamos (sin ARCA ni credenciales). Si no, ARCA real.
+    let result: FacturaCResult;
+    if (environment === "demo") {
+      // Secuencia incremental simple para el número de comprobante simulado.
+      const { count } = await supabase
+        .from("quotations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .not("facturado_at", "is", null);
+      result = simulateFacturaC(fiscal!.sales_point, (count ?? 0) + 1, new Date());
+    } else {
+      // Credenciales.
+      let certPem: string;
+      let keyPem: string;
+      try {
+        const [cert, key] = await Promise.all([
+          downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/cert.crt`),
+          downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/private.key`),
+        ]);
+        certPem = Buffer.from(cert.bytes).toString("utf8");
+        keyPem = Buffer.from(key.bytes).toString("utf8");
+      } catch {
+        return {
+          ok: false,
+          error:
+            "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido.",
+        };
+      }
+
+      result = await emitirFacturaC(
+        {
+          cuit: fiscal!.cuit,
+          certPem,
+          keyPem,
+          environment,
+        },
+        {
+          salesPoint: fiscal!.sales_point,
+          total: Number(quotation.total ?? 0),
+          date: new Date(),
+        },
+      );
     }
-
-    // 4) Emisión.
-    const result = await emitirFacturaC(
-      {
-        cuit: fiscal!.cuit,
-        certPem,
-        keyPem,
-        environment,
-      },
-      {
-        salesPoint: fiscal!.sales_point,
-        total: Number(quotation.total ?? 0),
-        date: new Date(),
-      },
-    );
 
     // 5) Persistir el CAE. El `.is("cae", null)` hace el guardado condicional:
     // si una emisión concurrente ya escribió un CAE, no lo sobrescribimos

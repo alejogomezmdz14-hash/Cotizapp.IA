@@ -37,10 +37,13 @@ export async function saveFiscalProfileAction(formData: FormData) {
   );
   const salesPoint = normalizeSalesPoint(readText(formData, "sales_point"));
   const businessName = readText(formData, "business_name");
+  const rawEnvironment = readText(formData, "environment");
   const environment =
-    readText(formData, "environment") === "produccion"
+    rawEnvironment === "produccion"
       ? "produccion"
-      : "homologacion";
+      : rawEnvironment === "demo"
+        ? "demo"
+        : "homologacion";
 
   if (!isValidCuitFormat(cuit)) {
     throw new Error("El CUIT debe tener el formato XX-XXXXXXXX-X.");

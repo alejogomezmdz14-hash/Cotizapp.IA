@@ -107,6 +107,29 @@ export function parseArcaDate(yyyymmdd: string): string {
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
 
+function isoDate(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+// Simula una emisión de Factura C SIN llamar a ARCA (modo demo). Devuelve un CAE
+// y un número claramente marcados como "DEMO" para no confundirlos con uno real.
+export function simulateFacturaC(
+  salesPoint: string,
+  sequence: number,
+  date: Date,
+): FacturaCResult {
+  const vencimiento = new Date(date.getTime() + 10 * 24 * 60 * 60 * 1000);
+  return {
+    cae: `7${String(sequence).padStart(13, "0")}`,
+    caeVencimiento: isoDate(vencimiento),
+    numeroComprobante: sequence,
+    numeroFactura: `DEMO-${formatNumeroFactura(salesPoint, sequence)}`,
+  };
+}
+
 // Resultado normalizado de ARCA, desacoplado de la forma SOAP del SDK.
 export type VoucherEmissionOutcome = {
   approved: boolean;

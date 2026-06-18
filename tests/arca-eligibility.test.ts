@@ -35,3 +35,31 @@ test("rechaza si no es monotributista (v1 solo Factura C)", () => {
     false,
   );
 });
+
+test("en modo demo NO exige certificado ni clave", () => {
+  assert.equal(
+    isFiscalProfileComplete({
+      cuit: "20-12345678-9",
+      sales_point: "0001",
+      contributor_type: "monotributista",
+      cert_path: null,
+      key_path: null,
+      environment: "demo",
+    }),
+    true,
+  );
+});
+
+test("en modo demo igual exige CUIT, punto de venta y monotributista", () => {
+  assert.equal(
+    isFiscalProfileComplete({
+      cuit: "",
+      sales_point: "0001",
+      contributor_type: "monotributista",
+      cert_path: null,
+      key_path: null,
+      environment: "demo",
+    }),
+    false,
+  );
+});

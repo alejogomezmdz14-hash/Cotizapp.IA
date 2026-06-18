@@ -78,9 +78,14 @@ export function FiscalProfileForm({
             }
             className={selectClassName}
           >
+            <option value="demo">Demo (simulación, sin ARCA)</option>
             <option value="homologacion">Homologación (pruebas)</option>
             <option value="produccion">Producción (facturas reales)</option>
           </select>
+          <p className="text-xs text-muted-foreground">
+            Demo genera un CAE de prueba simulado (marcado como DEMO), sin certificado
+            ni ARCA. Para facturas reales necesitás certificado y Clave Fiscal.
+          </p>
         </div>
 
         <div className="space-y-2">

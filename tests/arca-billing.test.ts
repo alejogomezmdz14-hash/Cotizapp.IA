@@ -5,6 +5,7 @@ import {
   buildFacturaCRequest,
   formatNumeroFactura,
   parseArcaDate,
+  simulateFacturaC,
 } from "../lib/arca/billing";
 
 test("buildFacturaCRequest arma una Factura C sin IVA", () => {
@@ -48,6 +49,14 @@ test("formatNumeroFactura usa PtoVta-Comprobante con padding", () => {
 
 test("parseArcaDate convierte YYYYMMDD a ISO date", () => {
   assert.equal(parseArcaDate("20260918"), "2026-09-18");
+});
+
+test("simulateFacturaC genera un CAE y número marcados como DEMO", () => {
+  const result = simulateFacturaC("0001", 7, new Date("2026-06-18T12:00:00Z"));
+  assert.equal(result.numeroComprobante, 7);
+  assert.equal(result.numeroFactura, "DEMO-0001-00000007");
+  assert.equal(result.cae, "70000000000007");
+  assert.equal(result.caeVencimiento, "2026-06-28"); // +10 días
 });
 
 import {
