@@ -49,3 +49,67 @@ test("formatNumeroFactura usa PtoVta-Comprobante con padding", () => {
 test("parseArcaDate convierte YYYYMMDD a ISO date", () => {
   assert.equal(parseArcaDate("20260918"), "2026-09-18");
 });
+
+import {
+  ArcaEmissionError,
+  issueFacturaC,
+  type ElectronicBilling,
+  type FacturaCRequest,
+  type VoucherEmissionOutcome,
+} from "../lib/arca/billing";
+
+function fakeBilling(
+  outcome?: Partial<VoucherEmissionOutcome>,
+  last = 122,
+): { billing: ElectronicBilling; calls: { request?: FacturaCRequest } } {
+  const calls: { request?: FacturaCRequest } = {};
+  return {
+    calls,
+    billing: {
+      getLastVoucherNumber: async () => last,
+      createVoucher: async (request) => {
+        calls.request = request;
+        return {
+          approved: true,
+          cae: "75123456789012",
+          caeVencimiento: "20260928",
+          observations: null,
+          ...outcome,
+        };
+      },
+    },
+  };
+}
+
+test("issueFacturaC devuelve el CAE y el número formateado en éxito", async () => {
+  const { billing, calls } = fakeBilling();
+  const result = await issueFacturaC(billing, {
+    salesPoint: "0001",
+    total: 1500,
+    date: new Date("2026-06-18T12:00:00Z"),
+  });
+
+  assert.equal(result.cae, "75123456789012");
+  assert.equal(result.caeVencimiento, "2026-09-28");
+  assert.equal(result.numeroComprobante, 123);
+  assert.equal(result.numeroFactura, "0001-00000123");
+  assert.equal(calls.request?.CbteDesde, 123);
+});
+
+test("issueFacturaC lanza ArcaEmissionError si ARCA rechaza", async () => {
+  const { billing } = fakeBilling({
+    approved: false,
+    cae: "",
+    observations: "CUIT inválido",
+  });
+
+  await assert.rejects(
+    () =>
+      issueFacturaC(billing, {
+        salesPoint: "0001",
+        total: 1500,
+        date: new Date("2026-06-18T12:00:00Z"),
+      }),
+    (err: unknown) => err instanceof ArcaEmissionError,
+  );
+});

@@ -106,3 +106,121 @@ export function parseArcaDate(yyyymmdd: string): string {
   const value = yyyymmdd.trim();
   return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
 }
+
+// Resultado normalizado de ARCA, desacoplado de la forma SOAP del SDK.
+export type VoucherEmissionOutcome = {
+  approved: boolean;
+  cae: string;
+  caeVencimiento: string; // YYYYMMDD tal como lo devuelve ARCA
+  observations: string | null;
+};
+
+export interface ElectronicBilling {
+  getLastVoucherNumber(ptoVta: number, cbteTipo: number): Promise<number>;
+  createVoucher(request: FacturaCRequest): Promise<VoucherEmissionOutcome>;
+}
+
+export class ArcaEmissionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ArcaEmissionError";
+  }
+}
+
+export async function issueFacturaC(
+  billing: ElectronicBilling,
+  input: FacturaCInput,
+): Promise<FacturaCResult> {
+  const last = await billing.getLastVoucherNumber(
+    salesPointToNumber(input.salesPoint),
+    CBTE_TIPO_FACTURA_C,
+  );
+
+  const request = buildFacturaCRequest(input, last);
+  const outcome = await billing.createVoucher(request);
+
+  if (!outcome.approved || !outcome.cae) {
+    throw new ArcaEmissionError(
+      outcome.observations ?? "ARCA rechazó el comprobante.",
+    );
+  }
+
+  return {
+    cae: outcome.cae,
+    caeVencimiento: parseArcaDate(outcome.caeVencimiento),
+    numeroComprobante: request.CbteDesde,
+    numeroFactura: formatNumeroFactura(input.salesPoint, request.CbteDesde),
+  };
+}
+
+export type ArcaCredentials = {
+  cuit: string;
+  certPem: string;
+  keyPem: string;
+  environment: ArcaEnvironment;
+};
+
+// Recorre la respuesta SOAP de ARCA juntando los textos de Observaciones/Errores
+// (cada uno expone un campo Msg). Defensivo porque la forma anidada puede variar.
+function extractArcaMessages(response: unknown): string | null {
+  const messages: string[] = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") {
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const record = node as Record<string, unknown>;
+    if (typeof record.Msg === "string") {
+      messages.push(record.Msg);
+    }
+    Object.values(record).forEach(visit);
+  };
+  visit(response);
+  return messages.length > 0 ? messages.join(" ") : null;
+}
+
+// Adaptador: ÚNICO punto que toca el SDK real de @arcasdk/core.
+export async function emitirFacturaC(
+  credentials: ArcaCredentials,
+  input: FacturaCInput,
+): Promise<FacturaCResult> {
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const { Arca } = await import("@arcasdk/core");
+
+  const arca = new Arca({
+    cuit: Number(credentials.cuit.replace(/\D/g, "")),
+    cert: credentials.certPem,
+    key: credentials.keyPem,
+    production: credentials.environment === "produccion",
+    // ARCA usa TLS legacy; en Node hace falta el agente HTTPS legacy.
+    useHttpsAgent: true,
+    // En serverless (Vercel) solo /tmp es escribible para cachear el ticket WSAA.
+    ticketPath: path.join(os.tmpdir(), "arca-tickets"),
+  });
+
+  const service = arca.electronicBillingService;
+
+  const billing: ElectronicBilling = {
+    getLastVoucherNumber: async (ptoVta, cbteTipo) => {
+      const last = await service.getLastVoucher(ptoVta, cbteTipo);
+      return Number(last?.cbteNro ?? 0) || 0;
+    },
+    createVoucher: async (request) => {
+      const result = await service.createVoucher(request);
+      const resultado = result.response?.FeCabResp?.Resultado;
+      return {
+        approved: resultado === "A",
+        cae: result.cae ?? "",
+        caeVencimiento: result.caeFchVto ?? "",
+        observations:
+          resultado === "A" ? null : extractArcaMessages(result.response),
+      };
+    },
+  };
+
+  return issueFacturaC(billing, input);
+}
