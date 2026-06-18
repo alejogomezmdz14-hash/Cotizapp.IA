@@ -6,4 +6,5 @@ export const STORAGE_BUCKETS = {
   invoiceUploads: "invoice-uploads",
   expenseReceipts: "expense-receipts",
   quotationSignatures: "quotation-signatures",
+  fiscal: "fiscal",
 } as const;
