@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { FileText, LayoutGrid, List, Search } from "lucide-react";
 
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
@@ -290,8 +290,13 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   </p>
                 </div>
 
+                <div className="mt-4 flex items-center justify-center gap-2 rounded-md border border-token bg-background/70 px-4 py-2.5 text-sm font-medium text-foreground">
+                  <FileText className="h-4 w-4" />
+                  Ver cotización
+                </div>
+
                 <div
-                  className="mt-4 flex items-center gap-2"
+                  className="mt-3 flex items-center gap-2"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <QuotationShareActions

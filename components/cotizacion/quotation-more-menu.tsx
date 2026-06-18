@@ -9,7 +9,6 @@ import {
   Download,
   FileText,
   MoreHorizontal,
-  Receipt,
   Trash2,
 } from "lucide-react";
 
@@ -21,7 +20,6 @@ import {
   updateQuotationStatusAction,
 } from "@/app/actions/quotations";
 import { buildPublicAppPath } from "@/lib/app-url";
-import { convertQuotationToInvoiceAction } from "@/app/actions/invoices";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +67,6 @@ export function QuotationMoreMenu({
   const [isBusy, setIsBusy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isPaid = Boolean(paidAt);
-  const isAccepted = initialStatus?.trim().toLowerCase() === "accepted";
   const pdfUrl = `/api/quotations/${encodeURIComponent(quotationId)}/pdf`;
   const pdfDownloadUrl = `${pdfUrl}?download=1`;
   const publicShareUrl = shareToken
@@ -220,19 +217,6 @@ export function QuotationMoreMenu({
             <CheckCircle2 className="mr-2 h-4 w-4" />
             {isPaid ? "Marcar como no pagada" : "Marcar como pagada"}
           </DropdownMenuItem>
-
-          {isAccepted ? (
-            <DropdownMenuItem
-              onClick={() =>
-                void runAction(async () => {
-                  await convertQuotationToInvoiceAction(quotationId);
-                })
-              }
-            >
-              <Receipt className="mr-2 h-4 w-4" />
-              Convertir a factura
-            </DropdownMenuItem>
-          ) : null}
 
           {reopenHref ? (
             <DropdownMenuItem asChild>
