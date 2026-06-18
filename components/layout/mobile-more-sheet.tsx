@@ -37,6 +37,7 @@ export function MobileMoreSheet({ active }: { active: boolean }) {
       </SheetTrigger>
       <SheetContent
         side="bottom"
+        aria-describedby={undefined}
         className="rounded-t-2xl border-token pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
       >
         <SheetTitle className="mb-3">Más opciones</SheetTitle>
