@@ -182,3 +182,37 @@ export function parseQuotationAttachmentUploadFormData(
     files,
   };
 }
+
+export const FISCAL_CREDENTIAL_MAX_BYTES = 64 * 1024;
+
+export type FiscalCredentialKind = "cert" | "key";
+
+const FISCAL_CREDENTIAL_EXTENSION: Record<FiscalCredentialKind, string> = {
+  cert: ".crt",
+  key: ".key",
+};
+
+export function assertValidFiscalCredential(
+  file: File,
+  kind: FiscalCredentialKind,
+): void {
+  const expectedExtension = FISCAL_CREDENTIAL_EXTENSION[kind];
+
+  if (!file.name.toLowerCase().endsWith(expectedExtension)) {
+    throw new UploadActionError(
+      `El archivo debe tener extensión ${expectedExtension}.`,
+      400,
+    );
+  }
+
+  if (file.size <= 0) {
+    throw new UploadActionError("El archivo está vacío.", 400);
+  }
+
+  if (file.size > FISCAL_CREDENTIAL_MAX_BYTES) {
+    throw new UploadActionError(
+      "El archivo es demasiado grande (máximo 64 KB).",
+      400,
+    );
+  }
+}
