@@ -262,36 +262,32 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   isExpired && "!border-destructive/50 !bg-destructive/5",
                 )}
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(quotation.status)}`}
-                      >
-                        {formatQuotationStatusLabel(quotation.status)}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(quotation.status)}`}
+                    >
+                      {formatQuotationStatusLabel(quotation.status)}
+                    </span>
+                    {isExpired ? (
+                      <span className="rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
+                        Vencida
                       </span>
-                      {isExpired ? (
-                        <span className="rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
-                          Vencida
-                        </span>
-                      ) : null}
-                    </div>
-                    <div>
-                      <p className="text-2xl font-semibold text-foreground">
-                        {formatDisplayName(quotation.client_name) || "Cliente sin asignar"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {quotation.number}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Creada {formatShortDate(quotation.created_at)} — Vence{" "}
-                        {formatShortDate(sanitizeQuotationValidityDate(quotation.valid_until))}
-                      </p>
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {formatCurrencyAmount(quotation.total, currency)}
-                    </p>
+                    ) : null}
                   </div>
+                  <p className="shrink-0 text-lg font-semibold text-foreground">
+                    {formatCurrencyAmount(quotation.total, currency)}
+                  </p>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-lg font-semibold text-foreground">
+                    {formatDisplayName(quotation.client_name) || "Cliente sin asignar"}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {quotation.number} · Vence{" "}
+                    {formatShortDate(sanitizeQuotationValidityDate(quotation.valid_until))}
+                  </p>
                 </div>
 
                 <div
