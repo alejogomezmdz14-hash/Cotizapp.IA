@@ -39,11 +39,6 @@ export const sidebarNavItems = [
   ...secondaryNavItems,
 ] as const satisfies readonly NavItem[];
 
-export const bottomNavItems = [
-  dashboardNavItem,
-  ...primaryNavItems,
-] as const satisfies readonly NavItem[];
-
 export const sidebarFooterNavItems = [
   { href: "/ajustes", label: "Ajustes", icon: Settings },
 ] as const satisfies readonly NavItem[];

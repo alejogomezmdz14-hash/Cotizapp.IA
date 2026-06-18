@@ -3,17 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { MobileMoreSheet } from "@/components/layout/mobile-more-sheet";
 import {
   getActiveNavHref,
-  bottomNavItems,
+  mobileBarNavItems,
+  mobileMoreNavItems,
 } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
 const BOTTOM_NAV_HEIGHT_PX = 72;
 
+const MORE_SHEET_HREFS = [
+  ...mobileMoreNavItems.map((item) => item.href),
+  "/perfil-empresa",
+  "/perfil-usuario",
+  "/ajustes",
+];
+
 export function BottomNav() {
   const pathname = usePathname();
-  const activeHref = getActiveNavHref(pathname, bottomNavItems);
+  const activeHref = getActiveNavHref(pathname, mobileBarNavItems);
+  const moreActive =
+    activeHref === null &&
+    MORE_SHEET_HREFS.some(
+      (href) => pathname === href || pathname.startsWith(`${href}/`),
+    );
 
   return (
     <nav
@@ -22,10 +36,10 @@ export function BottomNav() {
       aria-label="Navegación principal"
     >
       <ul
-        className="grid h-[4.5rem] grid-cols-7 items-stretch"
+        className="grid h-[4.5rem] grid-cols-6 items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {bottomNavItems.map((item) => {
+        {mobileBarNavItems.map((item) => {
           const active = item.href === activeHref;
           const Icon = item.icon;
           const isPrimary = item.href === "/cotizaciones/nueva";
@@ -36,7 +50,7 @@ export function BottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium transition",
                   isPrimary
                     ? "-mt-3 rounded-t-2xl bg-accent-token pt-2 text-black shadow-[0_-4px_16px_rgb(var(--accent-rgb)/0.35)]"
                     : active
@@ -47,16 +61,19 @@ export function BottomNav() {
               >
                 <Icon className={cn("h-5 w-5", isPrimary && "h-7 w-7")} />
                 <span className="max-w-full truncate leading-tight">
-                  {isPrimary ? "Nuevo" : item.href === "/chat" ? "Chat" : item.label}
+                  {isPrimary ? "Nuevo" : item.label}
                 </span>
               </Link>
             </li>
           );
         })}
+        <li className="flex">
+          <MobileMoreSheet active={moreActive} />
+        </li>
       </ul>
     </nav>
   );
 }
 
 export const MOBILE_BOTTOM_NAV_OFFSET =
-  "calc(4rem + env(safe-area-inset-bottom))";
+  "calc(4.5rem + env(safe-area-inset-bottom))";
