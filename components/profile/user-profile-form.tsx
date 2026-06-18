@@ -97,7 +97,7 @@ export function UserProfileForm({
               id="country"
               name="country"
               defaultValue={profile?.country ?? ""}
-              className="flex h-10 w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex h-9 w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
               <option value="">Seleccioná tu país</option>
               {PROFILE_COUNTRIES.map((country) => (
