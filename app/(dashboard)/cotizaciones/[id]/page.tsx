@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
+import { EmitirFacturaButton } from "@/components/cotizacion/emitir-factura-button";
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationPaidToggle } from "@/components/cotizacion/quotation-paid-toggle";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
@@ -20,8 +21,12 @@ import {
   formatDateOnly,
   formatDateTime,
 } from "@/lib/formatting";
+import { isFiscalProfileComplete } from "@/lib/arca/eligibility";
+import { getQuotationInvoicing } from "@/lib/arca/invoicing-status";
 import { formatDisplayName } from "@/lib/entity-normalization";
+import { getFiscalProfile } from "@/lib/fiscal-profile";
 import { getProfile, requireUser } from "@/lib/profile";
+import { isArgentina } from "@/lib/profile-countries";
 import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { getQuotationSignaturePreviewUrl } from "@/lib/quotation-signatures";
 import {
@@ -65,6 +70,18 @@ export default async function QuotationDetailPage({
     profilePromise,
     getQuotationSignaturePreviewUrl(quotation.signature_url),
   ]);
+  const showFiscalAr = isArgentina(profile?.country ?? null);
+  const [fiscalProfile, invoicing] = await Promise.all([
+    showFiscalAr
+      ? getFiscalProfile(user.clerkId).catch(() => null)
+      : Promise.resolve(null),
+    getQuotationInvoicing(user.id, quotation.id),
+  ]);
+  const canIssueInvoice =
+    quotation.status === "accepted" &&
+    showFiscalAr &&
+    isFiscalProfileComplete(fiscalProfile) &&
+    !invoicing.cae;
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
   const canEditDraft = Boolean(reopenDraftHref);
   const isExpired = shouldDisplayQuotationAsExpired(
@@ -258,6 +275,23 @@ export default async function QuotationDetailPage({
         </div>
 
         <aside className="space-y-4">
+          {invoicing.cae ? (
+            <div className="rounded-md border border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
+              <p className="text-sm font-semibold text-foreground">
+                Factura emitida ✓
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                CAE: {invoicing.cae}
+              </p>
+              {invoicing.numeroFactura ? (
+                <p className="text-sm text-muted-foreground">
+                  Comprobante: {invoicing.numeroFactura}
+                </p>
+              ) : null}
+            </div>
+          ) : canIssueInvoice ? (
+            <EmitirFacturaButton quotationId={quotation.id} />
+          ) : null}
           <QuotationPaidToggle
             quotationId={quotation.id}
             initialPaidAt={quotation.paid_at ?? null}
