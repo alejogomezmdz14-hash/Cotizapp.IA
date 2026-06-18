@@ -68,6 +68,22 @@ export function FiscalProfileForm({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="environment">Entorno de facturación</Label>
+          <select
+            id="environment"
+            name="environment"
+            defaultValue={
+              (fiscalProfile as { environment?: string } | null)?.environment ??
+              "homologacion"
+            }
+            className={selectClassName}
+          >
+            <option value="homologacion">Homologación (pruebas)</option>
+            <option value="produccion">Producción (facturas reales)</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="business_name">Razón social</Label>
           <Input
             id="business_name"

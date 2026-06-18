@@ -37,6 +37,10 @@ export async function saveFiscalProfileAction(formData: FormData) {
   );
   const salesPoint = normalizeSalesPoint(readText(formData, "sales_point"));
   const businessName = readText(formData, "business_name");
+  const environment =
+    readText(formData, "environment") === "produccion"
+      ? "produccion"
+      : "homologacion";
 
   if (!isValidCuitFormat(cuit)) {
     throw new Error("El CUIT debe tener el formato XX-XXXXXXXX-X.");
@@ -61,6 +65,7 @@ export async function saveFiscalProfileAction(formData: FormData) {
       contributor_type: contributorType,
       sales_point: salesPoint,
       business_name: businessName,
+      environment,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "clerk_user_id" },
