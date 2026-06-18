@@ -1,25 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { bottomNavItems } from "../components/layout/nav-items";
+import {
+  mobileBarNavItems,
+  mobileMoreNavItems,
+} from "../components/layout/nav-items";
 
-test("bottomNavItems incluye Inicio como primer ítem", () => {
-  assert.equal(bottomNavItems[0]?.href, "/dashboard");
-  assert.equal(bottomNavItems[0]?.label, "Inicio");
+test("mobileBarNavItems arranca con Inicio y trae 5 destinos", () => {
+  assert.equal(mobileBarNavItems[0]?.href, "/dashboard");
+  assert.equal(mobileBarNavItems[0]?.label, "Inicio");
+  assert.deepEqual(
+    mobileBarNavItems.map((item) => item.href),
+    ["/dashboard", "/clientes", "/cotizaciones", "/cotizaciones/nueva", "/gastos"],
+  );
 });
 
-test("bottomNavItems expone 7 destinos en la barra móvil", () => {
-  assert.equal(bottomNavItems.length, 7);
+test("mobileMoreNavItems contiene los secundarios (Chat y Catálogo)", () => {
   assert.deepEqual(
-    bottomNavItems.map((item) => item.href),
-    [
-      "/dashboard",
-      "/clientes",
-      "/cotizaciones",
-      "/cotizaciones/nueva",
-      "/gastos",
-      "/chat",
-      "/catalogo",
-    ],
+    mobileMoreNavItems.map((item) => item.href),
+    ["/chat", "/catalogo"],
   );
 });

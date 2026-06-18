@@ -48,6 +48,17 @@ export const sidebarFooterNavItems = [
   { href: "/ajustes", label: "Ajustes", icon: Settings },
 ] as const satisfies readonly NavItem[];
 
+const MOBILE_MORE_HREFS: readonly string[] = ["/chat", "/catalogo"];
+
+export const mobileBarNavItems: readonly NavItem[] = [
+  dashboardNavItem,
+  ...primaryNavItems.filter((item) => !MOBILE_MORE_HREFS.includes(item.href)),
+];
+
+export const mobileMoreNavItems: readonly NavItem[] = primaryNavItems.filter(
+  (item) => MOBILE_MORE_HREFS.includes(item.href),
+);
+
 function isNestedPath(pathname: string, href: string) {
   return pathname.startsWith(`${href}/`);
 }
