@@ -433,25 +433,27 @@ export function QuotationShareActions({
             </Button>
           </div>
         ) : (
-          <Button
-            type="button"
-            className="min-h-11 w-fit gap-2 bg-accent-token px-4 text-black hover:bg-accent-hover"
-            disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
-            onClick={() => {
-              void handleListPrimaryClick();
-            }}
-          >
-            {isGeneratingPdf || isSharing || isLoadingRecipient ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            {isGeneratingPdf
-              ? "Generando PDF..."
-              : isSharing || isLoadingRecipient
-                ? "Preparando PDF..."
-                : getListPrimaryLabel()}
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              className="min-h-11 w-fit gap-2 bg-accent-token px-4 text-black hover:bg-accent-hover"
+              disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+              onClick={() => {
+                void handleListPrimaryClick();
+              }}
+            >
+              {isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {isGeneratingPdf
+                ? "Generando PDF..."
+                : isSharing || isLoadingRecipient
+                  ? "Preparando PDF..."
+                  : getListPrimaryLabel()}
+            </Button>
+          </div>
         )}
       </div>
     );
