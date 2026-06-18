@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 
 import {
   confirmQuotationWhatsappShareAction,
@@ -441,7 +441,11 @@ export function QuotationShareActions({
               void handleListPrimaryClick();
             }}
           >
-            <Send className="h-4 w-4" />
+            {isGeneratingPdf || isSharing || isLoadingRecipient ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
             {isGeneratingPdf
               ? "Generando PDF..."
               : isSharing || isLoadingRecipient
