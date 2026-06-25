@@ -186,6 +186,7 @@ export type DashboardMonthlyPoint = {
   monthLabel: string;
   quoted: number;
   expenses: number;
+  accepted: number;
 };
 
 export type DashboardStats = {

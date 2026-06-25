@@ -1,4 +1,5 @@
 import { formatMonthShortLabel } from "@/lib/formatting";
+import { normalizeQuotationStatus } from "@/lib/quotation-status";
 import { createClient } from "@/lib/supabase/server";
 import type { DashboardMonthlyPoint } from "@/types";
 
@@ -67,7 +68,7 @@ export async function getDashboardMonthlyComparison(
       const [quotationsResult, expensesResult] = await Promise.all([
         supabase
           .from("quotations")
-          .select("total")
+          .select("total, status")
           .eq("user_id", userId)
           .gte("created_at", range.isoStart)
           .lte("created_at", range.isoEnd),
@@ -79,8 +80,17 @@ export async function getDashboardMonthlyComparison(
           .lte("date", range.dateOnlyEnd),
       ]);
 
-      const quoted = (quotationsResult.data ?? []).reduce(
+      const quotationRows = quotationsResult.data ?? [];
+      const quoted = quotationRows.reduce(
         (sum, row) => sum + parseAmount(row.total),
+        0,
+      );
+      const accepted = quotationRows.reduce(
+        (sum, row) =>
+          normalizeQuotationStatus((row as { status: string | null }).status) ===
+          "accepted"
+            ? sum + parseAmount(row.total)
+            : sum,
         0,
       );
       const expenses = (expensesResult.data ?? []).reduce(
@@ -92,6 +102,7 @@ export async function getDashboardMonthlyComparison(
         monthLabel: range.label,
         quoted,
         expenses,
+        accepted,
       };
     }),
   );
