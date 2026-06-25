@@ -75,6 +75,27 @@ export function getPeriodBoundaries(
   };
 }
 
+/** Un "ahora" que cae dentro del período anterior (para comparar variación). */
+export function getPreviousPeriodNow(
+  period: DashboardPeriod,
+  now: Date = new Date(),
+): Date {
+  if (period === "week") {
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 7,
+      12,
+      0,
+      0,
+      0,
+    );
+  }
+
+  // Día 0 del mes actual = último día del mes anterior.
+  return new Date(now.getFullYear(), now.getMonth(), 0, 12, 0, 0, 0);
+}
+
 function parseAmount(value: unknown) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
@@ -124,8 +145,12 @@ export async function getDashboardPeriodSummary(
   userId: string,
   profileCurrency: string | null,
   period: DashboardPeriod,
+  now: Date = new Date(),
 ): Promise<DashboardPeriodSummary> {
-  const { start, end, startDateOnly, endDateOnly } = getPeriodBoundaries(period);
+  const { start, end, startDateOnly, endDateOnly } = getPeriodBoundaries(
+    period,
+    now,
+  );
   const supabase = await createClient();
 
   const [acceptedResult, expensesResult] = await Promise.all([

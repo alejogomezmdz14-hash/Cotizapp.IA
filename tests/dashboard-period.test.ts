@@ -90,3 +90,17 @@ test("summarizeDashboardPeriod sin gastos deja neto en 0", () => {
     canCalculateNet: false,
   });
 });
+
+import { getPreviousPeriodNow } from "../lib/dashboard-period";
+
+test("getPreviousPeriodNow('month') cae en el mes anterior", () => {
+  const prev = getPreviousPeriodNow("month", new Date(2026, 5, 17)); // jun 2026
+  assert.equal(prev.getMonth(), 4); // mayo
+  assert.equal(prev.getFullYear(), 2026);
+});
+
+test("getPreviousPeriodNow('week') resta 7 días", () => {
+  const prev = getPreviousPeriodNow("week", new Date(2026, 5, 17)); // 17 jun
+  assert.equal(prev.getDate(), 10); // 10 jun
+  assert.equal(prev.getMonth(), 5);
+});
