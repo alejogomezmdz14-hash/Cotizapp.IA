@@ -11,5 +11,5 @@ test("DashboardPage usa getDashboardPeriodSummary para semana y mes", async () =
   assert.match(source, /getDashboardPeriodSummary/);
   assert.match(source, /"week"/);
   assert.match(source, /"month"/);
-  assert.match(source, /<DashboardPeriodSummary[\s\S]*week=\{[\s\S]*month=\{/);
+  assert.match(source, /<DashboardOverview[\s\S]*week=\{[\s\S]*month=\{/);
 });
