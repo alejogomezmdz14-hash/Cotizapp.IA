@@ -1,20 +1,27 @@
 // components/dashboard/dashboard-status-donut.tsx
 import { buildConicGradient } from "@/lib/donut-gradient";
 import type { QuotationStatusCounts } from "@/lib/dashboard-status-counts";
+import type { DashboardPeriod } from "@/lib/dashboard-period";
 
 type DashboardStatusDonutProps = {
   counts: QuotationStatusCounts;
+  period: DashboardPeriod;
 };
 
+// Solo estados ALMACENADOS. "Vencida" es un estado derivado de la fecha de
+// validez (no vive en la columna `status`), por eso no se incluye acá; el
+// donut refleja el resultado real de las cotizaciones (Aceptada/Enviada/Rechazada).
 const SEGMENTS: { key: keyof QuotationStatusCounts; label: string; color: string }[] = [
   { key: "accepted", label: "Aceptadas", color: "#00E5A0" },
   { key: "pending", label: "Enviadas", color: "#58a6ff" },
   { key: "rejected", label: "Rechazadas", color: "#f85149" },
-  { key: "expired", label: "Vencidas", color: "#f0883e" },
 ];
 
-export function DashboardStatusDonut({ counts }: DashboardStatusDonutProps) {
+export function DashboardStatusDonut({ counts, period }: DashboardStatusDonutProps) {
   const visible = SEGMENTS.filter((segment) => counts[segment.key] > 0);
+  // Total de lo que realmente se grafica (no incluye borradores ni otros estados
+  // que no se muestran), para que el número del centro coincida con la leyenda.
+  const visibleTotal = visible.reduce((sum, segment) => sum + counts[segment.key], 0);
   const gradient = buildConicGradient(
     visible.map((segment) => ({ value: counts[segment.key], color: segment.color })),
   );
@@ -25,9 +32,9 @@ export function DashboardStatusDonut({ counts }: DashboardStatusDonutProps) {
         Estados de tus cotizaciones
       </h3>
 
-      {counts.total === 0 ? (
+      {visibleTotal === 0 ? (
         <p className="rounded-md border border-dashed border-token bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-          Todavía no hay cotizaciones en este período.
+          Sin cotizaciones {period === "week" ? "esta semana" : "este mes"}.
         </p>
       ) : (
         <div className="flex items-center gap-5">
@@ -40,7 +47,7 @@ export function DashboardStatusDonut({ counts }: DashboardStatusDonutProps) {
               .join(", ")}`}
           >
             <div className="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-background">
-              <span className="text-xl font-bold text-foreground">{counts.total}</span>
+              <span className="text-xl font-bold text-foreground">{visibleTotal}</span>
               <span className="text-[10px] text-muted-foreground">total</span>
             </div>
           </div>

@@ -43,7 +43,7 @@ export function DashboardOverview({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xl font-semibold tracking-tight">Tu mes de un vistazo</h3>
+        <h3 className="text-xl font-semibold tracking-tight">Tu negocio de un vistazo</h3>
         <div
           role="tablist"
           aria-label="Período del tablero"
@@ -59,7 +59,7 @@ export function DashboardOverview({
                 aria-selected={selected}
                 onClick={() => setPeriod(option.id)}
                 className={cn(
-                  "min-h-9 rounded-full px-4 text-sm font-medium transition",
+                  "min-h-11 rounded-full px-4 text-sm font-medium transition",
                   selected
                     ? "bg-accent-token text-black"
                     : "text-muted-foreground hover:text-foreground",
@@ -79,7 +79,7 @@ export function DashboardOverview({
         expensesSeries={expensesSeries}
       />
 
-      <DashboardStatusDonut counts={active.statusCounts} />
+      <DashboardStatusDonut counts={active.statusCounts} period={period} />
     </div>
   );
 }
