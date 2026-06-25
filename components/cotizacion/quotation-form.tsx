@@ -26,6 +26,7 @@ import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cot
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { QuotationEditorMobile } from "@/components/cotizacion/quotation-editor-mobile";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useCotizacionStore } from "@/store/cotizacion-store";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
@@ -170,6 +171,7 @@ export function QuotationForm({
   const draftBannerVisible = draft.draftBannerVisible;
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingZeroPriceConfirm, setPendingZeroPriceConfirm] = useState(false);
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
   const [invoiceScanReview, setInvoiceScanReview] =
     useState<HydratedInvoiceScanReview | null>(initialInvoiceScan);
@@ -302,6 +304,10 @@ export function QuotationForm({
     !isValidityInPast &&
     !isFormLocked &&
     !(Boolean(savedDraft) && !isEditingDraft);
+  const hasClient =
+    clientMode === "inline"
+      ? Boolean(inlineClient.name.trim())
+      : Boolean(selectedClientId);
   const selectedExistingClientName =
     clients.find((client) => client.id === selectedClientId)?.name ?? null;
   const clientSnapshotLabel =
@@ -477,7 +483,7 @@ export function QuotationForm({
     setError(null);
   }
 
-  async function submitQuotation() {
+  async function submitQuotation(options?: { allowZeroPrice?: boolean }) {
 
     if (savedDraft && !isEditingDraft) {
       return;
@@ -501,6 +507,14 @@ export function QuotationForm({
       } else if (isValidityInPast) {
         setError("La fecha de validez no puede estar en el pasado.");
       }
+      return;
+    }
+
+    // Un ítem en $0 puede ser un error (cotización gratis sin querer): pedimos
+    // confirmación explícita antes de guardar.
+    const hasZeroPriceItem = items.some((item) => item.unitPrice <= 0);
+    if (hasZeroPriceItem && !options?.allowZeroPrice) {
+      setPendingZeroPriceConfirm(true);
       return;
     }
 
@@ -675,6 +689,7 @@ export function QuotationForm({
           isSubmitting={isSubmitting}
           canSave={canSaveQuotation}
           saveDisabled={!canSaveQuotation}
+          error={error}
           onSubmit={() => {
             void submitQuotation();
           }}
@@ -1076,6 +1091,7 @@ export function QuotationForm({
             isSubmitting={isSubmitting}
             isSaved={Boolean(savedDraft) && !isEditingDraft}
             saveDisabled={!canSaveQuotation}
+            clientMissing={!hasClient}
             quotationId={currentDraft?.quotationId ?? null}
             draftNumber={currentDraft?.number ?? null}
             pdfGeneratedAt={currentDraft?.pdfGeneratedAt ?? null}
@@ -1087,6 +1103,19 @@ export function QuotationForm({
         </div>
       </div>
     </form>
+
+    <ConfirmDialog
+      open={pendingZeroPriceConfirm}
+      title="¿Va en $0?"
+      description="Hay uno o más ítems con precio en $0. Si guardás así, la cotización puede salir sin cobrar. ¿Querés continuar igual?"
+      confirmLabel="Sí, va en $0"
+      cancelLabel="Revisar precios"
+      onCancel={() => setPendingZeroPriceConfirm(false)}
+      onConfirm={() => {
+        setPendingZeroPriceConfirm(false);
+        void submitQuotation({ allowZeroPrice: true });
+      }}
+    />
     </>
   );
 }

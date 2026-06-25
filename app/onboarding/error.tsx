@@ -28,17 +28,11 @@ export default function OnboardingError({ error, reset }: OnboardingErrorProps) 
               No pudimos cargar el onboarding
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              {error.message?.trim() ||
-                "Ocurrió un error al preparar tu cuenta. Revisá la consola del navegador (F12) para más detalle."}
+              Tuvimos un problema preparando tu cuenta. No es nada que hayas
+              hecho mal. Probá de nuevo en unos segundos.
             </p>
           </div>
         </div>
-
-        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>Clerk Dashboard → Integrations → Supabase (activada)</li>
-          <li>Supabase → Authentication → Sign In / Providers → Clerk</li>
-          <li>Variables de entorno de Clerk y Supabase en Vercel</li>
-        </ul>
 
         <div className="flex flex-wrap gap-3">
           <Button type="button" onClick={reset}>

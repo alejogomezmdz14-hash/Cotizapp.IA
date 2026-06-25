@@ -189,8 +189,8 @@ export function ClientList({ clients, search }: ClientListProps) {
               <Card key={client.id} className="border-token bg-surface shadow-sm">
                 <CardHeader className="space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl">
+                    <div className="min-w-0 space-y-1">
+                      <CardTitle className="text-xl break-words">
                         {formatDisplayName(client.name)}
                       </CardTitle>
                     </div>

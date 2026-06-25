@@ -103,13 +103,26 @@ export default async function DashboardPage() {
         {recentQuotations.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-token bg-background/60 px-5 py-10 text-center">
             <p className="text-lg font-semibold text-foreground">
-              Todavía no tenés cotizaciones
+              Hagamos tu primera cotización
             </p>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Armá la primera en menos de un minuto y mandásela a tu cliente
-              por WhatsApp.
+              Es rápido y queda con tu logo. Son tres pasos:
             </p>
-            <div className="mt-5 flex justify-center">
+            <ol className="mx-auto mt-5 max-w-md space-y-3 text-left text-sm leading-6 text-muted-foreground">
+              <li className="flex gap-3">
+                <span className="font-semibold text-accent-token">1.</span>
+                <span>Cargás a quién le cotizás y qué le ofrecés.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-semibold text-accent-token">2.</span>
+                <span>Generamos el PDF con tu marca, automáticamente.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-semibold text-accent-token">3.</span>
+                <span>Se lo mandás a tu cliente por WhatsApp con un toque.</span>
+              </li>
+            </ol>
+            <div className="mt-6 flex justify-center">
               <Button asChild className="min-h-12">
                 <Link href="/cotizaciones/nueva">Crear mi primera cotización</Link>
               </Button>

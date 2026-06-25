@@ -312,7 +312,7 @@ export function QuotationItemsEditor({
                           type="number"
                           min="0.01"
                           step="0.01"
-                          inputMode="decimal"
+                          inputMode="numeric"
                           value={item.quantity}
                           onChange={(event) =>
                             onUpdateItem(item.id, {

@@ -4,6 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ActionHint } from "@/components/ui/action-hint";
 import { Button } from "@/components/ui/button";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ type QuotationSummaryProps = {
   isSubmitting?: boolean;
   isSaved?: boolean;
   saveDisabled?: boolean;
+  clientMissing?: boolean;
   quotationId?: string | null;
   draftNumber?: string | null;
   pdfGeneratedAt?: string | null;
@@ -45,6 +47,7 @@ export function QuotationSummary({
   isSubmitting = false,
   isSaved = false,
   saveDisabled = false,
+  clientMissing = false,
   quotationId = null,
   draftNumber = null,
   pdfGeneratedAt = null,
@@ -120,18 +123,29 @@ export function QuotationSummary({
         ) : null}
 
         {hideSaveButton ? null : (
-          <Button
-            type="submit"
-            className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
-            disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
-            aria-disabled={saveDisabled || isSubmitting || isSaved || items.length === 0}
-          >
-            {isSubmitting
-              ? "Guardando cotización..."
-              : isSaved
-                ? "Cotización guardada"
-                : "Guardar cotización"}
-          </Button>
+          <div className="space-y-1.5">
+            <Button
+              type="submit"
+              className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
+              disabled={
+                saveDisabled || isSubmitting || isSaved || items.length === 0 || clientMissing
+              }
+              aria-disabled={
+                saveDisabled || isSubmitting || isSaved || items.length === 0 || clientMissing
+              }
+            >
+              {isSubmitting
+                ? "Guardando cotización..."
+                : isSaved
+                  ? "Cotización guardada"
+                  : "Guardar cotización"}
+            </Button>
+            {clientMissing && items.length > 0 && !isSaved ? (
+              <ActionHint className="text-center">
+                Elegí un cliente para guardar
+              </ActionHint>
+            ) : null}
+          </div>
         )}
       </CardContent>
     </Card>

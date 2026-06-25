@@ -79,7 +79,7 @@ export function ClientPicker({
 
       {selectedClient ? (
         <div className="rounded-lg border border-token bg-surface px-4 py-3 text-sm">
-          <p className="font-medium text-foreground">{selectedClient.name}</p>
+          <p className="break-words font-medium text-foreground">{selectedClient.name}</p>
           <p className="text-muted-foreground">
             {selectedClient.email?.trim() ||
               selectedClient.phone?.trim() ||
@@ -115,8 +115,8 @@ export function ClientPicker({
                 onClick={() => onSelectClient(client)}
                 disabled={disabled}
               >
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">
+                <div className="min-w-0 space-y-1">
+                  <p className="break-words font-medium text-foreground">
                     {formatDisplayName(client.name)}
                   </p>
                   <p className="text-sm text-muted-foreground">

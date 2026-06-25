@@ -7,6 +7,7 @@ import {
   createExpenseFromInput,
   updateExpenseFromInput,
 } from "@/app/actions/expenses";
+import { ActionHint } from "@/components/ui/action-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,7 @@ export function ExpenseFormSheet({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -88,6 +90,7 @@ export function ExpenseFormSheet({
     }
 
     setError(null);
+    setAmountError(null);
     setScanPreview(null);
     setSelectedFile(null);
 
@@ -251,6 +254,14 @@ export function ExpenseFormSheet({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const parsedAmount = Number.parseFloat(amount.trim().replace(",", "."));
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setAmountError("El monto debe ser mayor a 0");
+      return;
+    }
+
+    setAmountError(null);
     setIsSubmitting(true);
 
     try {
@@ -320,15 +331,20 @@ export function ExpenseFormSheet({
                 name="amount"
                 type="number"
                 inputMode="decimal"
-                pattern="[0-9]*"
-                min="0"
                 step="0.01"
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  setAmountError(null);
+                }}
                 placeholder="Ej. 1250.50"
                 className="min-h-12"
+                aria-invalid={Boolean(amountError)}
                 required
               />
+              {amountError ? (
+                <ActionHint tone="error">{amountError}</ActionHint>
+              ) : null}
             </div>
 
             <div className="space-y-2">

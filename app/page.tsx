@@ -65,11 +65,12 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-5 max-w-sm text-base leading-relaxed text-[rgb(var(--text-secondary-rgb))] sm:max-w-xl sm:text-lg">
-            Para autónomos, pymes y revendedores.
+            Hacé cotizaciones con tu logo en menos de un minuto y mandáselas a
+            tu cliente por WhatsApp. Sin saber de computadoras.
           </p>
 
           <Link
-            href="/sign-in"
+            href="/sign-up"
             className="mt-9 inline-flex h-[3.25rem] w-full max-w-xs items-center justify-center rounded-2xl bg-[rgb(var(--accent-rgb))] px-6 text-base font-bold text-black shadow-[0_8px_30px_rgb(var(--accent-rgb)/0.25)] transition hover:bg-[rgb(var(--accent-rgb)/0.9)] active:scale-[0.98]"
           >
             Empezar gratis
@@ -128,7 +129,7 @@ export default function HomePage() {
             Empezá hoy. Gratis.
           </h2>
           <Link
-            href="/sign-in"
+            href="/sign-up"
             className="mt-8 inline-flex h-14 min-w-[14rem] items-center justify-center rounded-xl bg-[rgb(var(--accent-rgb))] px-8 text-base font-bold text-black transition hover:bg-[rgb(var(--accent-rgb)/0.9)]"
           >
             Crear mi cuenta

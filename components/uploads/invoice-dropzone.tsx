@@ -237,8 +237,8 @@ export function InvoiceDropzone({
               </div>
               <CardTitle className="text-xl">Escanear factura con IA</CardTitle>
               <CardDescription className="leading-6">
-                Sube una imagen o PDF de factura o remito, espera la lectura asistida y
-                revisa los ítems detectados antes de decidir si van a la cotización
+                Subí una imagen o PDF de la factura o remito, esperá la lectura y
+                revisá los ítems detectados antes de decidir si van a la cotización
                 actual o al catálogo.
               </CardDescription>
             </div>
@@ -272,7 +272,7 @@ export function InvoiceDropzone({
               2. Analiza
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              La IA interpreta los renglones y arma una revisión editable.
+              La IA interpreta las líneas y arma una revisión editable.
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-token/80 bg-background/70 px-4 py-4">
@@ -281,7 +281,7 @@ export function InvoiceDropzone({
               3. Decide
             </div>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Confirma qué ítems van al borrador o al catálogo.
+              Confirmá qué ítems van al borrador o al catálogo.
             </p>
           </div>
         </div>
@@ -318,7 +318,7 @@ export function InvoiceDropzone({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <UploadCloud className="h-4 w-4 text-accent-token" />
-                Arrastra la factura aquí o elige un archivo
+                Arrastrá la factura acá o elegí un archivo
               </div>
               <p className="text-sm leading-6 text-muted-foreground">
                 Formatos admitidos: PNG, JPG, WEBP y PDF. Tamaño máximo: 10 MB.

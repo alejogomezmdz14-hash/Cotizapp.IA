@@ -83,9 +83,9 @@ export async function saveOnboarding(formData: FormData) {
   });
 
   if (error) {
+    console.error("[saveOnboarding]", error);
     redirectWithOnboardingError(
-      error.message?.trim() ||
-        "No se pudo guardar el onboarding. Intentá de nuevo en unos segundos.",
+      "No se pudo guardar tu negocio. Intentá de nuevo en unos segundos.",
     );
   }
 
@@ -125,9 +125,9 @@ export async function completeOnboardingLogoStep() {
   );
 
   if (error) {
+    console.error("[completeOnboardingLogoStep]", error);
     redirectWithOnboardingError(
-      error.message?.trim() ||
-        "No se pudo completar el paso del logo. Intentá de nuevo.",
+      "No se pudo completar el paso del logo. Intentá de nuevo en unos segundos.",
     );
   }
 
@@ -231,10 +231,10 @@ export async function saveBusinessProfileAction(formData: FormData) {
     .single();
 
   if (error || !data) {
-    const details =
-      error?.message?.trim() ||
-      "No se pudo guardar el perfil de empresa. Verificá que la columna tax_id exista en Supabase.";
-    throw new Error(details);
+    console.error("[saveBusinessProfileAction]", error);
+    throw new Error(
+      "No se pudo guardar el perfil de tu empresa. Intentá de nuevo en unos segundos.",
+    );
   }
 
   revalidatePath("/perfil-empresa");

@@ -525,15 +525,34 @@ export function QuotationShareActions({
         </div>
       ) : null}
 
+      {/* Acción primaria: enviar por WhatsApp (objetivo #1 de la app).
+          Siempre visible; si falta el PDF, el flujo de compartir lo genera solo. */}
+      <Button
+        type="button"
+        className="min-h-12 w-full gap-2 bg-accent-token text-black hover:bg-accent-hover"
+        disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
+        onClick={() => {
+          void handleShareWhatsapp();
+        }}
+      >
+        {isSharing || isLoadingRecipient ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+        {isSharing || isLoadingRecipient
+          ? "Preparando envío..."
+          : sentAt
+            ? "Reenviar por WhatsApp"
+            : "Enviar por WhatsApp"}
+      </Button>
+
+      {/* Acciones secundarias del PDF */}
       <div className="flex flex-wrap gap-3">
         <Button
           type="button"
-          variant={pdfGeneratedAt ? "outline" : "default"}
-          className={
-            pdfGeneratedAt
-              ? "border-token bg-background text-foreground"
-              : "bg-accent-token text-black hover:bg-accent-hover"
-          }
+          variant="outline"
+          className="border-token bg-background text-foreground"
           disabled={isGeneratingPdf || isSharing}
           onClick={() => {
             void handleGeneratePdf();
@@ -568,23 +587,6 @@ export function QuotationShareActions({
               </a>
             </Button>
 
-            <Button
-              type="button"
-              className="bg-accent-token text-black hover:bg-accent-hover"
-              disabled={isSharing || isLoadingRecipient || isSavingPhone}
-              onClick={() => {
-                void handleShareWhatsapp();
-              }}
-            >
-              {isLoadingRecipient
-                ? "Cargando destinatario..."
-                : isSharing
-                  ? "Abriendo WhatsApp..."
-                  : sentAt
-                    ? "Reenviar por WhatsApp"
-                    : "Compartir por WhatsApp"}
-            </Button>
-
             {publicShareUrl ? (
               <Button
                 type="button"
@@ -593,7 +595,7 @@ export function QuotationShareActions({
                 asChild
               >
                 <a href={publicShareUrl} target="_blank" rel="noreferrer">
-                  Copiar enlace
+                  Abrir enlace público
                 </a>
               </Button>
             ) : null}

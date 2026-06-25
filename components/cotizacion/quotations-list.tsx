@@ -280,8 +280,8 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   </p>
                 </div>
 
-                <div className="mt-3">
-                  <p className="text-lg font-semibold text-foreground">
+                <div className="mt-3 min-w-0">
+                  <p className="break-words text-lg font-semibold text-foreground">
                     {formatDisplayName(quotation.client_name) || "Cliente sin asignar"}
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
@@ -290,7 +290,7 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-center gap-2 rounded-md border border-token bg-background/70 px-4 py-2.5 text-sm font-medium text-foreground">
+                <div className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1.5 text-sm font-semibold text-accent-token">
                   <FileText className="h-4 w-4" />
                   Ver cotización
                 </div>

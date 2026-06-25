@@ -44,11 +44,24 @@ function shouldAttemptRegeneration(error: unknown) {
   );
 }
 
+// Solo estos mensajes (en español, amigables) se muestran al usuario.
+// Cualquier otro error (RLS, "object not found", uuid inválido, etc.) cae al
+// fallback para no filtrar jerga técnica al cartel de error.
+const FRIENDLY_PDF_MESSAGES = new Set([
+  "La cotización no existe o no te pertenece.",
+  "El PDF de la cotización aún no fue generado.",
+  "Tenés que iniciar sesión para descargar cotizaciones.",
+  "Tenés que iniciar sesión para generar cotizaciones.",
+  "Falta indicar qué cotización querés descargar.",
+  "Falta indicar qué cotización querés generar.",
+]);
+
 function getErrorResponse(error: unknown, fallbackMessage: string) {
-  const message =
-    error instanceof Error && error.message.trim()
-      ? error.message
-      : fallbackMessage;
+  const rawMessage =
+    error instanceof Error && error.message.trim() ? error.message : "";
+  const message = FRIENDLY_PDF_MESSAGES.has(rawMessage)
+    ? rawMessage
+    : fallbackMessage;
   const status =
     message === "La cotización no existe o no te pertenece." ||
       message === "El PDF de la cotización aún no fue generado."

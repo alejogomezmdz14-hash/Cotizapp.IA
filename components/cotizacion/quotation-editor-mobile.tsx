@@ -18,6 +18,7 @@ import {
 import type { QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
+import { ActionHint } from "@/components/ui/action-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,7 @@ type QuotationEditorMobileProps = {
   isSubmitting?: boolean;
   canSave: boolean;
   saveDisabled: boolean;
+  error?: string | null;
   onSubmit: () => void;
 };
 
@@ -107,6 +109,7 @@ export function QuotationEditorMobile({
   isSubmitting = false,
   canSave,
   saveDisabled,
+  error = null,
   onSubmit,
 }: QuotationEditorMobileProps) {
   const draft = useCotizacionStore((state) => state.draft);
@@ -586,11 +589,21 @@ export function QuotationEditorMobile({
 
       {/* Sticky guardar */}
       <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-token bg-background/95 px-4 py-3 backdrop-blur">
+        {error ? (
+          <p className="mx-auto mb-2 max-w-lg rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        {!hasClient && canSave ? (
+          <ActionHint className="mx-auto mb-2 max-w-lg text-center">
+            Elegí un cliente para guardar
+          </ActionHint>
+        ) : null}
         <Button
           type="button"
           className="min-h-14 w-full text-base active:scale-[0.99]"
           onClick={onSubmit}
-          disabled={disabled || !canSave || isSubmitting || saveDisabled}
+          disabled={disabled || !canSave || isSubmitting || saveDisabled || !hasClient}
         >
           {isSubmitting
             ? "Guardando..."
@@ -623,7 +636,7 @@ export function QuotationEditorMobile({
                   onChange={(event) => setInlineClient({ name: event.target.value })}
                   placeholder="Ej. Juan Pérez"
                   className="min-h-12"
-                  maxLength={120}
+                  maxLength={80}
                   autoFocus
                 />
               </div>
@@ -646,6 +659,9 @@ export function QuotationEditorMobile({
               >
                 Usar este cliente
               </Button>
+              {!draft.inlineClient.name.trim() ? (
+                <ActionHint className="text-center">Falta el nombre</ActionHint>
+              ) : null}
               {clients.length > 0 ? (
                 <Button
                   type="button"
@@ -864,7 +880,7 @@ export function QuotationEditorMobile({
                 <Input
                   id="manual-item-qty"
                   type="text"
-                  inputMode="decimal"
+                  inputMode="numeric"
                   value={itemFields.quantity}
                   onChange={(event) => {
                     setItemFields((current) => ({
