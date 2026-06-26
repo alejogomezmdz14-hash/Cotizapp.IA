@@ -26,8 +26,14 @@ export const metadata: Metadata = {
     icon: "/icons/cotizapp-icon.png",
     apple: "/icons/cotizapp-icon.png",
   },
+  // capable:false → en iOS el ícono de inicio abre en el contexto de Safari
+  // (comparte cookies) en vez de modo standalone aislado. El modo standalone de
+  // iOS tiene su propio "cajón" de cookies y rompe la persistencia de sesión de
+  // Clerk. Trade-off: en iPhone se ve la barra de Safari (no pantalla completa).
+  // Reversible: volver a true para recuperar el modo app. Android no se afecta
+  // (usa el `display` del manifest).
   appleWebApp: {
-    capable: true,
+    capable: false,
     statusBarStyle: "default",
     title: "Cotizapp",
   },
