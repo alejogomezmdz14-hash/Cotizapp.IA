@@ -1,4 +1,4 @@
-const CACHE_NAME = "cotizapp-shell-v8";
+const CACHE_NAME = "cotizapp-shell-v9";
 const SHELL_ASSETS = [
   "/manifest.json",
   "/icons/icon-192.png",
@@ -61,8 +61,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // No interceptamos las navegaciones de página: las maneja el navegador de
+  // forma nativa. Interceptarlas con event.respondWith(fetch(...)) puede romper
+  // el handshake de autenticación de Clerk en móvil (las cookies/redirect del
+  // login no se aplican bien) → la sesión no persiste. Dejarlas pasar es lo
+  // recomendado cuando no se cachea navegación offline.
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request));
     return;
   }
 
