@@ -42,6 +42,16 @@ type QuotationShareActionsProps = {
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
+    // En producción Next enmascara los errores de server actions con un texto
+    // genérico ("...Server Components render...omitted in production..."). No se
+    // lo mostramos crudo al usuario.
+    if (
+      /server components render|omitted in production|a digest property/i.test(
+        error.message,
+      )
+    ) {
+      return "No pudimos completar la acción. Probá de nuevo en unos segundos.";
+    }
     return error.message;
   }
 
@@ -206,6 +216,29 @@ export function QuotationShareActions({
     }
   }
 
+  // El compartir (token + link público) requiere que el PDF ya esté generado.
+  // Si falta, lo generamos primero para que "Enviar por WhatsApp" funcione de
+  // una, sin tirar "Genera el PDF antes de compartir la cotización".
+  async function ensurePdfGenerated() {
+    if (pdfGeneratedAt) {
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    try {
+      const generated = await generateQuotationPdfAction(quotationId);
+      setPdfGeneratedAt(generated.generatedAt);
+      onStateChange?.({
+        pdfGeneratedAt: generated.generatedAt,
+        shareToken,
+        sentAt,
+        status: shareStatus,
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }
+
   /**
    * En celulares con Web Share API compartimos el PDF como archivo (el
    * cliente lo recibe como documento, sin links ni inicio de sesión).
@@ -304,6 +337,8 @@ export function QuotationShareActions({
     setStatusMessage(null);
 
     try {
+      await ensurePdfGenerated();
+
       const sharedNatively = await tryNativePdfShare();
 
       if (sharedNatively) {
@@ -344,6 +379,7 @@ export function QuotationShareActions({
         title: "Teléfono guardado",
         description: "El cliente ya tiene un número listo para futuros envíos.",
       });
+      await ensurePdfGenerated();
       await continueWhatsappShare(phoneState.normalizedPhone);
     } catch (actionError) {
       setError(getErrorMessage(actionError));
