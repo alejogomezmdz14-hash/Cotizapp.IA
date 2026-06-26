@@ -135,14 +135,9 @@ export function QuotationShareActions({
   }
 
   async function continueWhatsappShare(normalizedPhone: string) {
-    const confirmed = window.confirm(
-      `Se abrirá WhatsApp con un link público para ${quotationNumber} y la cotización quedará marcada como pendiente. ¿Querés continuar?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    // Sin window.confirm: en el celular (PWA) ese diálogo nativo se descartaba
+    // solo y abortaba el envío EN SILENCIO ("no pasa nada"). El toque en
+    // "Enviar por WhatsApp" ya es la confirmación.
     setError(null);
     setStatusMessage(null);
     setIsSharing(true);
@@ -163,10 +158,10 @@ export function QuotationShareActions({
         sentAt: result.sentAt,
         status: result.shareStatus,
       });
-      setStatusMessage("WhatsApp abierto con el destinatario precargado.");
+      setStatusMessage("Te abrimos WhatsApp con el mensaje listo. Tocá enviar dentro de WhatsApp.");
       toast({
-        title: "WhatsApp abierto",
-        description: "La cotización se preparó para su envío.",
+        title: "¡Listo! Cotización enviada",
+        description: "Abrimos WhatsApp con el mensaje. Tocá enviar.",
       });
 
       const openedWindow = window.open(
