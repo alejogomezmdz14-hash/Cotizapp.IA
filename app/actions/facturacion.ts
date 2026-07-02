@@ -72,48 +72,90 @@ export async function emitirFacturaAction(
           ? "demo"
           : "homologacion";
 
-    // 3) Emisión. En modo demo simulamos (sin ARCA ni credenciales). Si no, ARCA real.
-    let result: FacturaCResult;
-    if (environment === "demo") {
-      // Secuencia incremental simple para el número de comprobante simulado.
-      const { count } = await supabase
-        .from("quotations")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .not("facturado_at", "is", null);
-      result = simulateFacturaC(fiscal!.sales_point, (count ?? 0) + 1, new Date());
-    } else {
-      // Credenciales.
-      let certPem: string;
-      let keyPem: string;
-      try {
-        const [cert, key] = await Promise.all([
-          downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/cert.crt`),
-          downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/private.key`),
-        ]);
-        certPem = Buffer.from(cert.bytes).toString("utf8");
-        keyPem = Buffer.from(key.bytes).toString("utf8");
-      } catch {
-        return {
-          ok: false,
-          error:
-            "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido.",
-        };
-      }
+    // 3) CLAIM ATÓMICO antes de emitir: reservamos la cotización marcando
+    // facturado_at. Si otra pestaña/reintento concurrente ya la reservó, este
+    // update afecta 0 filas y NO llamamos a ARCA — sin esto, dos requests
+    // simultáneas emitían DOS facturas reales con dos CAE válidos (el guard de
+    // lectura del paso 1 no cubre la ventana de carrera).
+    const { data: claimed, error: claimError } = await supabase
+      .from("quotations")
+      .update({ facturado_at: new Date().toISOString() })
+      .eq("id", quotationId)
+      .eq("user_id", user.id)
+      .is("cae", null)
+      .is("facturado_at", null)
+      .select("id")
+      .maybeSingle();
 
-      result = await emitirFacturaC(
-        {
-          cuit: fiscal!.cuit,
-          certPem,
-          keyPem,
-          environment,
-        },
-        {
-          salesPoint: fiscal!.sales_point,
-          total: Number(quotation.total ?? 0),
-          date: new Date(),
-        },
-      );
+    if (claimError || !claimed) {
+      return {
+        ok: false,
+        error: "Esta cotización ya tiene una factura emitida o en curso.",
+      };
+    }
+
+    // Libera la reserva SOLO si todavía no hay CAE (o sea, si NO se emitió).
+    const releaseClaim = async () => {
+      await supabase
+        .from("quotations")
+        .update({ facturado_at: null })
+        .eq("id", quotationId)
+        .eq("user_id", user.id)
+        .is("cae", null);
+    };
+
+    // 4) Emisión. En modo demo simulamos (sin ARCA ni credenciales). Si no, ARCA real.
+    let result: FacturaCResult;
+    try {
+      if (environment === "demo") {
+        // Secuencia incremental simple para el número de comprobante simulado.
+        // (neq: excluimos esta cotización, que ya tiene facturado_at por el claim.)
+        const { count } = await supabase
+          .from("quotations")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .not("facturado_at", "is", null)
+          .neq("id", quotationId);
+        result = simulateFacturaC(fiscal!.sales_point, (count ?? 0) + 1, new Date());
+      } else {
+        // Credenciales.
+        let certPem: string;
+        let keyPem: string;
+        try {
+          const [cert, key] = await Promise.all([
+            downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/cert.crt`),
+            downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/private.key`),
+          ]);
+          certPem = Buffer.from(cert.bytes).toString("utf8");
+          keyPem = Buffer.from(key.bytes).toString("utf8");
+        } catch {
+          await releaseClaim();
+          return {
+            ok: false,
+            error:
+              "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido.",
+          };
+        }
+
+        result = await emitirFacturaC(
+          {
+            cuit: fiscal!.cuit,
+            certPem,
+            keyPem,
+            environment,
+          },
+          {
+            salesPoint: fiscal!.sales_point,
+            total: Number(quotation.total ?? 0),
+            date: new Date(),
+          },
+        );
+      }
+    } catch (emissionError) {
+      // La emisión NO ocurrió (ARCA rechazó o no respondió): liberamos la
+      // reserva para que el usuario pueda reintentar.
+      await releaseClaim();
+      throw emissionError;
     }
 
     // 5) Persistir el CAE. El `.is("cae", null)` hace el guardado condicional:

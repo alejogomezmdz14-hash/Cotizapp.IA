@@ -286,21 +286,34 @@ export async function updateDraftQuotationAction(formData: FormData) {
   let clientName = sanitizedValues.inlineClient?.name ?? null;
 
   if (sanitizedValues.inlineClient) {
+    // NUNCA actualizamos el cliente existente de la cotización: puede ser un
+    // cliente elegido del listado (compartido con otras cotizaciones) y un
+    // UPDATE lo corrompería en toda la app. Si los datos coinciden exactamente
+    // lo reutilizamos; si cambiaron, creamos un cliente nuevo.
+    let reusableClient: { id: string; name: string } | null = null;
+
     if (existingQuotation.client_id) {
-      const { data, error } = await supabase
+      const { data: currentClient } = await supabase
         .from("clients")
-        .update(sanitizedValues.inlineClient)
+        .select("id, name, email, phone, address")
         .eq("id", existingQuotation.client_id)
         .eq("user_id", user.id)
-        .select("id, name")
         .maybeSingle();
 
-      if (error || !data) {
-        throw new Error("No se pudo actualizar el cliente de la cotización.");
+      if (
+        currentClient &&
+        currentClient.name === sanitizedValues.inlineClient.name &&
+        (currentClient.email ?? null) === (sanitizedValues.inlineClient.email ?? null) &&
+        (currentClient.phone ?? null) === (sanitizedValues.inlineClient.phone ?? null) &&
+        (currentClient.address ?? null) === (sanitizedValues.inlineClient.address ?? null)
+      ) {
+        reusableClient = { id: currentClient.id, name: currentClient.name };
       }
+    }
 
-      clientId = data.id;
-      clientName = data.name;
+    if (reusableClient) {
+      clientId = reusableClient.id;
+      clientName = reusableClient.name;
     } else {
       const { data, error } = await supabase
         .from("clients")
@@ -343,6 +356,11 @@ export async function updateDraftQuotationAction(formData: FormData) {
       tax_rate: sanitizedValues.taxRate,
       total: totals.total,
       valid_until: sanitizedValues.validUntil,
+      // El contenido cambió: invalidamos el PDF generado para que el próximo
+      // "Ver PDF" / "Enviar por WhatsApp" regenere con los datos nuevos (si no,
+      // el cliente recibe un PDF con precios viejos).
+      pdf_path: null,
+      pdf_generated_at: null,
     })
     .eq("id", quotationId.trim())
     .eq("user_id", user.id);
@@ -350,6 +368,14 @@ export async function updateDraftQuotationAction(formData: FormData) {
   if (updateError) {
     throw new Error("No se pudo actualizar la cotización borrador.");
   }
+
+  // Guardamos los ítems originales antes del delete+insert: si el insert de los
+  // nuevos falla, los restauramos para no dejar una cotización con totales
+  // nuevos y cero ítems (no hay transacciones vía PostgREST).
+  const { data: originalItemRows } = await supabase
+    .from("quotation_items")
+    .select("*")
+    .eq("quotation_id", quotationId.trim());
 
   const { error: deleteItemsError } = await supabase
     .from("quotation_items")
@@ -365,6 +391,28 @@ export async function updateDraftQuotationAction(formData: FormData) {
     .insert(buildQuotationItemInsertRows(quotationId.trim(), sanitizedValues.items));
 
   if (insertItemsError) {
+    // Best-effort: restaurar los ítems originales (sin id/created_at, que los
+    // regenera la DB) para que la cotización no quede vacía.
+    if (originalItemRows && originalItemRows.length > 0) {
+      const restoredRows = (originalItemRows as Array<Record<string, unknown>>).map(
+        (row) => {
+          const rest = { ...row };
+          delete rest.id;
+          delete rest.created_at;
+          return rest;
+        },
+      );
+      const { error: restoreError } = await supabase
+        .from("quotation_items")
+        .insert(restoredRows);
+
+      if (restoreError) {
+        console.error("[updateDraftQuotation] no se pudieron restaurar los ítems", {
+          quotationId,
+          reason: restoreError.message,
+        });
+      }
+    }
     throw new Error("No se pudieron guardar los ítems actualizados.");
   }
 
@@ -586,14 +634,12 @@ export async function updateQuotationStatusAction(
     normalizedStatus === "draft"
       ? null
       : quotationData.sent_at ?? nowIso;
-  const acceptedAt =
-    normalizedStatus === "accepted"
-      ? quotationData.accepted_at ?? nowIso
-      : quotationData.accepted_at ?? null;
-  const rejectedAt =
-    normalizedStatus === "rejected"
-      ? quotationData.rejected_at ?? nowIso
-      : quotationData.rejected_at ?? null;
+  // Los timestamps terminales reflejan el estado ACTUAL: al aceptar se sella
+  // ahora y se limpia el de rechazo (y viceversa); al volver a borrador o
+  // pendiente se limpian ambos. Antes, re-aceptar mostraba la fecha de la
+  // PRIMERA aceptación y podían coexistir accepted_at y rejected_at.
+  const acceptedAt = normalizedStatus === "accepted" ? nowIso : null;
+  const rejectedAt = normalizedStatus === "rejected" ? nowIso : null;
   const { data, error } = await supabase
     .from("quotations")
     .update({
@@ -621,6 +667,19 @@ export async function updateQuotationStatusAction(
 
 export async function duplicateQuotationAction(quotationId: string) {
   const user = await requireUser();
+
+  // Duplicar también crea una cotización: pasa por el mismo cupo del trial que
+  // createDraftQuotationAction (si no, "Duplicar" era un bypass infinito).
+  const isPaid = await isCurrentUserPaid();
+
+  if (!isPaid) {
+    const usage = await getTrialUsage(user.id);
+
+    if (!canCreateQuotation(usage.quotationsUsed, isPaid)) {
+      throw new Error(QUOTATION_TRIAL_LIMIT_ERROR);
+    }
+  }
+
   const supabase = await createClient();
   const { data: quotationData, error: quotationError } = await supabase
     .from("quotations")
@@ -702,6 +761,10 @@ export async function duplicateQuotationAction(quotationId: string) {
       .eq("id", duplicatedQuotation.id)
       .eq("user_id", user.id);
     throw new Error("No se pudieron duplicar los ítems de la cotización.");
+  }
+
+  if (!isPaid) {
+    await incrementTrialQuotations(user.id);
   }
 
   revalidateQuotationViews();

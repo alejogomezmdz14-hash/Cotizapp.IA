@@ -295,6 +295,8 @@ test("processPersistedInvoiceScan reuses cached completed scans without touching
       status: "completed",
     },
     result,
+    // Resultado cacheado: no hubo escaneo real → no debe consumir cupo del trial.
+    didScan: false,
   });
   assert.deepEqual(calls, ["get:scan-9"]);
 });

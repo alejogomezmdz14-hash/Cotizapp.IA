@@ -433,7 +433,9 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
     return parsedValue.map((item) => {
       const name = getOptionalStringValue(item.name);
       const quantity = parsePositiveDecimal(item.quantity);
-      const unitPrice = parsePositiveDecimal(item.unitPrice);
+      // Precio $0 permitido: la UI pide confirmación explícita ("¿Va en $0?")
+      // antes de guardar, así que el server debe aceptarlo.
+      const unitPrice = parseNonNegativeDecimal(item.unitPrice);
 
       if (!name || quantity === null || unitPrice === null) {
         throw new Error(

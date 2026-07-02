@@ -273,9 +273,11 @@ export async function processPersistedInvoiceScan(
   }
 
   if (resolved.kind === "ready") {
+    // Resultado cacheado: NO hubo escaneo real (didScan=false → no consume cupo).
     return {
       scan: toPublicInvoiceScan(scan, "completed"),
       result: resolved.review.result,
+      didScan: false,
     };
   }
 
@@ -313,6 +315,7 @@ export async function processPersistedInvoiceScan(
         return {
           scan: toPublicInvoiceScan(refreshedScan, "completed"),
           result: refreshedResolved.review.result,
+          didScan: false,
         };
       }
 
@@ -357,6 +360,7 @@ export async function processPersistedInvoiceScan(
     return {
       scan: toPublicInvoiceScan(scan, "completed"),
       result: aiScan.result,
+      didScan: true,
     };
   } catch (error) {
     if (shouldPersistFailure) {

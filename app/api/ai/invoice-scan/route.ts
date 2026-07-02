@@ -196,9 +196,10 @@ export async function POST(request: Request) {
       },
     );
 
-    // Escaneo exitoso: contamos el uso del trial. Fail-silent: si la columna no
-    // existe todavía, no rompe el resultado ya devuelto.
-    if (!isPaid) {
+    // Solo cuenta cupo un escaneo REAL: si la respuesta salió de caché (scan ya
+    // completado, re-POST o carrera), didScan es false y no se consume trial.
+    // Fail-silent: si la columna no existe todavía, no rompe el resultado.
+    if (!isPaid && response.didScan) {
       await incrementTrialInvoiceScans(user.id);
     }
 

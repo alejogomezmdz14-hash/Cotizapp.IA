@@ -76,9 +76,8 @@ export function normalizePhoneForWhatsApp(phone: string | null) {
     return `549${digitsOnly}`;
   }
 
-  if (/^\d{9}$/.test(digitsOnly)) {
-    return `549${digitsOnly.slice(-9)}`;
-  }
+  // Nota: NO hay rama para 9 dígitos — "549" + 9 dígitos da un número AR
+  // inválido (13 esperados). Mejor devolver null y que la UI pida el teléfono.
 
   return normalizeInternationalDigits(digitsOnly);
 }
