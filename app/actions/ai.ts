@@ -8,6 +8,12 @@ import { normalizeCatalogUnit } from "@/lib/catalog";
 import { normalizeExpenseCategory, normalizeExpenseDateInput } from "@/lib/expenses";
 import { requireUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { canCreateQuotation } from "@/lib/trial";
+import {
+  getTrialUsage,
+  incrementTrialQuotations,
+  isCurrentUserPaid,
+} from "@/lib/trial-usage";
 import type {
   CatalogPickerItem,
   ChatCatalogPriceUpdateAction,
@@ -285,6 +291,21 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
     );
   }
 
+  // Trial por uso: el chat crea por otra vía que createDraftQuotationAction, así
+  // que gateamos acá también para que no se saltee el cupo. FAIL-OPEN. El chat
+  // muestra este message tal cual, por eso va en voseo (no el sentinel interno).
+  const isPaid = await isCurrentUserPaid();
+
+  if (!isPaid) {
+    const usage = await getTrialUsage(user.id);
+
+    if (!canCreateQuotation(usage.quotationsUsed, isPaid)) {
+      throw new Error(
+        "Llegaste al límite de cotizaciones del trial gratis. Escribinos por WhatsApp para pasar a Pro y seguir cotizando.",
+      );
+    }
+  }
+
   const result = await createCotizacion(user.id, {
     cliente_id: suggestion.clientId,
     items: suggestion.items.map((item) => ({
@@ -301,6 +322,11 @@ export async function confirmDraftQuotationSuggestionAction(input: unknown) {
   });
 
   revalidateAiViews();
+
+  // Contamos el uso del trial recién tras crear OK. Fail-silent.
+  if (!isPaid) {
+    await incrementTrialQuotations(user.id);
+  }
 
   return {
     quotationId: result.id,
