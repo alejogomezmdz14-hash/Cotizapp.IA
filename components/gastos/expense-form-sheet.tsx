@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { EXPENSE_CATEGORIES } from "@/lib/expense-categories";
 import { EXPENSE_CURRENCIES } from "@/lib/expense-currencies";
+import { parseExpenseAmountInput } from "@/lib/expense-amount";
 import { formatExpenseAmount } from "@/lib/formatting";
 import type { Expense, ExpenseReceiptScanResult } from "@/types";
 import { useGastoStore } from "@/store/gasto-store";
@@ -43,13 +44,6 @@ type ReceiptUploadResponse = {
 
 function todayDateInputValue() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function formatAmountForInput(value: number) {
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
 }
 
 export function ExpenseFormSheet({
@@ -82,7 +76,6 @@ export function ExpenseFormSheet({
   const isEditing = Boolean(expense?.id);
   const patchGastoDraft = useGastoStore((state) => state.patchDraft);
   const resetGastoDraft = useGastoStore((state) => state.resetDraft);
-  const storedGastoDraft = useGastoStore((state) => state.draft);
 
   useEffect(() => {
     if (!open) {
@@ -96,7 +89,7 @@ export function ExpenseFormSheet({
 
     if (expense) {
       setDescription(expense.description);
-      setAmount(formatAmountForInput(expense.amount));
+      setAmount(String(expense.amount));
       setCurrency(expense.currency);
       setCategory(expense.category);
       setDate(expense.date);
@@ -105,6 +98,11 @@ export function ExpenseFormSheet({
       setReceiptPreviewUrl(null);
       return;
     }
+
+    // Lectura imperativa del store: restaura el borrador solo cuando el sheet
+    // se abre, sin suscribirse a los cambios del draft (evita el loop con el
+    // efecto persistidor).
+    const storedGastoDraft = useGastoStore.getState().draft;
 
     if (storedGastoDraft.hasUnsavedDraft) {
       setDescription(storedGastoDraft.description);
@@ -126,7 +124,7 @@ export function ExpenseFormSheet({
     setNotes("");
     setReceiptPath(null);
     setReceiptPreviewUrl(null);
-  }, [open, expense, defaultCurrency, storedGastoDraft]);
+  }, [open, expense, defaultCurrency]);
 
   useEffect(() => {
     if (!open || isEditing) {
@@ -235,7 +233,7 @@ export function ExpenseFormSheet({
     }
 
     if (scanPreview.amount !== null) {
-      setAmount(formatAmountForInput(scanPreview.amount));
+      setAmount(String(scanPreview.amount));
     }
 
     if (scanPreview.currency) {
@@ -255,8 +253,8 @@ export function ExpenseFormSheet({
     event.preventDefault();
     setError(null);
 
-    const parsedAmount = Number.parseFloat(amount.trim().replace(",", "."));
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = parseExpenseAmountInput(amount);
+    if (parsedAmount === null || parsedAmount <= 0) {
       setAmountError("El monto debe ser mayor a 0");
       return;
     }
@@ -281,6 +279,19 @@ export function ExpenseFormSheet({
       } else {
         await createExpenseFromInput(payload);
         resetGastoDraft(defaultCurrency);
+        // Limpiamos también el estado local: si queda con los valores recién
+        // guardados, el efecto persistidor los re-escribe al store y al
+        // reabrir el sheet se restaura (y puede duplicarse) el gasto guardado.
+        setDescription("");
+        setAmount("");
+        setCurrency(defaultCurrency);
+        setCategory("Materiales");
+        setDate(todayDateInputValue());
+        setNotes("");
+        setReceiptPath(null);
+        setReceiptPreviewUrl(null);
+        setSelectedFile(null);
+        setScanPreview(null);
       }
 
       onSaved();

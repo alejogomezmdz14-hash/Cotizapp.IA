@@ -19,10 +19,26 @@ test("normalizeCuit devuelve el original (trim) si no son 11 dígitos", () => {
 });
 
 test("isValidCuitFormat acepta solo el formato XX-XXXXXXXX-X", () => {
-  assert.equal(isValidCuitFormat("20-12345678-9"), true);
-  assert.equal(isValidCuitFormat("20123456789"), false);
+  assert.equal(isValidCuitFormat("20-12345678-6"), true);
+  assert.equal(isValidCuitFormat("20123456786"), false);
   assert.equal(isValidCuitFormat("2-12345678-9"), false);
   assert.equal(isValidCuitFormat(""), false);
+});
+
+test("isValidCuitFormat valida el dígito verificador (módulo 11 de AFIP)", () => {
+  // Verificador correcto: pesos [5,4,3,2,7,6,5,4,3,2] → 148 % 11 = 5 → 11 - 5 = 6.
+  assert.equal(isValidCuitFormat("20-12345678-6"), true);
+  // CUIT real (AFIP): 145 % 11 = 2 → 11 - 2 = 9.
+  assert.equal(isValidCuitFormat("33-69345023-9"), true);
+  // Caso borde 11 → 0: 198 % 11 = 0 → dígito esperado 0.
+  assert.equal(isValidCuitFormat("30-71659554-0"), true);
+  // Caso borde 10 → 9: 12 % 11 = 1 → 11 - 1 = 10 → dígito esperado 9.
+  assert.equal(isValidCuitFormat("20-00000001-9"), true);
+
+  // Formato correcto pero verificador inválido: debe rechazarse.
+  assert.equal(isValidCuitFormat("20-12345678-9"), false);
+  assert.equal(isValidCuitFormat("33-69345023-1"), false);
+  assert.equal(isValidCuitFormat("20-00000001-0"), false);
 });
 
 test("normalizeContributorType valida los dos tipos", () => {

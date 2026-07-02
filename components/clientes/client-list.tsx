@@ -304,27 +304,64 @@ export function ClientList({ clients, search }: ClientListProps) {
         </div>
       )}
 
-      <ConfirmDialog
-        open={Boolean(pendingDelete)}
-        title="Eliminar cliente"
-        description={
-          pendingDelete
-            ? pendingDelete.quotationCount > 0
-              ? `¿Seguro que querés eliminar a ${pendingDelete.name}? Tiene ${pendingDelete.quotationCount} cotización${
+      {pendingDelete && pendingDelete.quotationCount > 0 ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <button
+            type="button"
+            aria-label="Cerrar diálogo"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setPendingDelete(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="client-delete-blocked-title"
+            aria-describedby="client-delete-blocked-description"
+            className="relative z-10 w-full max-w-md rounded-[1.75rem] border border-token bg-background p-6 shadow-2xl"
+          >
+            <div className="space-y-2">
+              <h2
+                id="client-delete-blocked-title"
+                className="text-lg font-semibold text-foreground"
+              >
+                No se puede eliminar
+              </h2>
+              <p
+                id="client-delete-blocked-description"
+                className="text-sm leading-6 text-muted-foreground"
+              >
+                {`Este cliente tiene ${pendingDelete.quotationCount} cotización${
                   pendingDelete.quotationCount === 1 ? "" : "es"
                 } asociada${
                   pendingDelete.quotationCount === 1 ? "" : "s"
-                }. No se puede deshacer.`
-              : `¿Seguro que querés eliminar a ${pendingDelete.name}? No se puede deshacer.`
-            : ""
-        }
-        confirmLabel="Sí, eliminar"
-        isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          void confirmDelete();
-        }}
-      />
+                }. Para eliminarlo, primero eliminá o reasigná esas cotizaciones.`}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col sm:flex-row sm:justify-end">
+              <Button type="button" onClick={() => setPendingDelete(null)}>
+                Entendido
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <ConfirmDialog
+          open={Boolean(pendingDelete)}
+          title="Eliminar cliente"
+          description={
+            pendingDelete
+              ? `¿Seguro que querés eliminar a ${pendingDelete.name}? No se puede deshacer.`
+              : ""
+          }
+          confirmLabel="Sí, eliminar"
+          isLoading={Boolean(pendingDelete && deletingId === pendingDelete.id)}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            void confirmDelete();
+          }}
+        />
+      )}
     </section>
   );
 }

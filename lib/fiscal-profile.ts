@@ -16,6 +16,7 @@ export type FiscalProfile = {
 };
 
 const CUIT_FORMAT = /^\d{2}-\d{8}-\d$/;
+const CUIT_CHECK_DIGIT_WEIGHTS = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
 
 export function normalizeCuit(value: string): string {
   const digits = value.replace(/\D/g, "");
@@ -28,7 +29,28 @@ export function normalizeCuit(value: string): string {
 }
 
 export function isValidCuitFormat(value: string): boolean {
-  return CUIT_FORMAT.test(value.trim());
+  const trimmed = value.trim();
+
+  if (!CUIT_FORMAT.test(trimmed)) {
+    return false;
+  }
+
+  // Dígito verificador módulo 11 (algoritmo estándar de AFIP).
+  const digits = trimmed.replace(/-/g, "");
+  const sum = CUIT_CHECK_DIGIT_WEIGHTS.reduce(
+    (total, weight, index) => total + weight * Number(digits[index]),
+    0,
+  );
+  const remainder = sum % 11;
+  let expectedCheckDigit = 11 - remainder;
+
+  if (expectedCheckDigit === 11) {
+    expectedCheckDigit = 0;
+  } else if (expectedCheckDigit === 10) {
+    expectedCheckDigit = 9;
+  }
+
+  return Number(digits[10]) === expectedCheckDigit;
 }
 
 export function normalizeContributorType(
