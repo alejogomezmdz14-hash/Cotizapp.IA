@@ -27,6 +27,8 @@ import { QuotationShareActions } from "@/components/cotizacion/quotation-share-a
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { QuotationEditorMobile } from "@/components/cotizacion/quotation-editor-mobile";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { UpgradePaywall } from "@/components/trial/upgrade-paywall";
+import { QUOTATION_TRIAL_LIMIT_ERROR } from "@/lib/trial";
 import { useCotizacionStore } from "@/store/cotizacion-store";
 import { InvoiceItemsReview } from "@/components/uploads/invoice-items-review";
 import { InvoiceDropzone } from "@/components/uploads/invoice-dropzone";
@@ -170,6 +172,7 @@ export function QuotationForm({
   const notes = draft.notes;
   const draftBannerVisible = draft.draftBannerVisible;
   const [error, setError] = useState<string | null>(null);
+  const [trialBlocked, setTrialBlocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingZeroPriceConfirm, setPendingZeroPriceConfirm] = useState(false);
   const [savedDraft, setSavedDraft] = useState<SavedDraftState | null>(initialDraft);
@@ -519,6 +522,7 @@ export function QuotationForm({
     }
 
     setError(null);
+    setTrialBlocked(false);
     setIsSubmitting(true);
 
     try {
@@ -555,7 +559,15 @@ export function QuotationForm({
         }),
       );
     } catch (submissionError) {
-      setError(getErrorMessage(submissionError));
+      if (
+        submissionError instanceof Error &&
+        submissionError.message === QUOTATION_TRIAL_LIMIT_ERROR
+      ) {
+        setTrialBlocked(true);
+        setError(null);
+      } else {
+        setError(getErrorMessage(submissionError));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -654,6 +666,12 @@ export function QuotationForm({
 
   return (
     <>
+      {trialBlocked ? (
+        <div className="mb-4">
+          <UpgradePaywall reason="quotations" />
+        </div>
+      ) : null}
+
       <div className="xl:hidden">
         {draftBannerVisible ? (
           <div className="mb-4 rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.08)] px-4 py-4 text-sm">

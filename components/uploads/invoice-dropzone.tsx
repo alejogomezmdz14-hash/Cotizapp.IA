@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { UpgradePaywall } from "@/components/trial/upgrade-paywall";
 import { createPendingTaskSignal } from "@/lib/pending-tasks";
 import type { HydratedInvoiceScanReview, InvoiceScanResult } from "@/types";
 
@@ -38,6 +39,7 @@ type ScanInvoiceResponse = {
   };
   result?: InvoiceScanResult;
   error?: string;
+  code?: string;
 };
 
 type InvoiceDropzoneProps = {
@@ -76,6 +78,7 @@ export function InvoiceDropzone({
   const [isUploading, setIsUploading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trialBlocked, setTrialBlocked] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [lastFileName, setLastFileName] = useState<string | null>(null);
 
@@ -99,6 +102,7 @@ export function InvoiceDropzone({
     fileName: string;
   }) {
     setError(null);
+    setTrialBlocked(false);
     setStatus("Factura cargada. Analizando items...");
     setIsScanning(true);
     onScanPersisted({
@@ -122,6 +126,20 @@ export function InvoiceDropzone({
         signal,
       });
       const scanPayload = await getJsonResponse<ScanInvoiceResponse>(scanResponse);
+
+      // Trial sin cupo: mostramos el paywall en vez del error rojo genérico. El
+      // escaneo no se consumió, así que devolvemos el scan a "uploaded".
+      if (scanResponse.status === 402 || scanPayload.code === "trial_limit") {
+        setTrialBlocked(true);
+        setStatus(null);
+        onScanPersisted({
+          scanId: scan.id,
+          fileName: scan.fileName,
+          status: "uploaded",
+          failureMessage: null,
+        });
+        return;
+      }
 
       if (!scanResponse.ok || !scanPayload.scan || !scanPayload.result) {
         throw new Error(
@@ -455,7 +473,9 @@ export function InvoiceDropzone({
           </p>
         ) : null}
 
-        {error ? (
+        {trialBlocked ? <UpgradePaywall reason="invoices" /> : null}
+
+        {error && !trialBlocked ? (
           <p className="rounded-[1.5rem] border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </p>
