@@ -377,6 +377,8 @@ export type ChatUiHint =
   | {
       type: "client_selector";
       clients: ChatClientListItem[];
+      /** Ítems dictados en el mismo pedido (p. ej. "cotizame 3 canillas a 8500 para Juan"). */
+      suggestedItems?: ChatSuggestedQuotationItem[];
     }
   | {
       type: "catalog_picker";

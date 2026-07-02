@@ -8,6 +8,7 @@ import {
   buildBusinessChatExpenseSnapshot,
   buildBusinessChatSystemPrompt,
   buildBusinessChatContext,
+  extractDraftQuotationItems,
   filterExpensesByPeriod,
   filterQuotationsByPeriod,
   attachClientSelectorUiHint,
@@ -508,6 +509,83 @@ test("normalizeBusinessChatResult keeps intermediate replies after client select
 
   assert.equal(result.suggestedAction, null);
   assert.match(result.reply, /Quedó lista la cotización/i);
+});
+
+test("extractDraftQuotationItems recovers dictated items even without a valid client", () => {
+  const items = extractDraftQuotationItems(
+    {
+      reply: "¿Para cuál cliente es la cotización?",
+      suggestedAction: {
+        type: "draft_quotation_create",
+        clientId: null,
+        clientName: "Juan (no existe)",
+        items: [
+          {
+            name: " Canilla cromada ",
+            quantity: "3",
+            unit: "unidad",
+            unitPrice: "8500",
+          },
+          {
+            catalogItemId: "item-1",
+            name: "Producto 1",
+            quantity: 2,
+            unit: "unidad",
+            unitPrice: 1000,
+          },
+          {
+            name: "",
+            quantity: 0,
+            unitPrice: -1,
+          },
+        ],
+      },
+    },
+    {
+      clients: [],
+      catalogItems: [createCatalogItem(1)],
+    },
+  );
+
+  assert.deepEqual(items, [
+    {
+      catalogItemId: null,
+      name: "Canilla cromada",
+      description: null,
+      quantity: 3,
+      unit: "unidad",
+      unitPrice: 8500,
+    },
+    {
+      catalogItemId: "item-1",
+      name: "Producto 1",
+      description: null,
+      quantity: 2,
+      unit: "unidad",
+      unitPrice: 1000,
+    },
+  ]);
+});
+
+test("extractDraftQuotationItems ignores non-quotation suggestions", () => {
+  assert.deepEqual(
+    extractDraftQuotationItems(
+      {
+        reply: "Registro un gasto.",
+        suggestedAction: {
+          type: "expense_create",
+          description: "Nafta",
+          amount: 5000,
+        },
+      },
+      { clients: [], catalogItems: [] },
+    ),
+    [],
+  );
+  assert.deepEqual(
+    extractDraftQuotationItems(null, { clients: [], catalogItems: [] }),
+    [],
+  );
 });
 
 test("resolveSelectedClientFromRequest returns only clients from available list", () => {

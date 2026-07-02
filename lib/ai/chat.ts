@@ -599,6 +599,33 @@ function normalizeSuggestedQuotationItem(
   };
 }
 
+/**
+ * Extrae los ítems dictados de un draft_quotation_create crudo del modelo,
+ * aunque la acción completa se descarte (p. ej. porque falta un cliente
+ * válido). Reutiliza el mismo parseo que normalizeSuggestedAction.
+ */
+export function extractDraftQuotationItems(
+  input: unknown,
+  references: BusinessChatReferences,
+): ChatSuggestedQuotationItem[] {
+  if (!isRecord(input) || !isRecord(input.suggestedAction)) {
+    return [];
+  }
+
+  const action = input.suggestedAction;
+
+  if (getTrimmedString(action.type) !== "draft_quotation_create") {
+    return [];
+  }
+
+  const catalogIds = new Set(references.catalogItems.map((item) => item.id));
+  const rawItems = Array.isArray(action.items) ? action.items : [];
+
+  return rawItems
+    .map((item) => normalizeSuggestedQuotationItem(item, catalogIds))
+    .filter((item): item is ChatSuggestedQuotationItem => item !== null);
+}
+
 function normalizeSuggestedAction(
   input: unknown,
   references: BusinessChatReferences,
@@ -919,10 +946,32 @@ export async function runBusinessChat(
     isQuotationCreateIntent(prompt) &&
     !result.suggestedAction &&
     !selectedClient &&
-    context.availableClients.length > 0 &&
-    !result.reply.includes("¿Para cuál cliente")
+    context.availableClients.length > 0
   ) {
-    return buildClientSelectorReply(context.availableClients);
+    // Ítems dictados en el mismo turno (p. ej. "cotizame 3 canillas a 8500
+    // para Juan"): sin cliente válido la acción completa se descarta, pero
+    // los ítems parseados viajan en el hint para no perderlos.
+    const dictatedItems = extractDraftQuotationItems(parsed, references);
+    const needsSelectorFallback = !result.reply.includes("¿Para cuál cliente");
+
+    if (needsSelectorFallback || dictatedItems.length > 0) {
+      const selectorReply = buildClientSelectorReply(context.availableClients);
+
+      if (
+        dictatedItems.length > 0 &&
+        selectorReply.uiHint?.type === "client_selector"
+      ) {
+        return {
+          ...selectorReply,
+          uiHint: {
+            ...selectorReply.uiHint,
+            suggestedItems: dictatedItems,
+          },
+        };
+      }
+
+      return selectorReply;
+    }
   }
 
   return result;

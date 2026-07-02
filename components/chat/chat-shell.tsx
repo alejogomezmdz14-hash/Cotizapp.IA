@@ -38,8 +38,20 @@ async function getJsonResponse<T>(response: Response): Promise<T> {
   }
 }
 
-const CONFIRM_REGEX = /^(si|sí|dale|confirma|confirmá|ok|de una|mandale)\b/i;
-const CANCEL_REGEX = /^(no|cancel(a|á)|descarta|dejalo)\b/i;
+// Estos regex se testean sobre texto ya normalizado (minúsculas y sin tildes):
+// el \b de JS es solo ASCII, así que "sí"/"confirmá" no matchean sin normalizar.
+// "si" suelto solo confirma si es el mensaje entero o si lo sigue otra palabra
+// de confirmación ("sí, dale"); "si me parece caro" NO confirma.
+const CONFIRM_REGEX = /^si[\s,.!]*$|^(si[\s,.!]+)?(dale|confirma|ok|de una|mandale)\b/i;
+const CANCEL_REGEX = /^(no|cancela|descarta|dejalo)\b/i;
+
+/** Normaliza el texto del usuario para matchear confirmaciones sin tildes. */
+function normalizeForIntentMatch(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
 
 function buildSuggestionPreview(suggestion: ChatSuggestedAction) {
   if (suggestion.type === "draft_quotation_create") {
@@ -86,6 +98,9 @@ export function ChatShell() {
     validUntil: string | null;
     notes: string | null;
   } | null>(null);
+  // Ítems dictados en el prompt inicial ("cotizame 3 canillas a 8500 para
+  // Juan") que llegan junto al selector de cliente; se usan al elegir cliente.
+  const pendingDictatedItemsRef = useRef<ChatSuggestedQuotationItem[] | null>(null);
 
   function createMessage(
     role: ChatRole,
@@ -134,7 +149,9 @@ export function ChatShell() {
       return;
     }
 
-    if (pendingSuggestion && CONFIRM_REGEX.test(trimmedContent)) {
+    const normalizedContent = normalizeForIntentMatch(trimmedContent);
+
+    if (pendingSuggestion && CONFIRM_REGEX.test(normalizedContent)) {
       const suggestionToConfirm = pendingSuggestion;
       setIsSubmitting(true);
       try {
@@ -157,6 +174,10 @@ export function ChatShell() {
           ]);
           setPendingSuggestion(null);
           setSelectedClient(null);
+          // Descartar también el borrador con card de preview activa: si
+          // quedara vivo, "Confirmar y guardar" crearía una segunda cotización.
+          draftRef.current = null;
+          pendingDictatedItemsRef.current = null;
           setQuotationPhase("post_saved");
         } else if (suggestionToConfirm.type === "expense_create") {
           const result = await confirmExpenseCreateSuggestionAction(suggestionToConfirm);
@@ -186,7 +207,7 @@ export function ChatShell() {
       return;
     }
 
-    if (pendingSuggestion && CANCEL_REGEX.test(trimmedContent)) {
+    if (pendingSuggestion && CANCEL_REGEX.test(normalizedContent)) {
       setPendingSuggestion(null);
       setQuotationPhase("idle");
       setMessages((currentMessages) => [
@@ -229,6 +250,14 @@ export function ChatShell() {
           uiHint: payload.uiHint ?? null,
         }),
       ]);
+      if (payload.uiHint?.type === "client_selector") {
+        // Guardar los ítems dictados junto al pedido (si vinieron) para
+        // sembrar el selector de catálogo cuando el usuario elija cliente.
+        pendingDictatedItemsRef.current =
+          payload.uiHint.suggestedItems && payload.uiHint.suggestedItems.length > 0
+            ? payload.uiHint.suggestedItems
+            : null;
+      }
       const nextSuggestion = getNextPendingSuggestion({
         type: "response",
         suggestedAction: payload.suggestedAction,
@@ -265,13 +294,16 @@ export function ChatShell() {
       return;
     }
 
+    const dictatedItems = pendingDictatedItemsRef.current ?? [];
+    pendingDictatedItemsRef.current = null;
+
     setSelectedClient(client);
     setQuotationPhase("with_client");
     setIsSubmitting(true);
     draftRef.current = {
       clientId: client.id,
       clientName: client.nombre,
-      items: [],
+      items: dictatedItems,
       taxRate: null,
       validUntil: null,
       notes: null,
@@ -288,6 +320,7 @@ export function ChatShell() {
             items: catalogItems,
             clientId: client.id,
             clientName: client.nombre,
+            initialItems: dictatedItems,
           },
         }),
       ]);
@@ -342,18 +375,13 @@ export function ChatShell() {
     items: ChatSuggestedQuotationItem[],
   ) {
     const previousDraft = draftRef.current;
-    // La selección nueva reemplaza los ítems de catálogo; los ítems manuales
-    // (sin catalogItemId) agregados antes se conservan.
-    const manualItems =
-      previousDraft && previousDraft.clientId === clientId
-        ? previousDraft.items.filter((item) => !item.catalogItemId)
-        : [];
-    const mergedItems = [...items, ...manualItems];
-
+    // El selector devuelve la selección completa (ítems de catálogo + ítems
+    // manuales, ya que los recibe como initialItems), así que reemplaza los
+    // ítems del borrador; mergear los manuales previos los duplicaría.
     draftRef.current = {
       clientId,
       clientName,
-      items: mergedItems,
+      items,
       taxRate: previousDraft?.taxRate ?? null,
       validUntil: previousDraft?.validUntil ?? null,
       notes: previousDraft?.notes ?? null,
@@ -363,7 +391,7 @@ export function ChatShell() {
       ...currentMessages,
       createMessage("assistant", "", {
         pendingSummary: {
-          items: mergedItems,
+          items,
           initialTaxRate: previousDraft?.taxRate ?? null,
           initialValidUntil: previousDraft?.validUntil ?? null,
           initialNotes: previousDraft?.notes ?? null,
@@ -440,7 +468,11 @@ export function ChatShell() {
         }),
       ]);
       setSelectedClient(null);
+      // Descartar también la sugerencia pendiente de la confirmación por
+      // texto: si quedara viva, un "dale" posterior duplicaría la cotización.
+      setPendingSuggestion(null);
       draftRef.current = null;
+      pendingDictatedItemsRef.current = null;
       setQuotationPhase("post_saved");
     } catch (error) {
       const message =
@@ -472,6 +504,7 @@ export function ChatShell() {
     setSelectedClient(null);
     setPendingSuggestion(null);
     draftRef.current = null;
+    pendingDictatedItemsRef.current = null;
     void sendUserMessage("Crear una nueva cotización");
   }
 
