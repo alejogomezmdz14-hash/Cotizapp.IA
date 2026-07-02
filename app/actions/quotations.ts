@@ -28,6 +28,12 @@ import {
 import { buildSharedQuotationPdfPath } from "@/lib/storage/paths";
 import { removeFile, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
+import { canCreateQuotation, QUOTATION_TRIAL_LIMIT_ERROR } from "@/lib/trial";
+import {
+  getTrialUsage,
+  incrementTrialQuotations,
+  isCurrentUserPaid,
+} from "@/lib/trial-usage";
 import type { QuotationAttachment } from "@/types";
 
 const EDITABLE_QUOTATION_STATUSES = new Set([
@@ -51,6 +57,19 @@ function revalidateQuotationViews(quotationId?: string) {
 
 export async function createDraftQuotationAction(formData: FormData) {
   const user = await requireUser();
+
+  // Trial por uso: los pagos son ilimitados; el trial se corta al llegar al
+  // cupo. Todo el bloque es FAIL-OPEN (getTrialUsage devuelve 0 si algo falla).
+  const isPaid = await isCurrentUserPaid();
+
+  if (!isPaid) {
+    const usage = await getTrialUsage(user.id);
+
+    if (!canCreateQuotation(usage.quotationsUsed, isPaid)) {
+      throw new Error(QUOTATION_TRIAL_LIMIT_ERROR);
+    }
+  }
+
   const values = parseQuotationFormData(formData);
   const supabase = await createClient();
   const requestedCatalogItemIds = Array.from(
@@ -197,6 +216,12 @@ export async function createDraftQuotationAction(formData: FormData) {
   );
 
   revalidateQuotationViews();
+
+  // Sólo contamos en CREATE (no en update). Fail-silent: si la columna no existe
+  // todavía, no rompe la creación recién hecha.
+  if (!isPaid) {
+    await incrementTrialQuotations(user.id);
+  }
 
   return result;
 }

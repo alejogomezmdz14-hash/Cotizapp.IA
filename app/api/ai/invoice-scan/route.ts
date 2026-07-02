@@ -12,6 +12,12 @@ import {
 import { getCurrentUser } from "@/lib/profile";
 import { downloadFile, STORAGE_BUCKETS } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
+import { canScanInvoice } from "@/lib/trial";
+import {
+  getTrialUsage,
+  incrementTrialInvoiceScans,
+  isCurrentUserPaid,
+} from "@/lib/trial-usage";
 import type { InvoiceScan } from "@/types";
 
 type InvoiceScanRequestBody = { scanId?: string };
@@ -112,6 +118,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // Trial por uso: los pagos son ilimitados; el trial se corta al llegar al
+    // cupo de escaneos. FAIL-OPEN: getTrialUsage devuelve 0 si algo falla.
+    const isPaid = await isCurrentUserPaid();
+
+    if (!isPaid) {
+      const usage = await getTrialUsage(user.id);
+
+      if (!canScanInvoice(usage.invoiceScansUsed, isPaid)) {
+        return NextResponse.json(
+          {
+            error: "Llegaste al límite de escaneos gratis.",
+            code: "trial_limit",
+          },
+          {
+            status: 402,
+          },
+        );
+      }
+    }
+
     const response = await processPersistedInvoiceScan(
       {
         getScan: (targetScanId) => getInvoiceScanForUser(user.id, targetScanId),
@@ -169,6 +195,12 @@ export async function POST(request: Request) {
         scanId,
       },
     );
+
+    // Escaneo exitoso: contamos el uso del trial. Fail-silent: si la columna no
+    // existe todavía, no rompe el resultado ya devuelto.
+    if (!isPaid) {
+      await incrementTrialInvoiceScans(user.id);
+    }
 
     return NextResponse.json(response);
   } catch (error) {
