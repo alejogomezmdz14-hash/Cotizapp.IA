@@ -137,6 +137,9 @@ async function getDashboardQuotationMetricsFallback(userId: string) {
 
     if (
       (status === "pending" || status === "sent") &&
+      // Igual que el RPC (migración 20260531): pendiente exige sent_at IS NULL,
+      // si no una cotización enviada contaría doble (enviada + pendiente).
+      !Number.isFinite(sentAt) &&
       Number.isFinite(createdAt) &&
       createdAt >= monthStartMs &&
       createdAt < nextMonthStartMs
@@ -195,7 +198,7 @@ export async function getDashboardStats(
     })),
     getAcceptedQuotedThisMonth().catch(() => 0),
     getCollectedThisMonth(userId).catch(() => 0),
-    getDashboardMonthlyComparison(userId).catch(() => []),
+    getDashboardMonthlyComparison(userId, profileCurrency).catch(() => []),
   ]);
 
   if (clientsResult.error || catalogItemsResult.error) {

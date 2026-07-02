@@ -1,3 +1,4 @@
+import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import { formatMonthShortLabel } from "@/lib/formatting";
 import { normalizeQuotationStatus } from "@/lib/quotation-status";
 import { createClient } from "@/lib/supabase/server";
@@ -57,8 +58,10 @@ export async function getCollectedThisMonth(userId: string) {
 
 export async function getDashboardMonthlyComparison(
   userId: string,
+  profileCurrency: string | null,
 ): Promise<DashboardMonthlyPoint[]> {
   const supabase = await createClient();
+  const normalizedProfileCurrency = normalizeExpenseCurrency(profileCurrency);
   const monthRanges = Array.from({ length: 6 }, (_, index) =>
     getMonthBoundaries(5 - index),
   );
@@ -74,7 +77,7 @@ export async function getDashboardMonthlyComparison(
           .lte("created_at", range.isoEnd),
         supabase
           .from("expenses")
-          .select("amount")
+          .select("amount, currency")
           .eq("user_id", userId)
           .gte("date", range.dateOnlyStart)
           .lte("date", range.dateOnlyEnd),
@@ -93,8 +96,15 @@ export async function getDashboardMonthlyComparison(
             : sum,
         0,
       );
+      // El gráfico no puede sumar monedas mezcladas: solo cuentan los gastos
+      // en la moneda del perfil (misma con la que la UI formatea el eje).
       const expenses = (expensesResult.data ?? []).reduce(
-        (sum, row) => sum + parseAmount(row.amount),
+        (sum, row) =>
+          normalizeExpenseCurrency(
+            (row as { currency: string | null }).currency,
+          ) === normalizedProfileCurrency
+            ? sum + parseAmount(row.amount)
+            : sum,
         0,
       );
 

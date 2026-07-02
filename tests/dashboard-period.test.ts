@@ -74,6 +74,9 @@ test("summarizeDashboardPeriod no calcula neto con múltiples monedas", () => {
   assert.equal(summary.canCalculateNet, false);
   assert.equal(summary.net, 0);
   assert.equal(summary.accepted, 1000);
+  // Con varias monedas, "spent" es el total de la moneda del perfil (la UI lo
+  // formatea con esa moneda), nunca una moneda arbitraria del Map.
+  assert.equal(summary.spent, 200);
 });
 
 test("summarizeDashboardPeriod sin gastos deja neto en 0", () => {

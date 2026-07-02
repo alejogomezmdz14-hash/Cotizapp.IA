@@ -17,10 +17,24 @@ export type DashboardPeriodBoundaries = {
   endDateOnly: string;
 };
 
-function toDateOnly(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+const AR_UTC_OFFSET_MS = 3 * 60 * 60 * 1000; // Argentina = UTC-3, sin DST desde 2009
+
+/** Devuelve el "reloj de pared" argentino expresado en campos UTC. */
+function toArgentinaWallClock(now: Date) {
+  return new Date(now.getTime() - AR_UTC_OFFSET_MS);
+}
+
+/** Convierte un instante armado con Date.UTC sobre el reloj de pared AR al instante real. */
+function fromArgentinaWallClock(wallClockMs: number) {
+  return new Date(wallClockMs + AR_UTC_OFFSET_MS);
+}
+
+/** Fecha YYYY-MM-DD según el reloj de pared argentino. */
+function toDateOnlyFromWallClock(wallClockMs: number) {
+  const wall = new Date(wallClockMs);
+  const year = wall.getUTCFullYear();
+  const month = String(wall.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(wall.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -28,50 +42,48 @@ export function getPeriodBoundaries(
   period: DashboardPeriod,
   now: Date = new Date(),
 ): DashboardPeriodBoundaries {
+  // Los límites se calculan en hora argentina (UTC-3 fijo), no en la TZ del
+  // server: en Vercel (UTC) el mes/semana rotaría a las 21:00 de Argentina.
+  const wall = toArgentinaWallClock(now);
+  const year = wall.getUTCFullYear();
+  const month = wall.getUTCMonth();
+
   if (period === "week") {
-    // getDay(): 0=domingo..6=sábado. Queremos arrancar el lunes.
-    const diffToMonday = (now.getDay() + 6) % 7;
-    const start = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() - diffToMonday,
+    // getUTCDay(): 0=domingo..6=sábado. Queremos arrancar el lunes.
+    const diffToMonday = (wall.getUTCDay() + 6) % 7;
+    const startWallMs = Date.UTC(
+      year,
+      month,
+      wall.getUTCDate() - diffToMonday,
       0,
       0,
       0,
       0,
     );
-    const end = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate() + 6,
+    const endWallMs = Date.UTC(
+      year,
+      month,
+      wall.getUTCDate() - diffToMonday + 6,
       23,
       59,
       59,
       999,
     );
     return {
-      start,
-      end,
-      startDateOnly: toDateOnly(start),
-      endDateOnly: toDateOnly(end),
+      start: fromArgentinaWallClock(startWallMs),
+      end: fromArgentinaWallClock(endWallMs),
+      startDateOnly: toDateOnlyFromWallClock(startWallMs),
+      endDateOnly: toDateOnlyFromWallClock(endWallMs),
     };
   }
 
-  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  const end = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
-  );
+  const startWallMs = Date.UTC(year, month, 1, 0, 0, 0, 0);
+  const endWallMs = Date.UTC(year, month + 1, 0, 23, 59, 59, 999);
   return {
-    start,
-    end,
-    startDateOnly: toDateOnly(start),
-    endDateOnly: toDateOnly(end),
+    start: fromArgentinaWallClock(startWallMs),
+    end: fromArgentinaWallClock(endWallMs),
+    startDateOnly: toDateOnlyFromWallClock(startWallMs),
+    endDateOnly: toDateOnlyFromWallClock(endWallMs),
   };
 }
 
@@ -125,10 +137,12 @@ export function summarizeDashboardPeriod(input: {
   }
 
   const entries = Array.from(totalsByCurrency.entries());
-  const spent = entries[0]?.[1] ?? 0;
   const normalizedProfileCurrency = normalizeExpenseCurrency(
     input.profileCurrency,
   );
+  // "Gastos" siempre muestra el total en la moneda del perfil (la UI lo
+  // formatea con esa moneda); tomar la primera entrada del Map era arbitrario.
+  const spent = totalsByCurrency.get(normalizedProfileCurrency) ?? 0;
   const canCalculateNet =
     entries.length === 1 && entries[0]?.[0] === normalizedProfileCurrency;
   const net = canCalculateNet ? input.acceptedTotal - spent : 0;
