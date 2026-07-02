@@ -1,15 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-import { hasActivePlanFromClaims } from '@/lib/auth/plan'
-
 // Páginas públicas que cualquiera puede ver sin sesión.
 const isPublicPage = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
 
 // PDFs compartidos por WhatsApp: los abren clientes sin cuenta.
 const isPublicApiRoute = createRouteMatcher(['/api/quotations/share(.*)'])
 
-// Lista de espera: requiere sesión, pero NO requiere plan activo.
+// Lista de espera: quedó obsoleta con el trial por uso. Ya nadie es redirigido
+// acá; si alguien llega por un link viejo, lo mandamos a su destino real.
 const isWaitlistRoute = createRouteMatcher(['/waitlist(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -17,39 +16,30 @@ export default clerkMiddleware(async (auth, req) => {
     return
   }
 
-  const { userId, sessionClaims } = await auth()
-  const hasPlan = hasActivePlanFromClaims(sessionClaims)
+  const { userId } = await auth()
 
-  // /waitlist: sólo para usuarios logueados sin plan.
+  // /waitlist obsoleta: con el trial por uso, todo logueado entra a la app.
   if (isWaitlistRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
-    if (hasPlan) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-    return
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  // Páginas públicas: si ya hay sesión, mandamos a cada uno a su destino.
+  // Páginas públicas: si ya hay sesión, mandamos al dashboard.
   if (isPublicPage(req)) {
     if (userId) {
-      return NextResponse.redirect(
-        new URL(hasPlan ? '/dashboard' : '/waitlist', req.url),
-      )
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
     return
   }
 
   // Todo el resto de la app (dashboard, cotizaciones, clientes, catálogo,
   // gastos, chat, ajustes, perfiles, onboarding, APIs internas...) requiere
-  // sesión + plan activo.
+  // sesión. El cupo del trial se controla por acción (crear cotización /
+  // escanear factura), no bloquea el acceso a la app.
   if (!userId) {
     return NextResponse.redirect(new URL('/sign-in', req.url))
-  }
-
-  if (!hasPlan) {
-    return NextResponse.redirect(new URL('/waitlist', req.url))
   }
 })
 
