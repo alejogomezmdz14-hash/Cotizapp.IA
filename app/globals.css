@@ -35,14 +35,14 @@
     --accent-rgb: 0 201 132;
     /* Verde legible como TEXTO sobre fondos claros (AA): el acento brillante
        falla contraste en light, así que el texto usa una variante oscura. */
-    --accent-text: #00875a;
+    --accent-text: #006b46;
     --accent-soft: #ecfdf5;
     --accent-soft-rgb: 236 253 245;
     --accent-hover: #00a870;
     --text-primary: #111827;
     --text-primary-rgb: 17 24 39;
-    --text-secondary: #6b7280;
-    --text-secondary-rgb: 107 114 128;
+    --text-secondary: #4b5563;
+    --text-secondary-rgb: 75 85 99;
     --border: #e5e7eb;
     --border-rgb: 229 231 235;
     --input-bg-rgb: 255 255 255;
@@ -191,7 +191,7 @@
   }
 
   .ui-shell-kicker {
-    font-size: 10.5px;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgb(var(--text-secondary-rgb) / 0.92);

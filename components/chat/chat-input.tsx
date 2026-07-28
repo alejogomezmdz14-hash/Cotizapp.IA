@@ -435,7 +435,7 @@ export function ChatInput({
             disabled={isLoading || voiceState === "processing"}
             onClick={handleMicToggle}
             className={cn(
-              "h-10 w-10 rounded-full border-token bg-transparent p-0",
+              "h-11 w-11 rounded-full border-token bg-transparent p-0",
               voiceState === "listening" &&
                 "animate-pulse border-red-500/50 bg-red-500/15 text-red-600 hover:bg-red-500/20 dark:text-red-300",
               permissionDenied && voiceState === "idle" && "border-destructive/40",
@@ -461,7 +461,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             placeholder="Escribí tu pregunta o tocá el micrófono"
             disabled={isInputDisabled}
-            className="h-10 w-full rounded-full bg-transparent px-3 text-sm text-white outline-none placeholder:text-muted-foreground"
+            className="h-10 w-full rounded-full bg-transparent px-3 text-base text-white outline-none placeholder:text-muted-foreground"
           />
         </div>
 
@@ -469,7 +469,7 @@ export function ChatInput({
           type="button"
           onClick={onSubmit}
           disabled={isLoading || isVoiceBusy || !value.trim()}
-          className="h-10 w-10 rounded-full bg-[#00E5A0] p-0 text-black hover:bg-[#00C984]"
+          className="h-11 w-11 rounded-full bg-[#00E5A0] p-0 text-black hover:bg-[#00C984]"
           aria-label="Enviar mensaje"
         >
           {isLoading ? (

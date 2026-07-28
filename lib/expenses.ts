@@ -1,3 +1,4 @@
+import { getArgentinaMonthDateBounds } from "@/lib/argentina-time";
 import { normalizeExpenseCategory } from "@/lib/expense-categories";
 import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import { formatMonthLabel } from "@/lib/formatting";
@@ -26,17 +27,11 @@ function parseAmount(value: unknown) {
 }
 
 function getMonthBoundsUtc(reference = new Date()) {
-  const monthStart = new Date(
-    Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 1),
-  );
-  const nextMonthStart = new Date(
-    Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 1),
-  );
-
-  return {
-    monthStart: monthStart.toISOString().slice(0, 10),
-    nextMonthStart: nextMonthStart.toISOString().slice(0, 10),
-  };
+  // `expenses.date` es una columna DATE (calendario), así que usamos los límites
+  // del mes en horario de Argentina, no en UTC (si no, cerca de medianoche
+  // contábamos el mes equivocado).
+  const { monthStart, nextMonthStart } = getArgentinaMonthDateBounds(0, reference);
+  return { monthStart, nextMonthStart };
 }
 
 function normalizeExpenseRow(row: Record<string, unknown>): Expense {

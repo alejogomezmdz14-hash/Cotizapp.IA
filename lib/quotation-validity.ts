@@ -1,3 +1,5 @@
+import { getArgentinaToday } from "@/lib/argentina-time";
+
 const QUOTATION_VALIDITY_MAX_YEARS_AHEAD = 5;
 const MIN_VALID_YEAR = 2000;
 const MAX_VALID_YEAR = 2100;
@@ -37,6 +39,15 @@ function getUtcDayStart(date: Date) {
   return new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   );
+}
+
+/**
+ * "Hoy" según el calendario argentino, como día-inicio UTC (comparable con las
+ * fechas parseadas). En UTC, de noche, "hoy" saltaba al día siguiente y bloqueaba
+ * elegir el día real argentino.
+ */
+function getArgentinaDayStart(now: Date) {
+  return getUtcDayStart(new Date(`${getArgentinaToday(now)}T00:00:00.000Z`));
 }
 
 export function formatDateInputValue(date: Date) {
@@ -151,7 +162,7 @@ export function validateQuotationValidityDate(
     };
   }
 
-  const today = getUtcDayStart(options?.now ?? new Date());
+  const today = getArgentinaDayStart(options?.now ?? new Date());
   const maxAllowedDate = addUtcYears(today, QUOTATION_VALIDITY_MAX_YEARS_AHEAD);
 
   if (parsedDate < today) {
@@ -192,7 +203,7 @@ export function sanitizeQuotationValidityDate(
   }
 
   const maxAllowedDate = addUtcYears(
-    getUtcDayStart(options?.now ?? new Date()),
+    getArgentinaDayStart(options?.now ?? new Date()),
     QUOTATION_VALIDITY_MAX_YEARS_AHEAD,
   );
 
@@ -202,7 +213,7 @@ export function sanitizeQuotationValidityDate(
 export function getQuotationValidityBounds(options?: {
   now?: Date;
 }) {
-  const today = getUtcDayStart(options?.now ?? new Date());
+  const today = getArgentinaDayStart(options?.now ?? new Date());
 
   return {
     minDate: formatDateInputValue(today),
@@ -218,6 +229,6 @@ export function getQuotationValidityPresetDate(
     now?: Date;
   },
 ) {
-  const today = getUtcDayStart(options?.now ?? new Date());
+  const today = getArgentinaDayStart(options?.now ?? new Date());
   return formatDateInputValue(addUtcDays(today, daysFromNow));
 }

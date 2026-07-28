@@ -51,7 +51,7 @@ import type {
 
 const validityPresets = [30, 60, 90] as const;
 const textareaClassName =
-  "flex min-h-24 w-full rounded-xl border border-token bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-token disabled:cursor-not-allowed disabled:opacity-50";
+  "flex min-h-24 w-full rounded-xl border border-token bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-token disabled:cursor-not-allowed disabled:opacity-50";
 
 type QuotationEditorMobileProps = {
   clients: Client[];
@@ -406,7 +406,7 @@ export function QuotationEditorMobile({
                         type="button"
                         onClick={() => adjustItemQuantity(item, -1)}
                         disabled={disabled}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
                         aria-label="Restar cantidad"
                       >
                         <Minus className="h-4 w-4" />
@@ -418,7 +418,7 @@ export function QuotationEditorMobile({
                         type="button"
                         onClick={() => adjustItemQuantity(item, 1)}
                         disabled={disabled}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
                         aria-label="Sumar cantidad"
                       >
                         <Plus className="h-4 w-4" />

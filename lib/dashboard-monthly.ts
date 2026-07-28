@@ -1,3 +1,7 @@
+import {
+  getArgentinaMonthDateBounds,
+  getArgentinaMonthInstantBounds,
+} from "@/lib/argentina-time";
 import { normalizeExpenseCurrency } from "@/lib/expense-currencies";
 import { formatMonthShortLabel } from "@/lib/formatting";
 import { normalizeQuotationStatus } from "@/lib/quotation-status";
@@ -18,20 +22,19 @@ function parseAmount(value: unknown) {
 }
 
 function getMonthBoundaries(monthsAgo: number) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() - monthsAgo;
-  const start = new Date(year, month, 1, 0, 0, 0, 0);
-  const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
-  const dateOnlyStart = start.toISOString().slice(0, 10);
-  const dateOnlyEnd = end.toISOString().slice(0, 10);
+  // Límites del mes en horario de Argentina. `created_at`/`paid_at` son instantes
+  // (timestamptz) → usamos los límites con offset UTC-3. `expenses.date` es DATE
+  // (calendario) → usamos los límites calendario. Antes se usaba UTC y cerca de
+  // medianoche el mes salía corrido.
+  const instant = getArgentinaMonthInstantBounds(monthsAgo);
+  const dateBounds = getArgentinaMonthDateBounds(monthsAgo);
 
   return {
-    label: formatMonthShortLabel(start),
-    isoStart: start.toISOString(),
-    isoEnd: end.toISOString(),
-    dateOnlyStart,
-    dateOnlyEnd,
+    label: formatMonthShortLabel(instant.monthLabelDate),
+    isoStart: instant.isoStart,
+    isoEnd: instant.isoEnd,
+    dateOnlyStart: dateBounds.monthStart,
+    dateOnlyEnd: dateBounds.monthEnd,
   };
 }
 
