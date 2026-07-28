@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Send } from "lucide-react";
 
 import {
@@ -60,11 +61,11 @@ function getErrorMessage(error: unknown) {
 
 function getShareStatusLabel(status: string | null, sentAt: string | null) {
   if (sentAt) {
-    return `Compartida${status === "pending" ? " y marcada como pendiente" : ""} el ${formatDateTime(sentAt)}.`;
+    return `Enviada el ${formatDateTime(sentAt)}.`;
   }
 
-  if (status === "pending") {
-    return "Lista para seguimiento y reenvío.";
+  if (status === "pending" || status === "sent") {
+    return "Lista para enviar y hacer seguimiento.";
   }
 
   return null;
@@ -96,6 +97,7 @@ export function QuotationShareActions({
   const [needsPhoneInput, setNeedsPhoneInput] = useState(false);
   const [preparedShare, setPreparedShare] =
     useState<PreparedQuotationPdfShare | null>(null);
+  const router = useRouter();
 
   const pdfViewUrl = useMemo(
     () => `/api/quotations/${encodeURIComponent(quotationId)}/pdf`,
@@ -170,9 +172,12 @@ export function QuotationShareActions({
       });
       setStatusMessage("Te abrimos WhatsApp con el mensaje listo. Tocá enviar dentro de WhatsApp.");
       toast({
-        title: "¡Listo! Cotización enviada",
-        description: "Abrimos WhatsApp con el mensaje. Tocá enviar.",
+        title: "Abrimos WhatsApp",
+        description: "Revisá el mensaje y tocá enviar dentro de WhatsApp.",
       });
+
+      // Refrescamos para que el estado "Enviada" se refleje en el detalle y la lista.
+      router.refresh();
 
       const openedWindow = window.open(
         whatsappHref,
@@ -269,6 +274,7 @@ export function QuotationShareActions({
         sentAt: result.sentAt,
         status: result.shareStatus,
       });
+      router.refresh();
 
       const prepared = await prepareQuotationPdfShare({
         pdfUrl: pdfViewUrl,
@@ -285,7 +291,7 @@ export function QuotationShareActions({
 
       if (shareOutcome === "shared") {
         setPreparedShare(null);
-        setStatusMessage("PDF compartido. Quedó marcada como pendiente.");
+        setStatusMessage("PDF compartido. Quedó marcada como enviada.");
         toast({
           title: "PDF listo para enviar",
           description: "Elegí WhatsApp y el contacto para mandarlo.",
@@ -320,7 +326,7 @@ export function QuotationShareActions({
       .then((outcome) => {
         if (outcome === "shared") {
           setPreparedShare(null);
-          setStatusMessage("PDF compartido. Quedó marcada como pendiente.");
+          setStatusMessage("PDF compartido. Quedó marcada como enviada.");
           toast({
             title: "PDF listo para enviar",
             description: "Elegí WhatsApp y el contacto para mandarlo.",

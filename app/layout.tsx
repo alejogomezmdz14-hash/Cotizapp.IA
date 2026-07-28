@@ -1,6 +1,15 @@
+import type { ComponentProps } from "react";
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { esES } from "@clerk/localizations";
+
+// @clerk/localizations 4.x y @clerk/nextjs 5.7 traen tipos de LocalizationResource
+// levemente distintos (drift de versiones). El recurso es válido en runtime (objeto
+// de strings); casteamos al tipo exacto que espera el provider.
+const clerkLocalization = esES as unknown as ComponentProps<
+  typeof ClerkProvider
+>["localization"];
 
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -51,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${interTight.variable} ${jetBrainsMono.variable}`}>
-        <ClerkProvider>
+        <ClerkProvider localization={clerkLocalization}>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"

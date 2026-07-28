@@ -199,7 +199,7 @@ export function QuotationItemsEditor({
             <div className="space-y-1">
               <CardTitle className="text-xl">Ítems de la cotización</CardTitle>
               <CardDescription>
-                Agregá conceptos manuales o importa ítems del catálogo como una
+                Agregá conceptos manuales o importá ítems del catálogo como una
                 copia editable.
               </CardDescription>
             </div>
@@ -229,7 +229,7 @@ export function QuotationItemsEditor({
         <CardContent className="space-y-4">
           {items.length === 0 ? (
             <div className="rounded-lg border border-dashed border-token bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
-              Carga tu primer ítem para ver el resumen en vivo y guardar el
+              Cargá tu primer ítem para ver el resumen en vivo y guardar el
               borrador.
             </div>
           ) : (
@@ -256,7 +256,7 @@ export function QuotationItemsEditor({
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Edita concepto, detalle, cantidad, unidad y precio antes
+                          Editá concepto, detalle, cantidad, unidad y precio antes
                           de guardar.
                         </p>
                       </div>

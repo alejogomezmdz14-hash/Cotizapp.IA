@@ -13,15 +13,15 @@ type UpgradePaywallProps = {
 
 const REASON_COPY: Record<UpgradePaywallReason, string> = {
   quotations:
-    "Llegaste al límite de cotizaciones del trial gratis. Pasá a Pro para seguir cotizando sin tope.",
+    "Llegaste al límite de cotizaciones de la prueba gratis. Pasá a Pro para seguir cotizando sin tope.",
   invoices:
-    "Llegaste al límite de escaneos de factura del trial gratis. Pasá a Pro para seguir escaneando sin tope.",
+    "Llegaste al límite de escaneos de factura de la prueba gratis. Pasá a Pro para seguir escaneando sin tope.",
 };
 
 export function UpgradePaywall({ reason }: UpgradePaywallProps) {
   const detail = reason
     ? REASON_COPY[reason]
-    : "Llegaste al límite del trial gratis. Pasá a Pro para seguir.";
+    : "Llegaste al límite de la prueba gratis. Pasá a Pro para seguir.";
 
   return (
     <div className="rounded-[1.5rem] border border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.08)] px-5 py-6">

@@ -25,7 +25,7 @@ export default function OnboardingError({ error, reset }: OnboardingErrorProps) 
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-semibold tracking-tight">
-              No pudimos cargar el onboarding
+              No pudimos preparar tu cuenta
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
               Tuvimos un problema preparando tu cuenta. No es nada que hayas

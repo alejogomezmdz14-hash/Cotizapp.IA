@@ -67,10 +67,6 @@ function normalizeMessages(input: unknown): ChatConversationMessage[] {
 }
 
 function getErrorResponse(error: unknown) {
-  const message =
-    error instanceof Error && error.message.trim()
-      ? error.message
-      : "No se pudo responder desde el chat.";
   const status =
     error &&
     typeof error === "object" &&
@@ -79,14 +75,26 @@ function getErrorResponse(error: unknown) {
       ? error.status
       : 500;
 
-  return NextResponse.json(
-    {
-      error: message,
-    },
-    {
-      status,
-    },
-  );
+  // 5xx = error interno: nunca exponemos el detalle técnico (OpenAI, JSON, env
+  // vars) al usuario; lo logueamos y devolvemos un copy amigable. Los 4xx sí
+  // llevan mensajes pensados para el usuario (en español).
+  if (status >= 500) {
+    console.error("[chat] error interno", error);
+    return NextResponse.json(
+      {
+        error:
+          "Se nos complicó procesar tu mensaje. Probá de nuevo en unos segundos.",
+      },
+      { status },
+    );
+  }
+
+  const message =
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : "No se pudo responder desde el chat.";
+
+  return NextResponse.json({ error: message }, { status });
 }
 
 export async function POST(request: Request) {

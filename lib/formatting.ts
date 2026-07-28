@@ -131,6 +131,7 @@ export function formatDateTime(value: string | null) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
   });
 }
 

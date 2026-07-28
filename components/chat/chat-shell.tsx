@@ -270,15 +270,19 @@ export function ChatShell() {
         ]);
       }
     } catch (error) {
-      const message =
-        error instanceof Error && error.message.trim()
-          ? error.message
-          : "No se pudo obtener una respuesta del chat.";
+      const raw = error instanceof Error ? error.message.trim() : "";
+      // El backend ya devuelve mensajes amigables (4xx en español, 5xx genérico).
+      // Blindamos contra errores técnicos de red/parseo que nunca deben verse.
+      const looksTechnical =
+        !raw || /fetch|network|json|undefined|token|api[_ ]?key/i.test(raw);
+      const message = looksTechnical
+        ? "Se nos complicó procesar tu mensaje. Probá de nuevo en unos segundos."
+        : raw;
 
       setPendingSuggestion(getNextPendingSuggestion({ type: "error" }));
       setMessages((currentMessages) => [
         ...currentMessages,
-        createMessage("assistant", `No se pudo responder: ${message}`),
+        createMessage("assistant", message),
       ]);
     } finally {
       setIsSubmitting(false);
@@ -509,7 +513,7 @@ export function ChatShell() {
   }
 
   function handleQuickPrompt(prompt: string) {
-    setInputValue(prompt);
+    void sendUserMessage(prompt);
   }
 
   function handleChipClick(prompt: string) {

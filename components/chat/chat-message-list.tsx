@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Bot } from "lucide-react";
 
 import { CatalogPicker } from "@/components/chat/catalog-picker";
@@ -88,6 +89,23 @@ function AssistantAvatar() {
   );
 }
 
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start" aria-label="El asistente está escribiendo">
+      <div className="flex items-end gap-2">
+        <AssistantAvatar />
+        <div className="rounded-[18px_18px_18px_4px] bg-[#1A1D27] px-4 py-4 shadow-sm">
+          <span className="flex gap-1.5">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-white/60 [animation-delay:-0.3s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-white/60 [animation-delay:-0.15s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatMessageList({
   messages,
   isSubmitting = false,
@@ -99,6 +117,12 @@ export function ChatMessageList({
   onPreviewEdit,
   onNewQuotation,
 }: ChatMessageListProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, isSubmitting]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 overflow-y-auto bg-[#0F1117] px-4 py-4 sm:px-5">
@@ -107,7 +131,7 @@ export function ChatMessageList({
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#00E5A0] text-black">
               <Bot className="h-10 w-10" />
             </div>
-            <p className="text-lg font-semibold text-white">Hola! Soy tu asistente.</p>
+            <p className="text-lg font-semibold text-white">¡Hola! Soy tu asistente.</p>
             <p className="max-w-md text-sm text-muted-foreground">
               Puedo crear cotizaciones, registrar gastos y responder preguntas.
             </p>
@@ -288,8 +312,10 @@ export function ChatMessageList({
                 </div>
               );
             })}
+            {isSubmitting ? <TypingIndicator /> : null}
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
     </div>
   );
