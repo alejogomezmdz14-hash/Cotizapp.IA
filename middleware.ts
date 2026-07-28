@@ -4,8 +4,12 @@ import { NextResponse } from 'next/server'
 // Páginas públicas que cualquiera puede ver sin sesión.
 const isPublicPage = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
 
-// PDFs compartidos por WhatsApp: los abren clientes sin cuenta.
-const isPublicApiRoute = createRouteMatcher(['/api/quotations/share(.*)'])
+// PDFs compartidos por WhatsApp (los abren clientes sin cuenta) y el health
+// check del cron keep-alive (sin sesión).
+const isPublicApiRoute = createRouteMatcher([
+  '/api/quotations/share(.*)',
+  '/api/health',
+])
 
 // Lista de espera: quedó obsoleta con el trial por uso. Ya nadie es redirigido
 // acá; si alguien llega por un link viejo, lo mandamos a su destino real.
