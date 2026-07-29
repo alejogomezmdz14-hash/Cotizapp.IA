@@ -16,6 +16,25 @@ const isPublicApiRoute = createRouteMatcher([
 const isWaitlistRoute = createRouteMatcher(['/waitlist(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
+  // Dominio canónico. En producción, cualquier host que no sea cotizapp.lat
+  // (típicamente el *.vercel.app interno) redirige ahí. Si no, el login sale en
+  // pantalla negra: Clerk (instancia de producción) está atado a cotizapp.lat y
+  // no inicializa en otro dominio. El cron pega a /api/health y no debe redirigir.
+  if (process.env.VERCEL_ENV === 'production') {
+    const host = req.headers.get('host')
+    if (
+      host &&
+      host !== 'cotizapp.lat' &&
+      req.nextUrl.pathname !== '/api/health'
+    ) {
+      const url = req.nextUrl.clone()
+      url.protocol = 'https:'
+      url.hostname = 'cotizapp.lat'
+      url.port = ''
+      return NextResponse.redirect(url, 308)
+    }
+  }
+
   if (isPublicApiRoute(req)) {
     return
   }
