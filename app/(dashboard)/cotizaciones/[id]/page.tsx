@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Download, FileText, Pencil } from "lucide-react";
 
 import { EmitirFacturaButton } from "@/components/cotizacion/emitir-factura-button";
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
@@ -288,6 +288,25 @@ export default async function QuotationDetailPage({
                   Comprobante: {invoicing.numeroFactura}
                 </p>
               ) : null}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline" className="bg-background/75">
+                  <Link
+                    href={`/api/quotations/${quotation.id}/factura-pdf`}
+                    target="_blank"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Ver factura
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="bg-background/75">
+                  <Link
+                    href={`/api/quotations/${quotation.id}/factura-pdf?download=1`}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar
+                  </Link>
+                </Button>
+              </div>
             </div>
           ) : canIssueInvoice ? (
             <EmitirFacturaButton quotationId={quotation.id} />

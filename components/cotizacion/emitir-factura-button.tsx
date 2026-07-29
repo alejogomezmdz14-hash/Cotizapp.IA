@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ReceiptText } from "lucide-react";
+import Link from "next/link";
+import { FileText, Loader2, ReceiptText } from "lucide-react";
 
 import {
   emitirFacturaAction,
@@ -43,6 +44,15 @@ export function EmitirFacturaButton({ quotationId }: EmitirFacturaButtonProps) {
         <p className="text-sm text-muted-foreground">
           Comprobante: {result.numeroFactura} · Vence: {result.vencimiento}
         </p>
+        <Button asChild size="sm" variant="outline" className="mt-3 bg-background/75">
+          <Link
+            href={`/api/quotations/${quotationId}/factura-pdf`}
+            target="_blank"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Ver factura
+          </Link>
+        </Button>
       </div>
     );
   }
