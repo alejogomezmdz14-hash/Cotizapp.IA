@@ -112,6 +112,10 @@ export async function saveFiscalProfileAction(formData: FormData) {
       bucket: STORAGE_BUCKETS.fiscal,
       path,
       body,
+      // Sin Content-Type explícito, Supabase Storage rechaza el .crt/.key con
+      // "Invalid Content-Type header" (415). Son PEM (texto), pero octet-stream
+      // es universalmente aceptado y no afecta la lectura posterior.
+      contentType: "application/octet-stream",
       upsert: true,
     });
 
