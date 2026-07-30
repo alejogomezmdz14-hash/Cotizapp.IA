@@ -63,8 +63,17 @@ export function seal(
     throw new EnvelopeError("El keyId debe ser un entero entre 0 y 255.");
   }
 
-  if (key.byteLength !== 32) {
+  // La clave llega desde el entorno o desde un ring cargado en runtime: no
+  // asumimos que sea un Buffer válido antes de chequearlo (misma regla que
+  // en `open`, para no dejar escapar un TypeError crudo de Node).
+  if (!ArrayBuffer.isView(key) || key.byteLength !== 32) {
     throw new EnvelopeError("La clave de cifrado debe ser de 32 bytes.");
+  }
+
+  if (typeof plaintext !== "string" && !Buffer.isBuffer(plaintext)) {
+    throw new EnvelopeError(
+      "El texto plano a cifrar debe ser un Buffer o un string.",
+    );
   }
 
   const iv = randomBytes(IV_BYTES);
@@ -119,9 +128,15 @@ export function open(
   }
 
   for (const candidate of keys) {
-    if (!isValidKeyId(candidate.keyId)) {
+    // `candidate` puede venir null/undefined desde un ring mal armado (p. ej.
+    // un hueco al mapear variables de entorno). Guardamos antes de leer
+    // `.keyId` para no dejar escapar un TypeError crudo. `String(...)` (no
+    // interpolación directa) porque `candidate.keyId` puede ser cualquier
+    // cosa, incluido un Symbol, que revienta al interpolarse en un template
+    // literal pero no al pasarse por String().
+    if (!candidate || !isValidKeyId(candidate.keyId)) {
       throw new EnvelopeError(
-        `El anillo de claves de cifrado tiene un keyId inválido: ${candidate.keyId}.`,
+        `El anillo de claves de cifrado tiene un keyId inválido: ${String(candidate?.keyId)}.`,
       );
     }
   }
@@ -133,7 +148,9 @@ export function open(
     );
   }
 
-  if (match.key.byteLength !== 32) {
+  // Misma razón que en `seal`: no asumimos que `match.key` sea un Buffer
+  // válido antes de leer `.byteLength`.
+  if (!ArrayBuffer.isView(match.key) || match.key.byteLength !== 32) {
     throw new EnvelopeError("La clave de cifrado debe ser de 32 bytes.");
   }
 

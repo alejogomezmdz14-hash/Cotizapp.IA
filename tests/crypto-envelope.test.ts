@@ -115,7 +115,13 @@ test("open rechaza un blob con magic invalido (largo valido, no es el caso de bl
 test("open rechaza una version de sobre no soportada", () => {
   const blob = seal(KEY_A, SECRET, AAD_USER_A);
   blob[4] = 99; // pisa el byte de versión (offset 4), el resto queda intacto
-  assert.throws(() => open([KEY_A], blob, AAD_USER_A), EnvelopeError);
+  // Asertamos también el mensaje: sin esto, un mutante que borra el chequeo
+  // de versión igual pasa el test, porque la AAD se arma con la versión leída
+  // del blob y la autenticación falla igual (mismo EnvelopeError genérico).
+  assert.throws(() => open([KEY_A], blob, AAD_USER_A), {
+    name: "EnvelopeError",
+    message: /Versión de sobre no soportada/,
+  });
 });
 
 test("seal rechaza una clave que no mide 32 bytes", () => {
@@ -170,7 +176,53 @@ test("open rechaza keys null sin explotar con TypeError crudo", () => {
 test("open rechaza una clave de 16 bytes en el ring en vez de RangeError crudo", () => {
   const blob = seal(KEY_A, SECRET, AAD_USER_A);
   const shortKeyRing: EnvelopeKey[] = [{ keyId: 1, key: randomBytes(16) }];
-  assert.throws(() => open(shortKeyRing, blob, AAD_USER_A), EnvelopeError);
+  // Asertamos también el mensaje: sin esto, un mutante que borra el chequeo
+  // de largo de clave en `open` igual pasa el test, porque createDecipheriv
+  // está dentro del try y el RangeError de Node se convierte en el mismo
+  // EnvelopeError genérico de autenticación fallida.
+  assert.throws(() => open(shortKeyRing, blob, AAD_USER_A), {
+    name: "EnvelopeError",
+    message: /32 bytes/,
+  });
+});
+
+// --- Importante 1 (segunda ronda): open no debe dejar escapar excepciones
+// crudas de Node al validar el ring o la clave que matchea ---
+//
+// La guarda de largo de clave agregada en la ronda anterior desreferenciaba
+// `match.key` sin chequear que existiera, y el loop de validación del ring
+// desreferenciaba `candidate.keyId` sin chequear que `candidate` existiera.
+// Ambos casos salían con un TypeError crudo de Node en vez de EnvelopeError.
+
+test("open rechaza una entrada del ring con key null sin TypeError crudo", () => {
+  const blob = seal(KEY_A, SECRET, AAD_USER_A);
+  const ringConKeyNula = [{ keyId: 1, key: null } as unknown as EnvelopeKey];
+  assert.throws(() => open(ringConKeyNula, blob, AAD_USER_A), EnvelopeError);
+});
+
+test("open rechaza una entrada del ring sin propiedad key sin TypeError crudo", () => {
+  const blob = seal(KEY_A, SECRET, AAD_USER_A);
+  const ringSinKey = [{ keyId: 1 } as unknown as EnvelopeKey];
+  assert.throws(() => open(ringSinKey, blob, AAD_USER_A), EnvelopeError);
+});
+
+test("open rechaza un ring con una entrada null sin TypeError crudo", () => {
+  const blob = seal(KEY_A, SECRET, AAD_USER_A);
+  const ringConEntradaNula = [null as unknown as EnvelopeKey];
+  assert.throws(() => open(ringConEntradaNula, blob, AAD_USER_A), EnvelopeError);
+});
+
+test("open rechaza un ring con keyId Symbol sin explotar al interpolar el mensaje", () => {
+  const blob = seal(KEY_A, SECRET, AAD_USER_A);
+  const ringConKeyIdSymbol = [
+    { keyId: Symbol("raro"), key: randomBytes(32) } as unknown as EnvelopeKey,
+  ];
+  assert.throws(() => open(ringConKeyIdSymbol, blob, AAD_USER_A), EnvelopeError);
+});
+
+test("open([], blob, aad) rechaza con EnvelopeError, no con excepcion cruda", () => {
+  const blob = seal(KEY_A, SECRET, AAD_USER_A);
+  assert.throws(() => open([], blob, AAD_USER_A), EnvelopeError);
 });
 
 // --- Hallazgo 4: vector de prueba fijo (known-answer test) ---
@@ -199,14 +251,17 @@ const KAT_BLOB_HEX =
 test("vector de prueba fijo (known-answer test) ancla el formato del sobre", () => {
   const blob = Buffer.from(KAT_BLOB_HEX, "hex");
 
-  // 34 bytes de header (4 magic + 1 version + 1 keyId + 12 iv + 16 tag) +
-  // 21 bytes de ciphertext (mismo largo que KAT_PLAINTEXT en utf8).
+  // Las aserciones que sólo miraban `blob` (magic, version, keyId, largos de
+  // iv/tag) comparaban una constante hardcodeada contra sí misma: `blob` sale
+  // de un literal hex fijo, así que esos valores no pueden cambiar sin tocar
+  // el propio vector, y no ejercitan ningún código del módulo. Las dos
+  // aserciones que quedan sí hacen trabajo real:
+  //   - el largo total depende de la fórmula 34 (header) + bytes del
+  //     plaintext, así que ancla la relación entre el tamaño del header y el
+  //     del blob;
+  //   - `open()` ejercita de punta a punta el parseo de offsets, el armado
+  //     de la AAD y el descifrado: si el layout cambia, esto rompe.
   assert.equal(blob.length, 34 + Buffer.byteLength(KAT_PLAINTEXT));
-  assert.equal(blob.subarray(0, 4).toString("ascii"), "CZFK"); // magic
-  assert.equal(blob[4], 1); // version
-  assert.equal(blob[5], KAT_KEY_ID); // keyId
-  assert.equal(blob.subarray(6, 18).length, 12); // iv
-  assert.equal(blob.subarray(18, 34).length, 16); // tag
 
   const opened = open([{ keyId: KAT_KEY_ID, key: KAT_KEY }], blob, KAT_AAD);
   assert.equal(opened.toString("utf8"), KAT_PLAINTEXT);
@@ -244,4 +299,36 @@ test("open rechaza un ring con keyId como string (típico de un env var, no matc
   const blob = seal(KEY_A, SECRET, AAD_USER_A);
   const badRing = [{ keyId: "1", key: KEY_A.key } as unknown as EnvelopeKey];
   assert.throws(() => open(badRing, blob, AAD_USER_A), EnvelopeError);
+});
+
+// --- Menor 3: seal tampoco debe dejar escapar excepciones crudas de Node ---
+//
+// `open` ya está blindado contra entradas inesperadas (columna bytea del
+// driver, ring mal formado). `seal` maneja el mismo material fiscal (la
+// clave privada de ARCA antes de cifrarla) y estaba expuesto al mismo tipo
+// de bug: una `key` null/undefined o un `plaintext` que no sea Buffer/string
+// tiraban TypeError/RangeError crudo de Node en vez de EnvelopeError.
+
+test("seal rechaza una key null sin TypeError crudo", () => {
+  const badKey = { keyId: 1, key: null } as unknown as EnvelopeKey;
+  assert.throws(() => seal(badKey, SECRET, AAD_USER_A), EnvelopeError);
+});
+
+test("seal rechaza una key undefined sin TypeError crudo", () => {
+  const badKey = { keyId: 1, key: undefined } as unknown as EnvelopeKey;
+  assert.throws(() => seal(badKey, SECRET, AAD_USER_A), EnvelopeError);
+});
+
+test("seal rechaza un plaintext undefined sin TypeError crudo", () => {
+  assert.throws(
+    () => seal(KEY_A, undefined as unknown as string, AAD_USER_A),
+    EnvelopeError,
+  );
+});
+
+test("seal rechaza un plaintext numerico sin TypeError crudo", () => {
+  assert.throws(
+    () => seal(KEY_A, 42 as unknown as string, AAD_USER_A),
+    EnvelopeError,
+  );
 });
