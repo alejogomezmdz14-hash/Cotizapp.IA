@@ -15,6 +15,13 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  eslint: {
+    // next lint / next build por defecto solo barren app, pages, components,
+    // lib, src. Este repo tiene además hooks/ y store/ con código real: sin
+    // esto, un import prohibido ahi pasa invisible por el único gate
+    // automático que existe (no hay CI).
+    dirs: ["app", "components", "lib", "hooks", "store"],
+  },
   async headers() {
     return [
       {

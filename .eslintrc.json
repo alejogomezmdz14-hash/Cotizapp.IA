@@ -10,10 +10,17 @@
           {
             "patterns": [
               {
-                "group": ["**/supabase/service-role", "@/lib/supabase/service-role"],
+                "group": ["**/supabase/service-role"],
                 "message": "El cliente service_role saltea RLS. Solo se puede importar desde lib/fiscal/* y lib/arca/*."
               }
             ]
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ImportExpression[source.value=/supabase\\/service-role/]",
+            "message": "El cliente service_role saltea RLS. Solo se puede importar desde lib/fiscal/* y lib/arca/*."
           }
         ]
       }
