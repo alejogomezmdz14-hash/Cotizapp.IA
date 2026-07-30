@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { FacturaPdfError, renderFacturaPdfForUser } from "@/lib/arca/factura-pdf";
+import { logError } from "@/lib/log";
 import { getCurrentUser } from "@/lib/profile";
 
 export const runtime = "nodejs";
@@ -38,7 +39,7 @@ export async function GET(
     if (error instanceof FacturaPdfError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    console.error("[factura-pdf] error", error);
+    logError("factura-pdf", error);
     return NextResponse.json(
       { error: "No se pudo generar la factura." },
       { status: 500 },
