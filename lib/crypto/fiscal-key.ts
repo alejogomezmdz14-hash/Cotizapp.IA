@@ -35,7 +35,7 @@ function decodeKey(value: string, varName: string): Buffer {
   return raw;
 }
 
-export function parseFiscalKeyring(env: NodeJS.ProcessEnv): FiscalKeyring {
+export function parseFiscalKeyring(env: Record<string, string | undefined>): FiscalKeyring {
   const rawActive = env.FISCAL_ENCRYPTION_KEY?.trim();
 
   if (!rawActive) {
