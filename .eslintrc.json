@@ -1,3 +1,22 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "excludedFiles": ["lib/fiscal/**", "lib/arca/**", "lib/supabase/service-role.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/supabase/service-role", "@/lib/supabase/service-role"],
+                "message": "El cliente service_role saltea RLS. Solo se puede importar desde lib/fiscal/* y lib/arca/*."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
