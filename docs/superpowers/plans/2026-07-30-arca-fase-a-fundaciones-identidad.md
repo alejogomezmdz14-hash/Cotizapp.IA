@@ -904,9 +904,7 @@ test("parseCertificate rechaza algo que no es PEM", () => {
   assert.throws(() => parseCertificate("no soy un certificado"), CertificateError);
 });
 
-test("parseCertificate rechaza un PEM sin CUIT en el subject", () => {
-  const sinCuit = VIGENTE.certPem.replace(/-----BEGIN CERTIFICATE-----/, "-----BEGIN CERTIFICATE-----");
-  // Un certificado real sin serialNumber: lo construimos aparte.
+test("parseCertificate rechaza un certificado sin CUIT en el subject", () => {
   const { publicKey, privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
     publicKeyEncoding: { type: "spki", format: "pem" },
@@ -922,7 +920,6 @@ test("parseCertificate rechaza un PEM sin CUIT en el subject", () => {
   cert.setIssuer(attrs);
   cert.sign(forge.pki.privateKeyFromPem(privateKey), forge.md.sha256.create());
 
-  assert.ok(sinCuit.length > 0);
   assert.throws(
     () => parseCertificate(forge.pki.certificateToPem(cert)),
     CertificateError,
@@ -1158,7 +1155,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: `seal`/`open`/`EnvelopeError` de `lib/crypto/envelope`; `getFiscalKeyring`/`ACTIVE_KEY_ID` de `lib/crypto/fiscal-key`; `createServiceRoleClient` de `lib/supabase/service-role`; `parseCertificate`/`assertKeyMatchesCertificate`/`CertificateError` de `lib/fiscal/certificate`; `logError` de `lib/log`.
 - Produces:
   - `type FiscalCredentialSummary = { cuit: string; certNotAfter: string | null; verifiedAt: string | null; hasCert: boolean }`
-  - `async function savePrivateKey(clerkUserId, privateKeyPem, csrPem): Promise<void>`
+  - `async function savePrivateKey(clerkUserId: string, privateKeyPem: string, csrPem: string, provisionalCuit: string): Promise<void>`
   - `async function attachCertificate(clerkUserId, certPem): Promise<ParsedCertificate>`
   - `async function loadCredentials(clerkUserId): Promise<{ cuit: string; certPem: string; privateKeyPem: string } | null>`
   - `async function getCredentialSummary(clerkUserId): Promise<FiscalCredentialSummary | null>`
