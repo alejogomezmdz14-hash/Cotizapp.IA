@@ -9,11 +9,11 @@ import {
   type FacturaCResult,
 } from "@/lib/arca/billing";
 import { isFiscalProfileComplete } from "@/lib/arca/eligibility";
+import { createSupabaseTicketStorage } from "@/lib/arca/ticket-storage";
 import { getFiscalProfile } from "@/lib/fiscal-profile";
+import { loadCredentials } from "@/lib/fiscal/credentials";
 import { getProfile, requireUser } from "@/lib/profile";
 import { isArgentina } from "@/lib/profile-countries";
-import { STORAGE_BUCKETS } from "@/lib/storage/buckets";
-import { downloadFile } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type EmitirFacturaResult =
@@ -118,31 +118,33 @@ export async function emitirFacturaAction(
           .neq("id", quotationId);
         result = simulateFacturaC(fiscal!.sales_point, (count ?? 0) + 1, new Date());
       } else {
-        // Credenciales.
-        let certPem: string;
-        let keyPem: string;
-        try {
-          const [cert, key] = await Promise.all([
-            downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/cert.crt`),
-            downloadFile(STORAGE_BUCKETS.fiscal, `${user.clerkId}/private.key`),
-          ]);
-          certPem = Buffer.from(cert.bytes).toString("utf8");
-          keyPem = Buffer.from(key.bytes).toString("utf8");
-        } catch {
+        // Credenciales cifradas.
+        const credentials = await loadCredentials(user.clerkId);
+
+        if (credentials.status !== "ok") {
           await releaseClaim();
-          return {
-            ok: false,
-            error:
-              "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido.",
-          };
+
+          const mensaje =
+            credentials.status === "undecryptable"
+              ? "Hay un problema con la configuración de tu certificado. Escribinos y lo resolvemos."
+              : credentials.status === "unavailable"
+                ? "No pudimos leer tus datos fiscales en este momento. Probá de nuevo en un minuto."
+                : "Todavía no cargaste tu certificado de ARCA. Configuralo en Mi empresa antes de facturar.";
+
+          return { ok: false, error: mensaje };
         }
 
         result = await emitirFacturaC(
           {
-            cuit: fiscal!.cuit,
-            certPem,
-            keyPem,
+            // El CUIT sale del certificado, no del formulario: es la autoridad.
+            cuit: credentials.cuit,
+            certPem: credentials.certPem,
+            keyPem: credentials.privateKeyPem,
             environment,
+            ticketStorage: createSupabaseTicketStorage(
+              user.clerkId,
+              environment === "produccion" ? "produccion" : "homologacion",
+            ),
           },
           {
             salesPoint: fiscal!.sales_point,

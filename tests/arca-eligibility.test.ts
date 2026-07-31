@@ -7,8 +7,6 @@ const complete = {
   cuit: "20-12345678-9",
   sales_point: "0001",
   contributor_type: "monotributista",
-  cert_path: "user_x/cert.crt",
-  key_path: "user_x/private.key",
 };
 
 test("acepta un perfil monotributista completo", () => {
@@ -17,11 +15,6 @@ test("acepta un perfil monotributista completo", () => {
 
 test("rechaza null", () => {
   assert.equal(isFiscalProfileComplete(null), false);
-});
-
-test("rechaza si falta el certificado o la clave", () => {
-  assert.equal(isFiscalProfileComplete({ ...complete, cert_path: null }), false);
-  assert.equal(isFiscalProfileComplete({ ...complete, key_path: "" }), false);
 });
 
 test("rechaza si falta cuit o punto de venta", () => {
@@ -36,30 +29,6 @@ test("rechaza si no es monotributista (v1 solo Factura C)", () => {
   );
 });
 
-test("en modo demo NO exige certificado ni clave", () => {
-  assert.equal(
-    isFiscalProfileComplete({
-      cuit: "20-12345678-9",
-      sales_point: "0001",
-      contributor_type: "monotributista",
-      cert_path: null,
-      key_path: null,
-      environment: "demo",
-    }),
-    true,
-  );
-});
-
-test("en modo demo igual exige CUIT, punto de venta y monotributista", () => {
-  assert.equal(
-    isFiscalProfileComplete({
-      cuit: "",
-      sales_point: "0001",
-      contributor_type: "monotributista",
-      cert_path: null,
-      key_path: null,
-      environment: "demo",
-    }),
-    false,
-  );
+test("no exige certificado: eso se verifica aparte, contra fiscal_credentials", () => {
+  assert.equal(isFiscalProfileComplete(complete), true);
 });
