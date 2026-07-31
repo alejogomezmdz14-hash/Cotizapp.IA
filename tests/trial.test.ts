@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  TRIAL_INVOICE_LIMIT,
   TRIAL_INVOICE_SCAN_LIMIT,
   TRIAL_QUOTATION_LIMIT,
   canCreateQuotation,
+  canIssueInvoice,
   canScanInvoice,
   trialRemaining,
 } from "../lib/trial";
@@ -39,6 +41,22 @@ test("canScanInvoice siempre permite si es pago (ilimitado)", () => {
   assert.equal(canScanInvoice(0, true), true);
   assert.equal(canScanInvoice(TRIAL_INVOICE_SCAN_LIMIT, true), true);
   assert.equal(canScanInvoice(TRIAL_INVOICE_SCAN_LIMIT + 100, true), true);
+});
+
+test("canIssueInvoice permite mientras el trial esté bajo el límite", () => {
+  assert.equal(canIssueInvoice(0, false), true);
+  assert.equal(canIssueInvoice(TRIAL_INVOICE_LIMIT - 1, false), true);
+});
+
+test("canIssueInvoice bloquea al llegar y al pasar el límite del trial", () => {
+  assert.equal(canIssueInvoice(TRIAL_INVOICE_LIMIT, false), false);
+  assert.equal(canIssueInvoice(TRIAL_INVOICE_LIMIT + 10, false), false);
+});
+
+test("canIssueInvoice siempre permite si es pago (ilimitado)", () => {
+  assert.equal(canIssueInvoice(0, true), true);
+  assert.equal(canIssueInvoice(TRIAL_INVOICE_LIMIT, true), true);
+  assert.equal(canIssueInvoice(TRIAL_INVOICE_LIMIT + 100, true), true);
 });
 
 test("trialRemaining nunca devuelve negativo", () => {

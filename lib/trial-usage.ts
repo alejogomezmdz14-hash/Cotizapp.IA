@@ -15,16 +15,19 @@ import { createClient } from "@/lib/supabase/server";
 export type TrialUsage = {
   quotationsUsed: number;
   invoiceScansUsed: number;
+  invoicesUsed: number;
 };
 
 const EMPTY_TRIAL_USAGE: TrialUsage = {
   quotationsUsed: 0,
   invoiceScansUsed: 0,
+  invoicesUsed: 0,
 };
 
 type TrialCounterColumn =
   | "trial_quotations_used"
-  | "trial_invoice_scans_used";
+  | "trial_invoice_scans_used"
+  | "trial_invoices_used";
 
 function toCounter(value: unknown): number {
   const parsed = Number(value ?? 0);
@@ -59,7 +62,7 @@ export async function getTrialUsage(userId: string): Promise<TrialUsage> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("profiles")
-      .select("trial_quotations_used, trial_invoice_scans_used")
+      .select("trial_quotations_used, trial_invoice_scans_used, trial_invoices_used")
       .eq("id", userId)
       .maybeSingle();
 
@@ -72,6 +75,7 @@ export async function getTrialUsage(userId: string): Promise<TrialUsage> {
     return {
       quotationsUsed: toCounter(row.trial_quotations_used),
       invoiceScansUsed: toCounter(row.trial_invoice_scans_used),
+      invoicesUsed: toCounter(row.trial_invoices_used),
     };
   } catch (error) {
     console.error("[trial] no se pudo leer el uso del trial", {
@@ -128,4 +132,8 @@ export async function incrementTrialQuotations(userId: string): Promise<void> {
 
 export async function incrementTrialInvoiceScans(userId: string): Promise<void> {
   await incrementTrialCounter(userId, "trial_invoice_scans_used");
+}
+
+export async function incrementTrialInvoices(userId: string): Promise<void> {
+  await incrementTrialCounter(userId, "trial_invoices_used");
 }

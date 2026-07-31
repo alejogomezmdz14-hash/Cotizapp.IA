@@ -15,6 +15,12 @@ import { isArgentina } from "@/lib/profile-countries";
 import { STORAGE_BUCKETS } from "@/lib/storage/buckets";
 import { downloadFile } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
+import { canIssueInvoice } from "@/lib/trial";
+import {
+  getTrialUsage,
+  incrementTrialInvoices,
+  isCurrentUserPaid,
+} from "@/lib/trial-usage";
 
 export type EmitirFacturaResult =
   | { ok: true; cae: string; numeroFactura: string; vencimiento: string }
@@ -71,6 +77,22 @@ export async function emitirFacturaAction(
         : rawEnvironment === "demo"
           ? "demo"
           : "homologacion";
+
+    // 2.5) Cupo del trial. Va ANTES del claim atómico: si el chequeo fuera
+    // después, una emisión rechazada por falta de cupo dejaría la cotización
+    // reservada (facturado_at seteado) y el usuario no podría reintentarla.
+    const [isPaid, usage] = await Promise.all([
+      isCurrentUserPaid(),
+      getTrialUsage(user.id),
+    ]);
+
+    if (!canIssueInvoice(usage.invoicesUsed, isPaid)) {
+      return {
+        ok: false,
+        error:
+          "Llegaste al límite de facturas gratis. Escribinos por WhatsApp para seguir facturando sin tope.",
+      };
+    }
 
     // 3) CLAIM ATÓMICO antes de emitir: reservamos la cotización marcando
     // facturado_at. Si otra pestaña/reintento concurrente ya la reservó, este
@@ -193,6 +215,10 @@ export async function emitirFacturaAction(
     }
 
     revalidatePath(`/cotizaciones/${quotationId}`);
+
+    // Solo se consume cupo por una factura que efectivamente se emitió y
+    // quedó guardada (el CAE ya persistió arriba).
+    await incrementTrialInvoices(user.id);
 
     return {
       ok: true,
