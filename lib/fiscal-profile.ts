@@ -9,8 +9,6 @@ export type FiscalProfile = {
   contributor_type: ContributorType;
   sales_point: string;
   business_name: string;
-  cert_path: string | null;
-  key_path: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -81,7 +79,9 @@ export async function getFiscalProfile(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("fiscal_profiles")
-    .select("*")
+    .select(
+      "id, clerk_user_id, cuit, contributor_type, sales_point, business_name, created_at, updated_at",
+    )
     .eq("clerk_user_id", clerkUserId)
     .maybeSingle();
 

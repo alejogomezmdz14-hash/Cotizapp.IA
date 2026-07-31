@@ -52,8 +52,11 @@ export function FiscalProfileForm({
           >
             <option value="">Elegí una opción</option>
             <option value="monotributista">Monotributista</option>
-            <option value="responsable_inscripto">Responsable Inscripto</option>
           </select>
+          <p className="text-xs text-muted-foreground">
+            Por ahora Cotizapp emite Factura C, así que la facturación electrónica
+            está disponible solo para monotributistas.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -68,27 +71,6 @@ export function FiscalProfileForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="environment">Entorno de facturación</Label>
-          <select
-            id="environment"
-            name="environment"
-            defaultValue={
-              (fiscalProfile as { environment?: string } | null)?.environment ??
-              "homologacion"
-            }
-            className={selectClassName}
-          >
-            <option value="demo">Demo (simulación, sin ARCA)</option>
-            <option value="homologacion">Homologación (pruebas)</option>
-            <option value="produccion">Producción (facturas reales)</option>
-          </select>
-          <p className="text-xs text-muted-foreground">
-            Demo genera un CAE de prueba simulado (marcado como DEMO), sin certificado
-            ni ARCA. Para facturas reales necesitás certificado y Clave Fiscal.
-          </p>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="business_name">Razón social</Label>
           <Input
             id="business_name"
@@ -97,23 +79,6 @@ export function FiscalProfileForm({
             defaultValue={fiscalProfile?.business_name ?? defaultBusinessName}
             required
           />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="cert">Certificado ARCA (.crt)</Label>
-            <Input id="cert" name="cert" type="file" accept=".crt" />
-            {fiscalProfile?.cert_path ? (
-              <p className="text-xs text-accent-token">Certificado cargado ✓</p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="key">Clave privada ARCA (.key)</Label>
-            <Input id="key" name="key" type="file" accept=".key" />
-            {fiscalProfile?.key_path ? (
-              <p className="text-xs text-accent-token">Clave cargada ✓</p>
-            ) : null}
-          </div>
         </div>
 
         <Button type="submit" className="min-h-11">

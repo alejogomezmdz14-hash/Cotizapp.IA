@@ -18,11 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { normalizeCuit } from "@/lib/fiscal-profile";
 import type { PasoWizard } from "@/lib/fiscal/estado";
 
 type CertificadoWizardProps = {
   paso: PasoWizard;
+  /** Ya formateado (p. ej. "20-12345678-9"): esta es una Client Component y
+   * no puede importar `normalizeCuit` de `@/lib/fiscal-profile` sin arrastrar
+   * la cadena server-only de Supabase/Clerk a un módulo de cliente. */
   cuitVerificado: string | null;
   venceEl: string | null;
 };
@@ -170,7 +172,6 @@ export function CertificadoWizard({
     }
   }
 
-  const cuitFormateado = cuitVerificado ? normalizeCuit(cuitVerificado) : null;
   const fechaVencimiento = venceEl ? formatearFecha(venceEl) : null;
   const diasRestantes = venceEl ? diasHastaVencimiento(venceEl) : null;
   const proximoAVencer =
@@ -313,7 +314,7 @@ export function CertificadoWizard({
       {paso === "verificar" ? (
         <div className="space-y-3">
           <div className="space-y-1 text-sm text-foreground">
-            {cuitFormateado ? <p>CUIT del certificado: {cuitFormateado}</p> : null}
+            {cuitVerificado ? <p>CUIT del certificado: {cuitVerificado}</p> : null}
             {fechaVencimiento ? <p>Vence el {fechaVencimiento}</p> : null}
           </div>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -348,7 +349,7 @@ export function CertificadoWizard({
             </p>
           </div>
           <div className="space-y-1 text-sm text-muted-foreground">
-            {cuitFormateado ? <p>CUIT verificado: {cuitFormateado}</p> : null}
+            {cuitVerificado ? <p>CUIT verificado: {cuitVerificado}</p> : null}
             {fechaVencimiento ? <p>Vence el {fechaVencimiento}</p> : null}
           </div>
           {proximoAVencer ? (

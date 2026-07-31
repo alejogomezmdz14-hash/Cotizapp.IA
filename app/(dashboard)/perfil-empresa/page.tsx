@@ -1,8 +1,11 @@
 import { BusinessProfileForm } from "@/components/profile/business-profile-form";
+import { CertificadoWizard } from "@/components/profile/certificado-wizard";
 import { FiscalProfileForm } from "@/components/profile/fiscal-profile-form";
 import { PdfTemplateSettings } from "@/components/profile/pdf-template-settings";
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
-import { getFiscalProfile } from "@/lib/fiscal-profile";
+import { getCredentialSummary } from "@/lib/fiscal/credentials";
+import { pasoDelWizard } from "@/lib/fiscal/estado";
+import { getFiscalProfile, normalizeCuit } from "@/lib/fiscal-profile";
 import { getProfile, requireUser } from "@/lib/profile";
 import { isArgentina } from "@/lib/profile-countries";
 
@@ -31,6 +34,23 @@ export default async function BusinessProfilePage({
   const fiscalProfile = showFiscal
     ? await getFiscalProfile(user.clerkId).catch(() => null)
     : null;
+  const credencialesResumen = showFiscal
+    ? await getCredentialSummary(user.clerkId).catch(() => null)
+    : null;
+
+  const tieneDatosFiscales = Boolean(
+    fiscalProfile?.cuit && fiscalProfile.business_name && fiscalProfile.sales_point,
+  );
+  const certVencido = credencialesResumen?.certNotAfter
+    ? new Date(credencialesResumen.certNotAfter).getTime() < Date.now()
+    : false;
+  const pasoWizard = pasoDelWizard({
+    tieneDatosFiscales,
+    tieneLlave: credencialesResumen !== null,
+    tieneCertificado: credencialesResumen?.hasCert ?? false,
+    verificado: Boolean(credencialesResumen?.verifiedAt),
+    certVencido,
+  });
 
   return (
     <div className="space-y-5 pb-20 lg:space-y-6">
@@ -73,7 +93,14 @@ export default async function BusinessProfilePage({
           </div>
 
           {showFiscal ? (
-            <div className="border-t border-token/80 pt-8">
+            <div className="space-y-6 border-t border-token/80 pt-8">
+              <CertificadoWizard
+                paso={pasoWizard}
+                cuitVerificado={
+                  credencialesResumen?.cuit ? normalizeCuit(credencialesResumen.cuit) : null
+                }
+                venceEl={credencialesResumen?.certNotAfter ?? null}
+              />
               <FiscalProfileForm
                 fiscalProfile={fiscalProfile}
                 defaultCuit={profile?.tax_id ?? ""}
