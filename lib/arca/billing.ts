@@ -69,12 +69,14 @@ function salesPointToNumber(salesPoint: string): number {
   return Number(salesPoint.replace(/\D/g, "")) || 0;
 }
 
-export function buildFacturaCRequest(
+// Arma la request para un número de comprobante ya decidido. Separado de
+// `buildFacturaCRequest` para que `issueFacturaC` pueda usar un número
+// reservado de antemano sin pasar por la aritmética "reservado - 1 = last".
+function buildFacturaCRequestForNumber(
   input: FacturaCInput,
-  lastVoucherNumber: number,
+  numero: number,
 ): FacturaCRequest {
   const total = round2(input.total);
-  const nextNumber = lastVoucherNumber + 1;
 
   return {
     CantReg: 1,
@@ -83,8 +85,8 @@ export function buildFacturaCRequest(
     Concepto: CONCEPTO_PRODUCTOS,
     DocTipo: DOC_TIPO_CONSUMIDOR_FINAL,
     DocNro: 0,
-    CbteDesde: nextNumber,
-    CbteHasta: nextNumber,
+    CbteDesde: numero,
+    CbteHasta: numero,
     CbteFch: formatCbteFch(input.date),
     ImpTotal: total,
     ImpTotConc: 0,
@@ -96,6 +98,13 @@ export function buildFacturaCRequest(
     MonCotiz: 1,
     CondicionIVAReceptorId: COND_IVA_RECEPTOR_CONSUMIDOR_FINAL,
   };
+}
+
+export function buildFacturaCRequest(
+  input: FacturaCInput,
+  lastVoucherNumber: number,
+): FacturaCRequest {
+  return buildFacturaCRequestForNumber(input, lastVoucherNumber + 1);
 }
 
 export function formatNumeroFactura(
@@ -158,13 +167,21 @@ export class ArcaEmissionError extends Error {
 export async function issueFacturaC(
   billing: ElectronicBilling,
   input: FacturaCInput,
+  // Si ya reservamos un número (ver `proximoNumeroComprobante`), se usa
+  // directo: NO volvemos a preguntarle a ARCA por el último comprobante.
+  numeroReservado?: number,
 ): Promise<FacturaCResult> {
-  const last = await billing.getLastVoucherNumber(
-    salesPointToNumber(input.salesPoint),
-    CBTE_TIPO_FACTURA_C,
-  );
+  const request =
+    numeroReservado !== undefined
+      ? buildFacturaCRequestForNumber(input, numeroReservado)
+      : buildFacturaCRequest(
+          input,
+          await billing.getLastVoucherNumber(
+            salesPointToNumber(input.salesPoint),
+            CBTE_TIPO_FACTURA_C,
+          ),
+        );
 
-  const request = buildFacturaCRequest(input, last);
   const outcome = await billing.createVoucher(request);
 
   if (!outcome.approved || !outcome.cae) {
@@ -218,6 +235,8 @@ function extractArcaMessages(response: unknown): string | null {
 export async function emitirFacturaC(
   credentials: ArcaCredentials,
   input: FacturaCInput,
+  // Número ya reservado con `proximoNumeroComprobante`, si lo hay.
+  numeroReservado?: number,
 ): Promise<FacturaCResult> {
   const { Arca } = await import("@arcasdk/core");
 
@@ -254,5 +273,29 @@ export async function emitirFacturaC(
     },
   };
 
-  return issueFacturaC(billing, input);
+  return issueFacturaC(billing, input, numeroReservado);
+}
+
+/** Pide a ARCA el próximo número disponible, sin emitir nada. */
+export async function proximoNumeroComprobante(
+  credentials: ArcaCredentials,
+  salesPoint: string,
+): Promise<number> {
+  const { Arca } = await import("@arcasdk/core");
+
+  const arca = new Arca({
+    cuit: Number(credentials.cuit.replace(/\D/g, "")),
+    cert: credentials.certPem,
+    key: credentials.keyPem,
+    production: credentials.environment === "produccion",
+    useHttpsAgent: true,
+    ticketStorage: credentials.ticketStorage,
+  });
+
+  const last = await arca.electronicBillingService.getLastVoucher(
+    salesPointToNumber(salesPoint),
+    CBTE_TIPO_FACTURA_C,
+  );
+
+  return (Number(last?.cbteNro ?? 0) || 0) + 1;
 }
