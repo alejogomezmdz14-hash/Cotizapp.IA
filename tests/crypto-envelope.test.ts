@@ -136,10 +136,12 @@ test("open rechaza un blob truncado", () => {
 
 // --- Hallazgo 1: open no debe dejar escapar excepciones crudas de Node ---
 //
-// La columna que va a guardar este blob es `bytea` de Postgres: según el
-// driver puede volver como Buffer, Uint8Array o string hexadecimal. `open`
-// tiene que convertir cualquier entrada inesperada en un EnvelopeError, nunca
-// en un TypeError/RangeError crudo de Node.
+// La columna que guarda este blob es `text` de Postgres (el sobre viaja en
+// base64: PostgREST transporta JSON y no puede llevar binario), pero antes de
+// decodificarlo alguien puede pasar cualquier cosa — Buffer, Uint8Array o el
+// string sin decodificar. `open` tiene que convertir cualquier entrada
+// inesperada en un EnvelopeError, nunca en un TypeError/RangeError crudo de
+// Node.
 
 test("open rechaza un blob que no es un Buffer (Uint8Array)", () => {
   const blob = seal(KEY_A, SECRET, AAD_USER_A);
@@ -303,11 +305,12 @@ test("open rechaza un ring con keyId como string (típico de un env var, no matc
 
 // --- Menor 3: seal tampoco debe dejar escapar excepciones crudas de Node ---
 //
-// `open` ya está blindado contra entradas inesperadas (columna bytea del
-// driver, ring mal formado). `seal` maneja el mismo material fiscal (la
-// clave privada de ARCA antes de cifrarla) y estaba expuesto al mismo tipo
-// de bug: una `key` null/undefined o un `plaintext` que no sea Buffer/string
-// tiraban TypeError/RangeError crudo de Node en vez de EnvelopeError.
+// `open` ya está blindado contra entradas inesperadas (el valor sin decodificar
+// de la columna `text`, un ring mal formado). `seal` maneja el mismo material
+// fiscal (la clave privada de ARCA antes de cifrarla) y estaba expuesto al
+// mismo tipo de bug: una `key` null/undefined o un `plaintext` que no sea
+// Buffer/string tiraban TypeError/RangeError crudo de Node en vez de
+// EnvelopeError.
 
 test("seal rechaza una key null sin TypeError crudo", () => {
   const badKey = { keyId: 1, key: null } as unknown as EnvelopeKey;

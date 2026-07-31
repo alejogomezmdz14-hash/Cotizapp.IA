@@ -2,8 +2,33 @@
  * Migra las credenciales fiscales del bucket `fiscal` (clave privada en CLARO) a
  * la tabla `fiscal_credentials` (cifrada), y borra el material en claro.
  *
- * Orden estricto y no negociable, por perfil:
- *   0. verificar la huella de FISCAL_ENCRYPTION_KEY contra la de Production
+ * ORDEN OBLIGATORIO. Esto no es una checklist opcional: invertir el orden es
+ * lo que evita que un error se vuelva irreversible.
+ *
+ *   1. Generá FISCAL_ENCRYPTION_KEY en tu máquina: `openssl rand -base64 32`.
+ *   2. Guardala en tu gestor de contraseñas ANTES de seguir. Si la perdés
+ *      después de migrar, perdés la clave de ARCA de todos los usuarios de
+ *      forma irrecuperable — no hay "recuperar contraseña" para esto.
+ *   3. Cargala en tu `.env.local` junto con las otras variables requeridas
+ *      (ver más abajo) y corré el simulacro (sin --aplicar) para revisar qué
+ *      va a pasar.
+ *   4. Corré `--aplicar --confirmo-llave-respaldada` con esa misma clave.
+ *   5. Recién ACÁ, con la migración ya terminada en "fallidos: 0", pegá ese
+ *      MISMO valor de `.env.local` (no generes uno nuevo) en Vercel →
+ *      Settings → Environment Variables → `FISCAL_ENCRYPTION_KEY`, marcada
+ *      SOLO para el entorno Production.
+ *
+ * Por qué este orden y no el inverso (poner la clave en Vercel primero y
+ * migrar después contra "la de producción"): Vercel no expone ninguna huella
+ * ni forma de leer de vuelta una variable de entorno para comparar. No hay
+ * nada del otro lado contra qué verificar que la clave de tu terminal es la
+ * misma. Generando la clave acá primero y subiéndola a Vercel al final, el
+ * peor caso posible es un error de tipeo al pegarla en Vercel — reversible,
+ * se pega de nuevo. Migrar con una clave que después resulta no ser la que
+ * queda en Vercel es, en cambio, irreversible: el script ya borró el PEM en
+ * claro y el material queda ilegible en producción para siempre.
+ *
+ * Dentro de la migración en sí, por perfil, el orden también es estricto:
  *   1. leer y validar   2. escribir cifrado   3. RELEER Y DESCIFRAR para
  *   verificar   4. recién ahí borrar el objeto en claro   5. barrido final
  *
@@ -18,13 +43,18 @@
  * todavía está en el bucket) confirmar que coincide con él. Nunca se borra a
  * ciegas solo porque existe la fila.
  *
- * Uso (desde la raíz del repo):
- *   npx tsx scripts/migrar-credenciales-fiscales.ts                      (simulacro, no toca nada)
- *   npx tsx scripts/migrar-credenciales-fiscales.ts --aplicar --huella=<hex>
+ * Uso (desde la raíz del repo). OJO: `tsx` NO carga `.env.local` solo —
+ * hace falta `--env-file` explícito, si no el script va a decir "Faltan
+ * variables de entorno" aunque `.env.local` las tenga:
+ *   npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts
+ *     (simulacro, no toca nada)
+ *   npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts --aplicar --confirmo-llave-respaldada
  *
- * La huella (paso 0) sale del simulacro: corrélo primero sin --aplicar,
- * comparala a mano contra FISCAL_ENCRYPTION_KEY en Vercel → Production, y
- * recién ahí volvé a correr con --aplicar --huella=<esos caracteres>.
+ * La huella que imprime el script (sha256 de la clave activa, nunca la clave
+ * en sí) NO se compara contra nada de Vercel — no existe tal cosa. Sirve para
+ * un único propósito legítimo: confirmar que dos corridas de este script (dos
+ * terminales, o esta corrida y una anterior) están usando la misma
+ * FISCAL_ENCRYPTION_KEY. `--huella=<hex>` es un chequeo opcional para ese caso.
  *
  * Variables de entorno requeridas: NEXT_PUBLIC_SUPABASE_URL,
  * SUPABASE_SERVICE_ROLE_KEY, FISCAL_ENCRYPTION_KEY (ver .env.local).
@@ -54,6 +84,7 @@ import {
 } from "../lib/fiscal/certificate";
 
 const APLICAR = process.argv.includes("--aplicar");
+const CONFIRMO_LLAVE_RESPALDADA = process.argv.includes("--confirmo-llave-respaldada");
 const HUELLA_HEX_LENGTH = 16;
 
 function requireEnv(): { supabaseUrl: string; serviceRoleKey: string } {
@@ -68,7 +99,10 @@ function requireEnv(): { supabaseUrl: string; serviceRoleKey: string } {
   if (faltantes.length > 0) {
     throw new Error(
       `Faltan variables de entorno: ${faltantes.join(", ")}.\n` +
-        `Cargalas en .env.local (o exportalas en la terminal donde corrés el script) e intentá de nuevo.`,
+        `Cargalas en .env.local y volvé a correr el script con --env-file, porque tsx NO carga ` +
+        `.env.local solo:\n` +
+        `  npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts\n` +
+        `(o exportalas a mano en la terminal donde corrés el script).`,
     );
   }
 
@@ -88,21 +122,28 @@ function parseHuellaArg(argv: string[]): string | null {
   return arg ? arg.slice(prefijo.length).trim().toLowerCase() : null;
 }
 
-// El paso 3 (seal con keyring.active, open con keyring.all) corre TODO en
-// este mismo proceso: eso solo prueba que la clave es autoconsistente
-// consigo misma, nunca que sea LA MISMA FISCAL_ENCRYPTION_KEY que está en
-// Vercel Production. Esa variable va marcada solo para el entorno
-// Production, este script corre local, y no hay carga automática de
-// .env.local — la ruta normal es que alguien la pegue a mano en su
-// terminal. Si esa clave no es la de producción, el round-trip pasa igual,
-// el script borra el PEM en claro, y el material queda ilegible en
-// producción para siempre: el síntoma aparece recién cuando un usuario
-// intenta facturar.
+// Esta huella NO prueba nada contra Vercel: Vercel no expone ninguna huella
+// de sus variables de entorno para comparar del otro lado, así que un
+// chequeo "compará esto contra Production" no tiene con qué compararse — el
+// camino de menor esfuerzo termina siendo copiar el número que este mismo
+// proceso acaba de imprimir y pegarlo, lo que coincide siempre y no protege
+// nada. El paso 3 de la migración (seal con keyring.active, open con
+// keyring.all) tampoco prueba eso: corre TODO en este mismo proceso, así que
+// solo confirma que la clave es autoconsistente consigo misma.
 //
-// Por eso el script imprime SIEMPRE una huella (sha256 de la clave activa,
-// nunca la clave en sí) y, en modo --aplicar, exige que el operador la haya
-// verificado a mano contra la de Production antes de continuar.
-function verificarHuella(activeKey: Buffer, argv: string[]): void {
+// Lo que sí sirve, y para lo que existe esta función: imprimir la huella
+// siempre, para que el operador pueda confirmar que dos corridas propias de
+// este script (dos terminales, o esta corrida contra una anterior) están
+// usando la misma FISCAL_ENCRYPTION_KEY. Para eso alcanza con mirar el
+// número a simple vista, y `--huella=<hex>` lo automatiza si hace falta.
+//
+// La garantía real de que la clave migrada es la que va a terminar en
+// Vercel Production no sale de acá — sale de invertir el orden del
+// procedimiento (ver el encabezado del archivo): generarla local primero,
+// migrar con ella, y recién después pegar ese mismo valor en Vercel. Por
+// eso el gate de --aplicar no pide una huella: pide una confirmación
+// explícita de que el operador siguió ese orden.
+function imprimirHuella(activeKey: Buffer, argv: string[]): void {
   const huellaCalculada = calcularHuella(activeKey);
   const huellaArgumento = parseHuellaArg(argv);
 
@@ -110,25 +151,39 @@ function verificarHuella(activeKey: Buffer, argv: string[]): void {
     `Huella de FISCAL_ENCRYPTION_KEY activa (sha256, primeros ${HUELLA_HEX_LENGTH} hex): ${huellaCalculada}`,
   );
   console.log(
-    "Compará esta huella A MANO contra la de la MISMA variable en Vercel → Production " +
-      "(Settings → Environment Variables) antes de aplicar. Si no coinciden, esta terminal " +
-      "no tiene la clave de producción.\n",
+    "Esta huella no se compara contra nada de Vercel (no existe tal cosa). Sirve solo para " +
+      "confirmar que dos corridas de este script están usando la misma clave.\n",
   );
 
   if (huellaArgumento && huellaArgumento !== huellaCalculada) {
     throw new Error(
       `--huella=${huellaArgumento} no coincide con la huella calculada acá (${huellaCalculada}). ` +
-        "Abortando sin tocar nada: la FISCAL_ENCRYPTION_KEY de esta terminal no es la que estás verificando.",
+        "Abortando sin tocar nada: esta terminal no tiene la misma FISCAL_ENCRYPTION_KEY que la corrida " +
+        "con la que estás comparando.",
     );
   }
+}
 
-  if (APLICAR && !huellaArgumento) {
+// Gate real de --aplicar. No pide una huella (ver `imprimirHuella` arriba
+// sobre por qué eso no verifica nada): pide que el operador reconozca
+// explícitamente que siguió el procedimiento seguro descripto en el
+// encabezado del archivo, en particular que ya guardó la clave en su
+// gestor de contraseñas. Sin este flag, --aplicar se niega a correr.
+function exigirConfirmacionDeAplicar(): void {
+  if (APLICAR && !CONFIRMO_LLAVE_RESPALDADA) {
     throw new Error(
-      "Falta --huella=<hex> para aplicar. Corré primero el simulacro (sin --aplicar) para ver la huella de " +
-        "arriba, comparala a mano contra FISCAL_ENCRYPTION_KEY en Vercel → Production, y recién entonces " +
-        `volvé a correr con --aplicar --huella=<esos ${HUELLA_HEX_LENGTH} caracteres>. Sin esta verificación, ` +
-        "el script podría estar cifrando con una clave distinta a la de producción y dejar el material fiscal " +
-        "ilegible para siempre.",
+      "Falta --confirmo-llave-respaldada para aplicar.\n\n" +
+        "Ese flag confirma, bajo tu responsabilidad, que ya hiciste esto en este orden:\n" +
+        "  1. Generaste FISCAL_ENCRYPTION_KEY vos (openssl rand -base64 32).\n" +
+        "  2. La guardaste en tu gestor de contraseñas. Si la perdés después de esta migración, " +
+        "el material fiscal de todos los usuarios queda irrecuperable.\n" +
+        "  3. Corriste el simulacro (sin --aplicar) con esa clave y revisaste que lo que va a " +
+        "pasar tiene sentido.\n" +
+        "  4. Vas a pegar ESA MISMA clave (no una nueva) en Vercel → Production recién DESPUÉS " +
+        "de que esta corrida con --aplicar termine en \"fallidos: 0\".\n\n" +
+        "Si todo eso es cierto, volvé a correr agregando --confirmo-llave-respaldada. Si todavía no " +
+        "generaste ni guardaste la clave, hacelo antes de seguir: no hay vuelta atrás una vez que " +
+        "este script borra el material en claro del bucket.",
     );
   }
 }
@@ -157,8 +212,11 @@ async function main() {
 
   console.log(APLICAR ? "Modo: APLICAR (va a escribir y borrar).\n" : "Modo: SIMULACRO (no toca nada).\n");
 
-  // Paso 0: la huella. Puede abortar sin haber tocado la red todavía.
-  verificarHuella(keyring.active.key, process.argv);
+  // La huella es informativa (ver `imprimirHuella` sobre por qué no verifica
+  // nada contra Vercel) y el gate real de --aplicar es la confirmación
+  // explícita del operador. Los dos pueden abortar sin haber tocado la red.
+  imprimirHuella(keyring.active.key, process.argv);
+  exigirConfirmacionDeAplicar();
 
   const db = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -175,6 +233,10 @@ async function main() {
       const { data, error } = await db
         .from("fiscal_profiles")
         .select("clerk_user_id, cuit, cert_path, key_path")
+        // Postgres no garantiza orden estable entre páginas sin ORDER BY: sin
+        // esto, con muchas filas una podría repetirse o saltearse entre una
+        // página y la siguiente.
+        .order("clerk_user_id")
         .range(desde, desde + PAGE_SIZE - 1);
 
       if (error) {
@@ -493,20 +555,28 @@ async function main() {
     }
   }
 
-  // 5. Barrido final: que no quede ninguna clave en claro en el bucket.
+  // 5. Barrido final: reporta qué claves en claro quedan en el bucket.
+  // Corre SIEMPRE, también en simulacro — es de solo lectura, así que no hay
+  // riesgo, y en simulacro es lo que le muestra al operador el trabajo
+  // pendiente real (todo lo que todavía no se migró) antes de decidir aplicar.
+  // Solo en --aplicar el resultado hace fallar el script: en simulacro,
+  // encontrar claves en claro es el estado esperado, no un error.
+  //
   // Pagina de verdad el listado de la raíz y el de cada carpeta (Supabase
   // Storage corta en 100 objetos por página si no se pide `limit`
   // explícito, y en 1000 aunque se pida más), y contempla un `.key` suelto
   // directamente en la raíz del bucket (no todo lo que hay en la raíz es una
   // carpeta: los objetos de Supabase Storage traen `id` no nulo, las
   // "carpetas" —en realidad prefijos— traen `id: null`).
-  if (APLICAR) {
+  {
     const { entradas: raiz, error: raizError } = await listarBucketCompleto("");
 
     if (raizError) {
       console.error(`\nEl barrido final NO pudo completarse: no se pudo listar la raíz del bucket (${raizError}).`);
-      console.error("No podemos confirmar que no hayan quedado claves en claro. Revisá el bucket a mano.");
-      process.exitCode = 1;
+      console.error("No podemos confirmar el estado del bucket. Revisalo a mano.");
+      if (APLICAR) {
+        process.exitCode = 1;
+      }
     } else {
       const sospechosos: string[] = [];
       let barridoIncompleto = false;
@@ -536,17 +606,27 @@ async function main() {
       }
 
       if (sospechosos.length > 0) {
-        console.error("\n!! QUEDARON CLAVES EN CLARO EN EL BUCKET:");
-        sospechosos.forEach((s) => console.error(`   ${s}`));
-        process.exitCode = 1;
+        if (APLICAR) {
+          console.error("\n!! QUEDARON CLAVES EN CLARO EN EL BUCKET:");
+          sospechosos.forEach((s) => console.error(`   ${s}`));
+          process.exitCode = 1;
+        } else {
+          console.log(`\nBarrido (simulacro) — trabajo pendiente: ${sospechosos.length} clave(s) en claro todavía en el bucket:`);
+          sospechosos.forEach((s) => console.log(`   ${s}`));
+        }
       } else if (barridoIncompleto) {
         console.error(
-          "\nEl barrido final NO pudo completarse: no se pudieron listar algunas carpetas (ver arriba). " +
-            "No lo tomes como OK — revisá el bucket a mano antes de cerrar el acceso.",
+          "\nEl barrido NO pudo completarse: no se pudieron listar algunas carpetas (ver arriba). " +
+            "No lo tomes como OK — revisá el bucket a mano" +
+            (APLICAR ? " antes de cerrar el acceso." : "."),
         );
-        process.exitCode = 1;
-      } else {
+        if (APLICAR) {
+          process.exitCode = 1;
+        }
+      } else if (APLICAR) {
         console.log("\nBarrido final OK: no quedan claves en claro en el bucket.");
+      } else {
+        console.log("\nBarrido (simulacro): no queda ninguna clave en claro en el bucket.");
       }
     }
   }

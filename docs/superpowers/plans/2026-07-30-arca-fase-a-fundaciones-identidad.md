@@ -1155,14 +1155,15 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Create: `lib/fiscal/credentials.ts`
 
 **Interfaces:**
-- Consumes: `seal`/`open`/`EnvelopeError` de `lib/crypto/envelope`; `getFiscalKeyring`/`ACTIVE_KEY_ID` de `lib/crypto/fiscal-key`; `createServiceRoleClient` de `lib/supabase/service-role`; `parseCertificate`/`assertKeyMatchesCertificate`/`CertificateError` de `lib/fiscal/certificate`; `logError` de `lib/log`.
-- Produces:
+- Consumes: `seal`/`open`/`EnvelopeError` de `lib/crypto/envelope`; `getFiscalKeyring`/`ACTIVE_KEY_ID` de `lib/crypto/fiscal-key`; `aadFor` de `lib/fiscal/aad`; `createServiceRoleClient` de `lib/supabase/service-role`; `parseCertificate`/`assertKeyMatchesCertificate`/`CertificateError` de `lib/fiscal/certificate`; `logError` de `lib/log`.
+- Produces (contrato real, verificado contra `lib/fiscal/credentials.ts`):
   - `type FiscalCredentialSummary = { cuit: string; certNotAfter: string | null; verifiedAt: string | null; hasCert: boolean }`
+  - `type LoadCredentialsResult = { status: "ok"; cuit: string; certPem: string; privateKeyPem: string } | { status: "missing" } | { status: "unavailable" } | { status: "undecryptable" }`
   - `async function savePrivateKey(clerkUserId: string, privateKeyPem: string, csrPem: string, provisionalCuit: string): Promise<void>`
   - `async function attachCertificate(clerkUserId, certPem): Promise<ParsedCertificate>`
-  - `async function loadCredentials(clerkUserId): Promise<{ cuit: string; certPem: string; privateKeyPem: string } | null>`
+  - `async function loadCredentials(clerkUserId): Promise<LoadCredentialsResult>` — **no** es `{...} | null`. Discrimina "no configurado todavía" (`missing`), "falló la consulta, reintentable" (`unavailable`) y "hay fila pero el sobre no abre, p. ej. rotación mal hecha" (`undecryptable`): colapsarlos en `null` le mentía a quien llama sobre cuál de los tres pasó.
   - `async function getCredentialSummary(clerkUserId): Promise<FiscalCredentialSummary | null>`
-  - `async function markVerified(clerkUserId): Promise<void>`
+  - `async function markVerified(clerkUserId: string, certSerial: string): Promise<void>` — filtra también por `cert_serial` para no sellar `verified_at` sobre un certificado distinto al que efectivamente autenticó, si el usuario subió uno nuevo mientras la verificación estaba en vuelo.
   - `async function clearCredentials(clerkUserId): Promise<void>`
 
 Sin test unitario: es acceso a Supabase. La lógica pura que contiene ya está cubierta por las Tasks 3, 4 y 7; el camino completo se prueba a mano en la Task 9 y con el wizard de la Fase B.
@@ -1172,12 +1173,15 @@ Sin test unitario: es acceso a Supabase. La lógica pura que contiene ya está c
 ```ts
 import "server-only";
 
+import type { PostgrestError } from "@supabase/supabase-js";
+
 import {
   EnvelopeError,
   open,
   seal,
 } from "@/lib/crypto/envelope";
 import { ACTIVE_KEY_ID, getFiscalKeyring } from "@/lib/crypto/fiscal-key";
+import { aadFor } from "@/lib/fiscal/aad";
 import {
   CertificateError,
   assertKeyMatchesCertificate,
@@ -1192,12 +1196,39 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 // `fiscal_credentials` tiene RLS de negación total, así que todo acá pasa por el
 // cliente service_role. Como ese cliente saltea RLS, CADA query filtra
 // explícitamente por clerk_user_id. No hay excepción.
+//
+// `private_key_enc` es `text` en la base, no `bytea`: PostgREST transporta
+// JSON, así que un bytea vuelve como string hexadecimal "\x..." al leer y no
+// acepta un Buffer al escribir. Por eso el sobre que arma `seal()` se guarda
+// en base64 (`blob.toString("base64")`) y se decodifica con
+// `Buffer.from(valor, "base64")` antes de pasárselo a `open()`, que exige un
+// Buffer de verdad. `Buffer.from(valor as unknown as Uint8Array)` (sin el
+// segundo argumento `"base64"`) es la decodificación EQUIVOCADA: sobre un
+// string la trata como una lista de code points en vez de base64 y corrompe
+// el sobre en silencio — el fallo recién aparece como "no se pudo descifrar"
+// mucho después, cuando alguien intenta facturar.
 
 const TABLE = "fiscal_credentials";
-const PURPOSE_PRIVATE_KEY = "fiscal-private-key";
 
-function aadFor(clerkUserId: string): string {
-  return `${clerkUserId}|${PURPOSE_PRIVATE_KEY}`;
+const GENERIC_TRANSIENT_MESSAGE =
+  "Tuvimos un problema para conectarnos. Probá de nuevo en un momento.";
+
+function pgErrorExtra(error: PostgrestError): Record<string, string> {
+  return { code: error.code ?? "" };
+}
+
+// PostgREST —lo que efectivamente corre Supabase, no Postgres directo— no
+// siempre deja pasar el código crudo de Postgres para "tabla inexistente"
+// (42P01). Normalmente lo envuelve y devuelve su propio código PGRST205, con
+// un mensaje del estilo "Could not find the table ... in the schema cache".
+// Contemplamos las dos señales, más un match de mensaje como red adicional,
+// para no depender de asumir cuál de las dos capas terminó respondiendo.
+function isMissingArcaTicketsTable(error: PostgrestError): boolean {
+  if (error.code === "42P01" || error.code === "PGRST205") {
+    return true;
+  }
+
+  return /schema cache|does not exist|no existe/i.test(error.message ?? "");
 }
 
 export type FiscalCredentialSummary = {
@@ -1214,15 +1245,56 @@ export async function savePrivateKey(
   csrPem: string,
   provisionalCuit: string,
 ): Promise<void> {
-  const keyring = getFiscalKeyring();
-  const blob = seal(keyring.active, privateKeyPem, aadFor(clerkUserId));
+  const cuitDigits = provisionalCuit.replace(/\D/g, "");
+  if (cuitDigits.length !== 11) {
+    throw new Error("El CUIT tiene que tener 11 dígitos.");
+  }
 
   const supabase = createServiceRoleClient();
+  const keyring = getFiscalKeyring();
+
+  // Red de seguridad: si ya hay una fila con una llave que no podemos abrir
+  // (p. ej. FISCAL_ENCRYPTION_KEY se rotó mal, sin dejar la vieja en
+  // FISCAL_ENCRYPTION_KEY_PREVIOUS), el upsert de abajo la pisaría con una
+  // llave nueva y la buena se perdería para siempre. Un error nuestro de
+  // entorno, transitorio y reversible, no puede terminar en la destrucción
+  // de la única copia de la llave del usuario.
+  const { data: existing, error: existingError } = await supabase
+    .from(TABLE)
+    .select("private_key_enc")
+    .eq("clerk_user_id", clerkUserId)
+    .maybeSingle();
+
+  if (existingError) {
+    logError("fiscal.savePrivateKey.check", existingError, pgErrorExtra(existingError));
+    throw new Error(GENERIC_TRANSIENT_MESSAGE);
+  }
+
+  if (existing?.private_key_enc) {
+    try {
+      open(
+        keyring.all,
+        Buffer.from(String(existing.private_key_enc), "base64"),
+        aadFor(clerkUserId),
+      );
+    } catch (unsealError) {
+      if (unsealError instanceof EnvelopeError) {
+        logError("fiscal.savePrivateKey.undecryptable", unsealError);
+        throw new Error(
+          "Hay un problema con la configuración de cifrado y no pudimos verificar tu llave actual. No se modificó nada: escribinos antes de generar una llave nueva.",
+        );
+      }
+      throw unsealError;
+    }
+  }
+
+  const blob = seal(keyring.active, privateKeyPem, aadFor(clerkUserId));
+
   const { error } = await supabase.from(TABLE).upsert(
     {
       clerk_user_id: clerkUserId,
-      cuit: provisionalCuit.replace(/\D/g, ""),
-      private_key_enc: blob,
+      cuit: cuitDigits,
+      private_key_enc: blob.toString("base64"),
       csr_pem: csrPem,
       key_id: ACTIVE_KEY_ID,
       // Una llave nueva invalida cualquier verificación previa.
@@ -1236,9 +1308,13 @@ export async function savePrivateKey(
   );
 
   if (error) {
-    logError("fiscal.savePrivateKey", error);
+    logError("fiscal.savePrivateKey", error, pgErrorExtra(error));
     throw new Error("No pudimos guardar tu llave. Probá de nuevo en un momento.");
   }
+
+  // Cambiar de llave (y por lo tanto de CUIT provisorio) invalida cualquier
+  // ticket WSAA que hubiera quedado del certificado/CUIT anterior.
+  await clearTicketsFor(clerkUserId);
 }
 
 /**
@@ -1253,11 +1329,21 @@ export async function attachCertificate(
 
   const { data, error } = await supabase
     .from(TABLE)
-    .select("private_key_enc, key_id")
+    .select("private_key_enc")
     .eq("clerk_user_id", clerkUserId)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    // `maybeSingle()` devuelve { data: null, error: null } cuando no hay
+    // fila: un `error` no nulo acá es siempre una falla real de Supabase, no
+    // "el usuario todavía no generó su llave". Colapsar los dos casos le
+    // mentía al usuario y además era el único camino del módulo donde una
+    // falla de base no dejaba rastro en los logs.
+    logError("fiscal.attachCertificate.select", error, pgErrorExtra(error));
+    throw new CertificateError(GENERIC_TRANSIENT_MESSAGE);
+  }
+
+  if (!data) {
     throw new CertificateError(
       "Primero generá tu llave desde Cotizapp y después subí el certificado.",
     );
@@ -1268,7 +1354,7 @@ export async function attachCertificate(
   try {
     privateKeyPem = open(
       keyring.all,
-      Buffer.from(data.private_key_enc as unknown as Uint8Array),
+      Buffer.from(String(data.private_key_enc), "base64"),
       aadFor(clerkUserId),
     ).toString("utf8");
   } catch (unsealError) {
@@ -1281,23 +1367,31 @@ export async function attachCertificate(
   const parsed = parseCertificate(certPem);
   assertKeyMatchesCertificate(certPem, privateKeyPem);
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from(TABLE)
     .update({
       // El CUIT del certificado manda. El del formulario nunca fue autoridad.
       cuit: parsed.cuit,
       cert_pem: certPem.trim(),
-      cert_serial: parsed.serialNumber,
+      cert_serial: parsed.certSerialNumber,
       cert_not_after: parsed.notAfter.toISOString(),
       verified_at: null, // se sella recién cuando "Probar conexión" pasa
       updated_at: new Date().toISOString(),
     })
-    .eq("clerk_user_id", clerkUserId);
+    .eq("clerk_user_id", clerkUserId)
+    .select("clerk_user_id")
+    .maybeSingle();
 
   if (updateError) {
     // El índice único parcial sobre cuit solo aplica a filas verificadas, así
     // que acá un conflicto es otra cosa; igual damos un mensaje humano.
-    logError("fiscal.attachCertificate.update", updateError);
+    logError("fiscal.attachCertificate.update", updateError, pgErrorExtra(updateError));
+    throw new CertificateError(
+      "No pudimos guardar el certificado. Probá de nuevo en un momento.",
+    );
+  }
+
+  if (!updated) {
     throw new CertificateError(
       "No pudimos guardar el certificado. Probá de nuevo en un momento.",
     );
@@ -1308,10 +1402,22 @@ export async function attachCertificate(
   return parsed;
 }
 
-/** Devuelve el material listo para hablar con ARCA, o null si no está completo. */
+export type LoadCredentialsResult =
+  | { status: "ok"; cuit: string; certPem: string; privateKeyPem: string }
+  // No hay fila, o falta cert o clave: el usuario todavía tiene el
+  // onboarding pendiente.
+  | { status: "missing" }
+  // Falló la consulta a la base: transitorio, vale la pena reintentar.
+  | { status: "unavailable" }
+  // Hay fila con cert y clave, pero el sobre no abre (p. ej. una rotación
+  // mal hecha de FISCAL_ENCRYPTION_KEY). NO es "no configurado": no pisar
+  // nada, avisar.
+  | { status: "undecryptable" };
+
+/** Devuelve el material listo para hablar con ARCA, con el estado discriminado. */
 export async function loadCredentials(
   clerkUserId: string,
-): Promise<{ cuit: string; certPem: string; privateKeyPem: string } | null> {
+): Promise<LoadCredentialsResult> {
   const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase
@@ -1321,12 +1427,12 @@ export async function loadCredentials(
     .maybeSingle();
 
   if (error) {
-    logError("fiscal.loadCredentials", error);
-    return null;
+    logError("fiscal.loadCredentials", error, pgErrorExtra(error));
+    return { status: "unavailable" };
   }
 
   if (!data?.cert_pem || !data.private_key_enc) {
-    return null;
+    return { status: "missing" };
   }
 
   const keyring = getFiscalKeyring();
@@ -1334,11 +1440,12 @@ export async function loadCredentials(
   try {
     const privateKeyPem = open(
       keyring.all,
-      Buffer.from(data.private_key_enc as unknown as Uint8Array),
+      Buffer.from(String(data.private_key_enc), "base64"),
       aadFor(clerkUserId),
     ).toString("utf8");
 
     return {
+      status: "ok",
       cuit: String(data.cuit),
       certPem: String(data.cert_pem),
       privateKeyPem,
@@ -1346,7 +1453,7 @@ export async function loadCredentials(
   } catch (unsealError) {
     if (unsealError instanceof EnvelopeError) {
       logError("fiscal.loadCredentials.open", unsealError);
-      return null;
+      return { status: "undecryptable" };
     }
     throw unsealError;
   }
@@ -1365,7 +1472,7 @@ export async function getCredentialSummary(
     .maybeSingle();
 
   if (error) {
-    logError("fiscal.getCredentialSummary", error);
+    logError("fiscal.getCredentialSummary", error, pgErrorExtra(error));
     return null;
   }
 
@@ -1381,16 +1488,41 @@ export async function getCredentialSummary(
   };
 }
 
-export async function markVerified(clerkUserId: string): Promise<void> {
+/**
+ * Sella `verified_at` para el certificado que efectivamente autenticó contra
+ * el WSAA. Filtra por `cert_serial` además de `clerk_user_id`: si el
+ * certificado cambió mientras la verificación estaba en vuelo (el usuario
+ * sube uno nuevo mientras "Probar conexión" todavía no respondió), esta
+ * llamada no debe sellar la fila con el certificado que nunca se verificó.
+ */
+export async function markVerified(
+  clerkUserId: string,
+  certSerial: string,
+): Promise<void> {
   const supabase = createServiceRoleClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(TABLE)
     .update({ verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("clerk_user_id", clerkUserId);
+    .eq("clerk_user_id", clerkUserId)
+    .eq("cert_serial", certSerial)
+    .not("cert_pem", "is", null)
+    .select("clerk_user_id")
+    .maybeSingle();
 
   if (error) {
-    logError("fiscal.markVerified", error);
+    logError("fiscal.markVerified", error, pgErrorExtra(error));
+    if (error.code === "23505") {
+      throw new Error(
+        "Ese CUIT ya está verificado en otra cuenta de Cotizapp. Si te parece un error, escribinos para revisarlo.",
+      );
+    }
     throw new Error("No pudimos confirmar la verificación. Probá de nuevo.");
+  }
+
+  if (!data) {
+    throw new Error(
+      "El certificado cambió mientras confirmábamos la verificación. Volvé a probar la conexión con ARCA.",
+    );
   }
 }
 
@@ -1399,7 +1531,7 @@ export async function clearCredentials(clerkUserId: string): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq("clerk_user_id", clerkUserId);
 
   if (error) {
-    logError("fiscal.clearCredentials", error);
+    logError("fiscal.clearCredentials", error, pgErrorExtra(error));
     throw new Error("No pudimos borrar tus credenciales. Probá de nuevo.");
   }
 
@@ -1408,9 +1540,12 @@ export async function clearCredentials(clerkUserId: string): Promise<void> {
 
 /**
  * Borra los tickets WSAA del usuario. La tabla `arca_tickets` la crea la Fase B;
- * hasta entonces esto es un no-op silencioso, a propósito: cambiar de certificado
- * SIEMPRE tiene que invalidar los tickets, y no queremos que el día que exista la
- * tabla haya que acordarse de venir a agregar la llamada.
+ * hasta entonces, que no exista todavía es el ÚNICO caso que se tolera en
+ * silencio (a propósito: cambiar de certificado SIEMPRE tiene que invalidar
+ * los tickets, y no queremos que el día que exista la tabla haya que
+ * acordarse de venir a agregar la llamada). Cualquier otro error se propaga:
+ * si no, quien llama (p. ej. `clearCredentials`) le reporta éxito al usuario
+ * mientras tickets WSAA utilizables sobreviven a un borrado de credenciales.
  */
 async function clearTicketsFor(clerkUserId: string): Promise<void> {
   const supabase = createServiceRoleClient();
@@ -1419,10 +1554,18 @@ async function clearTicketsFor(clerkUserId: string): Promise<void> {
     .delete()
     .eq("clerk_user_id", clerkUserId);
 
-  // 42P01 = undefined_table: la Fase B todavía no corrió su migración.
-  if (error && error.code !== "42P01") {
-    logError("fiscal.clearTickets", error);
+  if (!error) {
+    return;
   }
+
+  if (isMissingArcaTicketsTable(error)) {
+    return;
+  }
+
+  logError("fiscal.clearTickets", error, pgErrorExtra(error));
+  throw new Error(
+    "No pudimos limpiar los datos de conexión anteriores con ARCA. Probá de nuevo en un momento.",
+  );
 }
 ```
 
@@ -1468,9 +1611,9 @@ Crear `scripts/migrar-credenciales-fiscales.ts`:
  * Si el paso 3 falla, no se borra nada: es preferible dejar el archivo en claro
  * a dejar al usuario sin clave recuperable.
  *
- * Uso:
- *   npx tsx scripts/migrar-credenciales-fiscales.ts          (simulacro)
- *   npx tsx scripts/migrar-credenciales-fiscales.ts --aplicar
+ * Uso (tsx no carga .env.local solo, hace falta --env-file):
+ *   npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts          (simulacro)
+ *   npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts --aplicar --confirmo-llave-respaldada
  */
 
 import { seal, open } from "../lib/crypto/envelope";
@@ -1657,17 +1800,17 @@ main().catch((err) => {
 
 - [ ] **Step 2: Correr el simulacro**
 
-Run: `cd "c:/Users/alejo/OneDrive/Desktop/Cotizapp/cotizapp" && npx tsx scripts/migrar-credenciales-fiscales.ts`
+Run: `cd "c:/Users/alejo/OneDrive/Desktop/Cotizapp/cotizapp" && npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts`
 
-Expected: lista los perfiles y dice cuáles migraría, sin tocar nada. Requiere que la migración de la Task 1 ya esté aplicada y que estén `SUPABASE_SERVICE_ROLE_KEY` y `FISCAL_ENCRYPTION_KEY` en `.env.local`.
+Expected: lista los perfiles y dice cuáles migraría, sin tocar nada. Requiere que la migración de la Task 1 ya esté aplicada y que estén `SUPABASE_SERVICE_ROLE_KEY` y `FISCAL_ENCRYPTION_KEY` en `.env.local`. **Ojo con `--env-file`**: `tsx` no carga `.env.local` solo, así que sin ese flag el script tira "Faltan variables de entorno" aunque estén cargadas en el archivo.
 
 Si el simulacro reporta algún `FALLÓ`, **parar y avisar al usuario** con el detalle antes de aplicar nada.
 
 - [ ] **Step 3: Aplicar la migración de datos**
 
-Run: `cd "c:/Users/alejo/OneDrive/Desktop/Cotizapp/cotizapp" && npx tsx scripts/migrar-credenciales-fiscales.ts --aplicar`
+Run: `cd "c:/Users/alejo/OneDrive/Desktop/Cotizapp/cotizapp" && npx tsx --env-file=.env.local scripts/migrar-credenciales-fiscales.ts --aplicar --confirmo-llave-respaldada`
 
-Expected: `MIGRADO` para cada perfil con certificado, `Barrido final OK`, y `fallidos: 0`.
+Expected: `MIGRADO` para cada perfil con certificado, `Barrido final OK`, y `fallidos: 0`. `--confirmo-llave-respaldada` es obligatorio para `--aplicar` (ver el encabezado del script): confirma que la clave ya se generó local, se respaldó en un gestor de contraseñas, y que recién después de esta corrida se va a pegar en Vercel → Production — nunca al revés.
 
 - [ ] **Step 4: Escribir la migración que cierra el bucket**
 
@@ -1709,7 +1852,16 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 Decirle que corra `supabase/migrations/20260730_cerrar_bucket_fiscal.sql` en el SQL Editor, **después** de confirmar que el script de migración terminó sin fallos.
 
-Advertirle además que al borrar `cert_path`/`key_path` de `fiscal_profiles`, el form de datos fiscales (`components/profile/fiscal-profile-form.tsx`) va a dejar de mostrar los "✓ cargado". Eso es esperado: ese form lo reemplaza el wizard de la Fase B. Si quiere el sistema usable en el medio, la Fase B tiene que ir seguida.
+**Advertirle la lista completa de lo que se rompe, en el orden en que se rompe, no solo el detalle cosmético del form.** Nada de esto se arregla dentro de la Fase A — el reemplazo llega recién con la Fase B — así que hay que decirlo explícitamente y recomendar hacer la Fase B pegada a esta en vez de dejar el sistema parado a medio camino:
+
+- **Apenas corre `--aplicar` (Step 3), antes incluso de la migración de cierre):** `app/actions/facturacion.ts:126-127` sigue bajando `.crt`/`.key` del bucket `fiscal` para emitir. Nada en la Fase A lee de `fiscal_credentials` en el camino de emisión, así que en cuanto el script borra el `.key` del bucket, **toda emisión real deja de funcionar**, con el mensaje "No pudimos leer tu certificado ARCA. Revisá que esté cargado y sea válido." No hay reemplazo hasta la Fase B.
+- **Al aplicar la migración SQL que cierra el bucket (Step 4):**
+  - `lib/arca/eligibility.ts:42` lee `cert_path`/`key_path` de `fiscal_profiles`. Al borrarse esas columnas, `isFiscalProfileComplete` da `false` para todo el mundo y el botón "Emitir factura" **desaparece sin ningún mensaje** que explique por qué.
+  - `app/actions/fiscal.ts:122-130`: si alguien todavía completa el form viejo con un archivo adjunto, el submit falla dos veces en cadena — primero un 403 al intentar subir al bucket cerrado, después un update sobre columnas (`cert_path`/`key_path`) que ya no existen — y falla **después** de haber guardado los campos de texto del mismo form, dejando el perfil a medias.
+  - El form de datos fiscales (`components/profile/fiscal-profile-form.tsx`) deja de mostrar los "✓ cargado". Es el síntoma más visible pero el menos grave de la lista.
+- **El modo demo sigue funcionando** durante todo este período intermedio, porque no toca ni el bucket ni las credenciales — es la única superficie del módulo que no se rompe.
+
+Si el usuario quiere el sistema usable en el medio, la recomendación explícita es encadenar la Fase B enseguida: no dejarlo en este estado más tiempo del necesario.
 
 ---
 
@@ -1745,7 +1897,19 @@ Expected: `EXIT:0` y la tabla de rutas. Esto valida en particular que la validac
 
 - [ ] **Step 5: Resumen al usuario**
 
-Confirmarle qué quedó cerrado de la auditoría (hallazgos 1-5, 8, 10-13, 22, 24, 28, 29, 31 en lo que toca a esta fase) y qué sigue pendiente hasta la Fase B: el `ticketPath` de `lib/arca/billing.ts:225` **sigue en `/tmp`** y la emisión todavía usa el CUIT de `fiscal_profiles`. O sea: **el hallazgo crítico no está cerrado del todo hasta que la Fase B reemplace el ticket storage y la emisión lea de `fiscal_credentials`.** Decirlo explícitamente, sin adornos.
+**No dar por cerrado lo que no lo está.** Reportar el estado real de cada hallazgo, verificado contra el código — no la lista optimista original:
+
+- **1, 2** (caché de tickets WSAA en `/tmp`, keyeado por CUIT) — **ABIERTO.** `lib/arca/billing.ts:225` sigue pasando `ticketPath: os.tmpdir()/arca-tickets` sin tocar. Se cierra en la Fase B con `ITicketStoragePort` contra `arca_tickets`.
+- **3** (CUIT no ligado al certificado) — **PARCIAL.** El parser y la validación existen (`lib/fiscal/certificate.ts`, Task 7) pero no tienen ningún call site en el camino de emisión: `app/actions/facturacion.ts` sigue leyendo el CUIT que tecleó el usuario en el formulario, no el del certificado. Sin ese call site, el vector del hallazgo 3 sigue abierto en producción aunque el código para cerrarlo ya esté escrito.
+- **4, 5, 8** (clave privada descargable desde el navegador) — **CERRADO.** El bucket se cierra (Task 9) y el material vive en `fiscal_credentials` con RLS de negación total, accesible solo por `service_role`.
+- **10, 11, 12** (sobre AES sin versión/AAD/invariantes de GCM, encoding y validación de la clave) — **CERRADO** por las Tasks 3 y 4.
+- **13** (custodia y rotación de la clave maestra) — **ABIERTO.** Ver el punto de la rotación corregido en el spec (§8): sube `ACTIVE_KEY_ID` en el código además de las variables, y el script de re-cifrado todavía no existe.
+- **22** (el upload valida solo extensión y tamaño) — **ABIERTO.** `lib/uploads.ts:195` intacto.
+- **24, 31** (migración perezosa con carrera y borrado no confirmado) — **CERRADO.** Task 9 la hace explícita, auditable y con verificación de descifrado antes de borrar.
+- **28** (`console.error(error)` completo vuelca la respuesta SOAP) — **PARCIAL.** El helper `logError` existe (Task 5), pero solo se convirtió un call site; quedan otros `console.error` crudos sin auditar en esta fase.
+- **29** (`select("*")` de `fiscal_profiles` al payload RSC) — **ABIERTO.** `lib/fiscal-profile.ts:83` intacto. El propio Self-review de este plan (sección 5, más abajo) ya reconoce que este cambio va a la Fase B — no hay que contradecir eso acá.
+
+Y lo que sigue pendiente hasta la Fase B, sin adornos: el `ticketPath` de `lib/arca/billing.ts:225` **sigue en `/tmp`** y la emisión todavía usa el CUIT de `fiscal_profiles`. **El hallazgo crítico no está cerrado del todo hasta que la Fase B reemplace el ticket storage y la emisión lea de `fiscal_credentials`.**
 
 ---
 
@@ -1763,6 +1927,6 @@ Confirmarle qué quedó cerrado de la auditoría (hallazgos 1-5, 8, 10-13, 22, 2
 
 **Placeholders:** ninguno. Todos los pasos con código traen el código completo.
 
-**Consistencia de tipos entre tareas:** `EnvelopeKey` (Task 3) es lo que produce `parseFiscalKeyring` (Task 4) y lo que consume `seal`/`open`; `ParsedCertificate` (Task 7) es lo que devuelve `attachCertificate` (Task 8); `aadFor(clerkUserId)` de la Task 8 produce exactamente el mismo string (`"${clerkUserId}|fiscal-private-key"`) que arma a mano el script de la Task 9 — verificado, porque si divergen el material migrado no se abre.
+**Consistencia de tipos entre tareas:** `EnvelopeKey` (Task 3) es lo que produce `parseFiscalKeyring` (Task 4) y lo que consume `seal`/`open`; `ParsedCertificate` (Task 7) es lo que devuelve `attachCertificate` (Task 8); la AAD (`"${clerkUserId}|fiscal-private-key"`) ya no la arma a mano cada lado por separado — tanto `lib/fiscal/credentials.ts` (Task 8) como `scripts/migrar-credenciales-fiscales.ts` (Task 9) importan `aadFor` de `lib/fiscal/aad.ts`, un módulo puro sin `import "server-only"` creado exactamente para que las dos definiciones no puedan divergir — verificado, porque si divergieran el material migrado no abriría.
 
 **Un riesgo asumido y anotado:** entre la Task 9 (que borra `cert_path`/`key_path`) y la Fase B, el form de datos fiscales queda a medias. Es deliberado — no se puede cerrar el bucket y a la vez mantener el form viejo que depende de él — y está avisado en la Task 9 Step 6.

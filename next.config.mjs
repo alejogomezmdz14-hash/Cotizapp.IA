@@ -19,8 +19,14 @@ const nextConfig = {
     // next lint / next build por defecto solo barren app, pages, components,
     // lib, src. Este repo tiene además hooks/ y store/ con código real: sin
     // esto, un import prohibido ahi pasa invisible por el único gate
-    // automático que existe (no hay CI).
-    dirs: ["app", "components", "lib", "hooks", "store"],
+    // automático que existe (no hay CI). `scripts/` se suma por lo mismo
+    // (ahí vive el script de migración de credenciales fiscales, que también
+    // puede importar cosas prohibidas). `tests/` se probó y se dejó afuera a
+    // propósito: sumarla saca un error preexistente y no relacionado
+    // (`tests/invoice-scan-persistence.test.ts:103`, regla
+    // `@next/next/no-assign-module-variable` sobre `const module = ...`) que
+    // no es parte de este trabajo — no se corrige acá.
+    dirs: ["app", "components", "lib", "hooks", "store", "scripts"],
   },
   async headers() {
     return [

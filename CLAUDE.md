@@ -202,10 +202,20 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=           (solo entorno Production en Vercel; saltea RLS, solo server-only)
+FISCAL_ENCRYPTION_KEY=               (solo entorno Production en Vercel; base64 de 32 bytes — "openssl rand -base64 32")
 OPENAI_API_KEY=
 OPENAI_CHAT_MODEL=gpt-4o-mini        (opcional, default en código)
 OPENAI_VISION_MODEL=gpt-4o           (opcional, default en código)
 NEXT_PUBLIC_APP_URL=https://cotizapp.lat
+
+**FISCAL_ENCRYPTION_KEY es la pieza más delicada del proyecto**: cifra la clave
+privada de ARCA de cada usuario. Si se pierde, ese material queda irrecuperable
+para siempre y cada usuario tiene que rehacer el trámite del certificado en
+ARCA — no hay "recuperar contraseña". Respaldala en un gestor de contraseñas
+antes de usarla. `SUPABASE_SERVICE_ROLE_KEY` y `FISCAL_ENCRYPTION_KEY` van
+marcadas SOLO para el entorno Production en Vercel: si estuvieran en Preview,
+cualquier deploy de un PR podría leer o descifrar material de producción.
 
 ## Lo que NO hacer
 - **No desplegar ni vincular a ningún proyecto Vercel que no sea `cotizapp-ia`**

@@ -455,11 +455,29 @@ nuevos pasen y que ese número no aumente.
 
 - **Si se pierde, las claves privadas de todos los usuarios quedan irrecuperables** y cada uno
   tiene que rehacer el trámite del certificado en ARCA. Se respalda fuera de Vercel.
-- Rotación: se pone la nueva en `FISCAL_ENCRYPTION_KEY` y la vieja en
-  `FISCAL_ENCRYPTION_KEY_PREVIOUS`, se corre el re-cifrado (una función server-side que recorre
-  `fiscal_credentials` con `service_role` y sube el `keyId`), y recién ahí se saca la vieja.
-- Si se filtra: rotar, re-cifrar, y **avisar a los usuarios que revoquen su certificado en ARCA** —
-  porque el material comprometido es de ellos, no nuestro.
+- **Rotación: NO es una operación de solo variables de entorno.** `open()`
+  (`lib/crypto/envelope.ts`) elige con qué clave descifrar por el byte `keyId` que viene DENTRO de
+  cada sobre — no por ninguna variable de entorno — y ese byte lo fija `ACTIVE_KEY_ID`, una
+  constante en `lib/crypto/fiscal-key.ts`, en el momento en que `seal()` cifró. Si al rotar se
+  cambian las variables pero no se sube `ACTIVE_KEY_ID` en el código, el keyring queda con la
+  clave nueva etiquetada con el `keyId` viejo, y ninguna fila existente (selladas con el `keyId`
+  viejo) vuelve a abrir. El procedimiento completo, en este orden:
+  1. Generar la clave nueva (`openssl rand -base64 32`) y guardarla en el gestor de contraseñas.
+  2. Subir `ACTIVE_KEY_ID` en el código (`lib/crypto/fiscal-key.ts`, p. ej. de `1` a `2`). Sin este
+     paso, el resto no sirve de nada — ver el porqué arriba.
+  3. Deployar ese cambio de código junto con las dos variables en Vercel → Production: la clave
+     vieja pasa a `FISCAL_ENCRYPTION_KEY_PREVIOUS`, la nueva a `FISCAL_ENCRYPTION_KEY`.
+  4. Correr el script de re-cifrado que recorre `fiscal_credentials` con `service_role`, abre cada
+     fila con el keyring completo (que todavía acepta la clave vieja vía
+     `FISCAL_ENCRYPTION_KEY_PREVIOUS`) y la vuelve a sellar con la clave activa, actualizando
+     `private_key_enc` y `key_id`. **Este script está pendiente: no existe todavía.** No hay
+     material real que re-cifrar hasta que la Fase B esté en producción, así que no tiene sentido
+     escribirlo antes de esa fecha — pero antes de la primera rotación real, alguien tiene que
+     escribirlo y probarlo.
+  5. Recién cuando ese script confirme que no queda ninguna fila con el `keyId` viejo, sacar
+     `FISCAL_ENCRYPTION_KEY_PREVIOUS` de Vercel.
+- Si se filtra: mismo procedimiento de arriba (con más urgencia), y además **avisar a los usuarios
+  que revoquen su certificado en ARCA** — porque el material comprometido es de ellos, no nuestro.
 
 Esto va también en el copy del wizard y en los términos: Cotizapp **puede** descifrar la clave,
 porque la necesita para emitir. No es cifrado de punta a punta. El Camino 1 sigue siendo
