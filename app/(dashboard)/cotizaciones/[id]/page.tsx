@@ -48,6 +48,10 @@ export const metadata: Metadata = {
   title: "Detalle de cotización | Cotizapp",
 };
 
+// La emisión habla con ARCA por SOAP y puede tardar. Sin esto corre con el
+// default de la plataforma y un pico de latencia deja el comprobante huérfano.
+export const maxDuration = 60;
+
 type QuotationDetailPageProps = {
   params: Promise<{ id: string }>;
 };
