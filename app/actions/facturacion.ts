@@ -11,7 +11,7 @@ import {
 import { isFiscalProfileComplete } from "@/lib/arca/eligibility";
 import { createSupabaseTicketStorage } from "@/lib/arca/ticket-storage";
 import { getFiscalProfile } from "@/lib/fiscal-profile";
-import { loadCredentials } from "@/lib/fiscal/credentials";
+import { getCredentialSummary, loadCredentials } from "@/lib/fiscal/credentials";
 import { getProfile, requireUser } from "@/lib/profile";
 import { isArgentina } from "@/lib/profile-countries";
 import { createClient } from "@/lib/supabase/server";
@@ -64,13 +64,18 @@ export async function emitirFacturaAction(
       };
     }
 
-    const rawEnvironment = (fiscal as { environment?: string }).environment;
-    const environment =
-      rawEnvironment === "produccion"
-        ? "produccion"
-        : rawEnvironment === "demo"
-          ? "demo"
-          : "homologacion";
+    // El entorno ya no lo elige el usuario: se deriva del estado del
+    // certificado. Solo hay producción con un certificado verificado y
+    // todavía vigente; cualquier otro caso factura en demo (simulado, sin
+    // tocar ARCA). Un certificado real de producción nunca puede terminar
+    // hablándole a homologación, así que ese entorno ya no es alcanzable
+    // desde acá.
+    const credentialSummary = await getCredentialSummary(user.clerkId);
+    const certificadoVigente =
+      credentialSummary?.certNotAfter != null &&
+      new Date(credentialSummary.certNotAfter).getTime() > Date.now();
+    const environment: "demo" | "produccion" =
+      credentialSummary?.verifiedAt && certificadoVigente ? "produccion" : "demo";
 
     // 3) CLAIM ATÓMICO antes de emitir: reservamos la cotización marcando
     // facturado_at. Si otra pestaña/reintento concurrente ya la reservó, este
@@ -141,10 +146,9 @@ export async function emitirFacturaAction(
             certPem: credentials.certPem,
             keyPem: credentials.privateKeyPem,
             environment,
-            ticketStorage: createSupabaseTicketStorage(
-              user.clerkId,
-              environment === "produccion" ? "produccion" : "homologacion",
-            ),
+            // Esta rama solo se alcanza cuando `environment` es "produccion"
+            // (el "demo" se maneja arriba, sin llegar acá).
+            ticketStorage: createSupabaseTicketStorage(user.clerkId, "produccion"),
           },
           {
             salesPoint: fiscal!.sales_point,

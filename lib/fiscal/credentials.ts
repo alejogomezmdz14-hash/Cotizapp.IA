@@ -312,6 +312,28 @@ export async function getCredentialSummary(
 }
 
 /**
+ * Devuelve el CSR ya generado, sin tocar la clave privada ni generar nada
+ * nuevo. El CSR es material público (lo que el usuario sube a ARCA para pedir
+ * el certificado): no está cifrado y no hace falta tratarlo como secreto.
+ */
+export async function getCsr(clerkUserId: string): Promise<string | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("csr_pem")
+    .eq("clerk_user_id", clerkUserId)
+    .maybeSingle();
+
+  if (error) {
+    logError("fiscal.getCsr", error, pgErrorExtra(error));
+    return null;
+  }
+
+  return (data?.csr_pem as string | null) ?? null;
+}
+
+/**
  * Sella `verified_at` para el certificado que efectivamente autenticó contra
  * el WSAA. Filtra por `cert_serial` además de `clerk_user_id`: si el
  * certificado cambió mientras la verificación estaba en vuelo (el usuario

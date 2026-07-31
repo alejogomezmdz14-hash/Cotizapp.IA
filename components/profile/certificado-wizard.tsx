@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import {
+  descargarCsrAction,
   generarLlaveAction,
   subirCertificadoAction,
   verificarCertificadoAction,
@@ -52,6 +53,8 @@ const ERROR_SUBIR_CERTIFICADO =
   "No pudimos guardar el certificado. Probá de nuevo en un momento.";
 const ERROR_VERIFICAR =
   "No pudimos completar la verificación. Probá de nuevo en un momento.";
+const ERROR_DESCARGAR_CSR =
+  "No pudimos recuperar tu CSR. Probá de nuevo en un momento.";
 
 /** Dispara la descarga del CSR en el navegador. La clave privada nunca sale del servidor. */
 function descargarCsr(csrPem: string, nombreArchivo: string): void {
@@ -116,14 +119,14 @@ export function CertificadoWizard({
     setLoadingRedescargar(true);
     setErrorRedescargar(null);
     try {
-      const res = await generarLlaveAction();
+      const res = await descargarCsrAction();
       if (res.ok) {
         descargarCsr(res.csrPem, res.nombreArchivo);
       } else {
         setErrorRedescargar(res.error);
       }
     } catch {
-      setErrorRedescargar(ERROR_GENERAR_LLAVE);
+      setErrorRedescargar(ERROR_DESCARGAR_CSR);
     } finally {
       setLoadingRedescargar(false);
     }
@@ -297,13 +300,9 @@ export function CertificadoWizard({
               className="h-auto min-h-0 p-0 text-sm"
             >
               {loadingRedescargar
-                ? "Generando..."
+                ? "Descargando..."
                 : "¿Perdiste el archivo .csr? Volvé a descargarlo"}
             </Button>
-            <p className="text-xs text-muted-foreground">
-              Esto genera un archivo nuevo. Si ya le diste el anterior a ARCA,
-              usá este de acá en adelante.
-            </p>
             {errorRedescargar ? (
               <p className="text-sm text-destructive">{errorRedescargar}</p>
             ) : null}

@@ -11,6 +11,7 @@ import {
 } from "@/lib/fiscal/certificate";
 import {
   attachCertificate,
+  getCsr,
   loadCredentials,
   markVerified,
   savePrivateKey,
@@ -63,6 +64,43 @@ export async function generarLlaveAction(): Promise<
     return {
       ok: false,
       error: "No pudimos generar tu llave. Probá de nuevo en un momento.",
+    };
+  }
+}
+
+/**
+ * Devuelve el CSR ya generado, sin crear ninguna llave nueva. A diferencia de
+ * `generarLlaveAction`, esto es idempotente: sirve para el caso de "perdí el
+ * archivo" sin correr el riesgo de descartar la llave que ya está guardada
+ * (y con la que puede haberse tramitado un certificado real en ARCA).
+ */
+export async function descargarCsrAction(): Promise<
+  { ok: true; csrPem: string; nombreArchivo: string } | { ok: false; error: string }
+> {
+  try {
+    const user = await requireUser();
+    const csrPem = await getCsr(user.clerkId);
+
+    if (!csrPem) {
+      return {
+        ok: false,
+        error: "Todavía no generaste tu llave. Generala primero.",
+      };
+    }
+
+    const fiscal = await getFiscalProfile(user.clerkId);
+    const cuitDigits = fiscal?.cuit ? fiscal.cuit.replace(/\D/g, "") : "";
+
+    return {
+      ok: true,
+      csrPem,
+      nombreArchivo: cuitDigits ? `cotizapp-${cuitDigits}.csr` : "cotizapp.csr",
+    };
+  } catch (error) {
+    logError("certificado.descargarCsr", error);
+    return {
+      ok: false,
+      error: "No pudimos recuperar tu CSR. Probá de nuevo en un momento.",
     };
   }
 }

@@ -72,8 +72,16 @@ export async function renderFacturaPdfForUser(
   const fechaIso = getArgentinaToday(
     quotation.facturado_at ? new Date(quotation.facturado_at) : new Date(),
   );
-  const environment =
-    (fiscal as { environment?: string }).environment ?? "homologacion";
+  // El cartel de "comprobante de prueba" se deriva del prefijo `DEMO-` que
+  // `simulateFacturaC` (lib/arca/billing.ts) le pone al número de factura al
+  // emitir en modo demo, no del entorno ACTUAL del perfil fiscal: ese puede
+  // cambiar después de facturar (p. ej. al verificarse el certificado), y si
+  // usáramos el entorno actual una factura demo vieja perdería el cartel y
+  // pasaría a verse como un comprobante real con un CAE falso. Este dato en
+  // cambio viaja con la factura y nunca cambia.
+  // Solución definitiva: columna `facturas.environment`, cuando exista la
+  // tabla propia de facturas (Fase C).
+  const esPrueba = quotation.numero_factura.startsWith("DEMO-");
 
   const qrDataUrl = await buildAfipQrDataUrl({
     fecha: fechaIso,
@@ -110,7 +118,7 @@ export async function renderFacturaPdfForUser(
       cae,
       caeVencimiento: toDisplayDate(quotation.cae_vencimiento),
       qrDataUrl,
-      esPrueba: environment !== "produccion",
+      esPrueba,
     }),
   );
 
