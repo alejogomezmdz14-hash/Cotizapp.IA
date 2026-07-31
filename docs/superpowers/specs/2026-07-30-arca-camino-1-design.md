@@ -122,7 +122,7 @@ Todo se aplica a mano en el SQL Editor del Dashboard de `cotizapp-ia`, como el r
 create table if not exists public.fiscal_credentials (
   clerk_user_id       text primary key,
   cuit                text not null,          -- extraído del certificado, NO del formulario
-  private_key_enc     bytea not null,
+  private_key_enc     text not null,   -- sobre AES-256-GCM en base64 (ver 4.3)
   cert_pem            text,                   -- parte pública, no se cifra
   cert_serial         text,
   cert_not_after      timestamptz,
@@ -145,8 +145,8 @@ create table if not exists public.arca_tickets (
   clerk_user_id  text not null,
   service_name   text not null,
   environment    text not null check (environment in ('homologacion','produccion')),
-  token_enc      bytea not null,
-  sign_enc       bytea not null,
+  token_enc      text not null,   -- sobre AES-256-GCM en base64
+  sign_enc       text not null,   -- sobre AES-256-GCM en base64
   expires_at     timestamptz not null,
   updated_at     timestamptz not null default now(),
   primary key (clerk_user_id, service_name, environment)

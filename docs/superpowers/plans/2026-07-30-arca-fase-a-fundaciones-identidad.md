@@ -72,7 +72,10 @@ Crear `supabase/migrations/20260730_fiscal_credentials.sql`:
 create table if not exists public.fiscal_credentials (
   clerk_user_id       text primary key,
   cuit                text not null,
-  private_key_enc     bytea not null,
+  -- El sobre AES-256-GCM completo, en base64. Es `text` y no `bytea` a
+  -- propósito: PostgREST transporta JSON, así que un bytea vuelve como string
+  -- hexadecimal "\x..." al leer y no acepta un Buffer al escribir.
+  private_key_enc     text not null,
   cert_pem            text,
   cert_serial         text,
   cert_not_after      timestamptz,
@@ -1556,9 +1559,10 @@ async function main() {
         {
           clerk_user_id: clerkUserId,
           cuit: parsed.cuit,
-          private_key_enc: blob,
+          // base64, no Buffer: la columna es `text` y JSON no transporta binario.
+          private_key_enc: blob.toString("base64"),
           cert_pem: certPem.trim(),
-          cert_serial: parsed.serialNumber,
+          cert_serial: parsed.certSerialNumber,
           cert_not_after: parsed.notAfter.toISOString(),
           key_id: ACTIVE_KEY_ID,
           verified_at: null,
@@ -1584,7 +1588,7 @@ async function main() {
 
       const recuperado = open(
         keyring.all,
-        Buffer.from(releido.private_key_enc as unknown as Uint8Array),
+        Buffer.from(String(releido.private_key_enc), "base64"),
         aad,
       ).toString("utf8");
 

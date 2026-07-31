@@ -104,10 +104,12 @@ export function open(
   blob: Buffer,
   aadContext: string,
 ): Buffer {
-  // La columna que guarda este blob es `bytea` de Postgres: según el driver
-  // puede volver como Buffer, Uint8Array o string hexadecimal, no siempre
-  // Buffer. Cualquier entrada que no sea la esperada tiene que salir como
-  // EnvelopeError, nunca como TypeError/RangeError crudo de Node.
+  // Este blob se persiste en base64 dentro de una columna `text` (PostgREST
+  // transporta JSON y no puede llevar binario), así que el caller siempre tiene
+  // que decodificarlo antes de llamar acá. Exigimos Buffer a propósito: si llega
+  // un string o un Uint8Array, es que alguien se salteó esa conversión.
+  // Cualquier entrada inesperada sale como EnvelopeError, nunca como
+  // TypeError/RangeError crudo de Node.
   if (!Array.isArray(keys)) {
     throw new EnvelopeError("El anillo de claves de cifrado no es válido.");
   }
