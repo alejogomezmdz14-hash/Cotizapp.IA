@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { decideAccess } from '@/lib/auth/access'
 
 // Páginas públicas que cualquiera puede ver sin sesión.
 const isPublicPage = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
@@ -11,8 +12,8 @@ const isPublicApiRoute = createRouteMatcher([
   '/api/health',
 ])
 
-// Lista de espera: quedó obsoleta con el trial por uso. Ya nadie es redirigido
-// acá; si alguien llega por un link viejo, lo mandamos a su destino real.
+// Lista de espera: la ve quien inició sesión pero todavía no fue autorizado por
+// el dueño. Se controla con ACCESS_GATE_ENABLED y publicMetadata.access en Clerk.
 const isWaitlistRoute = createRouteMatcher(['/waitlist(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -39,14 +40,28 @@ export default clerkMiddleware(async (auth, req) => {
     return
   }
 
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
 
-  // /waitlist obsoleta: con el trial por uso, todo logueado entra a la app.
+  const gateEnabled = process.env.ACCESS_GATE_ENABLED === '1'
+  const access = decideAccess(sessionClaims, gateEnabled)
+
+  if (access.reason === 'claims-unavailable') {
+    // El session token de Clerk no está exponiendo publicMetadata. El gate no
+    // puede funcionar así, y bloquear dejaría afuera a todos. Se deja pasar y se
+    // avisa fuerte: hay que agregar { "metadata": "{{user.public_metadata}}" } en
+    // Clerk Dashboard → Sessions → Customize session token.
+    console.error('[acceso] ACCESS_GATE_ENABLED=1 pero los sessionClaims no traen publicMetadata; el gate quedó inactivo')
+  }
+
+  // La lista de espera es la única página que ve quien todavía no fue autorizado.
   if (isWaitlistRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    if (access.allowed) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+    return
   }
 
   // Páginas públicas: si ya hay sesión, mandamos al dashboard.
@@ -63,6 +78,10 @@ export default clerkMiddleware(async (auth, req) => {
   // escanear factura), no bloquea el acceso a la app.
   if (!userId) {
     return NextResponse.redirect(new URL('/sign-in', req.url))
+  }
+
+  if (!access.allowed) {
+    return NextResponse.redirect(new URL('/waitlist', req.url))
   }
 })
 
