@@ -309,7 +309,10 @@ export default async function QuotationDetailPage({
               </div>
             </div>
           ) : canIssueInvoice ? (
-            <EmitirFacturaButton quotationId={quotation.id} />
+            <EmitirFacturaButton
+              quotationId={quotation.id}
+              estado={invoicing.facturaEstado}
+            />
           ) : null}
           <QuotationPaidToggle
             quotationId={quotation.id}

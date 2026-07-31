@@ -299,3 +299,48 @@ export async function proximoNumeroComprobante(
 
   return (Number(last?.cbteNro ?? 0) || 0) + 1;
 }
+
+export type ComprobanteEnArca =
+  | { existe: true; cae: string; caeVencimiento: string; cbteFch: string }
+  | { existe: false };
+
+/** Le pregunta a ARCA si un comprobante existe. Solo lectura, no emite nada. */
+export async function consultarComprobante(
+  credentials: ArcaCredentials,
+  salesPoint: string,
+  numero: number,
+): Promise<ComprobanteEnArca> {
+  const { Arca } = await import("@arcasdk/core");
+
+  const arca = new Arca({
+    cuit: Number(credentials.cuit.replace(/\D/g, "")),
+    cert: credentials.certPem,
+    key: credentials.keyPem,
+    production: credentials.environment === "produccion",
+    useHttpsAgent: true,
+    ticketStorage: credentials.ticketStorage,
+  });
+
+  // El DTO real del SDK (VoucherInfoResultDto, en
+  // node_modules/@arcasdk/core/lib/application/dto/electronic-billing.dto.d.ts,
+  // que extiende VoucherInfo de electronic-billing.types.d.ts) usa camelCase
+  // y no envuelve la respuesta en `data`: getVoucherInfo ya devuelve el
+  // comprobante mapeado, o `null` si ARCA no lo tiene (comprobante inexistente,
+  // no un error).
+  const info = await arca.electronicBillingService.getVoucherInfo(
+    numero,
+    salesPointToNumber(salesPoint),
+    CBTE_TIPO_FACTURA_C,
+  );
+
+  if (!info?.codAutorizacion) {
+    return { existe: false };
+  }
+
+  return {
+    existe: true,
+    cae: String(info.codAutorizacion),
+    caeVencimiento: parseArcaDate(String(info.fchVto ?? "")),
+    cbteFch: parseArcaDate(String(info.cbteFch ?? "")),
+  };
+}

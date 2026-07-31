@@ -5,6 +5,7 @@ export type QuotationInvoicing = {
   caeVencimiento: string | null;
   numeroFactura: string | null;
   facturadoAt: string | null;
+  facturaEstado: string | null;
 };
 
 const EMPTY: QuotationInvoicing = {
@@ -12,6 +13,7 @@ const EMPTY: QuotationInvoicing = {
   caeVencimiento: null,
   numeroFactura: null,
   facturadoAt: null,
+  facturaEstado: null,
 };
 
 export async function getQuotationInvoicing(
@@ -21,7 +23,7 @@ export async function getQuotationInvoicing(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotations")
-    .select("cae, cae_vencimiento, numero_factura, facturado_at")
+    .select("cae, cae_vencimiento, numero_factura, facturado_at, factura_estado")
     .eq("id", quotationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -38,5 +40,6 @@ export async function getQuotationInvoicing(
     caeVencimiento: (row.cae_vencimiento as string | null) ?? null,
     numeroFactura: (row.numero_factura as string | null) ?? null,
     facturadoAt: (row.facturado_at as string | null) ?? null,
+    facturaEstado: (row.factura_estado as string | null) ?? null,
   };
 }
