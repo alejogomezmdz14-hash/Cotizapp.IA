@@ -7,6 +7,7 @@ import {
   parseArcaDate,
   simulateFacturaC,
 } from "../lib/arca/billing";
+import { getArgentinaToday } from "../lib/argentina-time";
 
 test("buildFacturaCRequest arma una Factura C sin IVA", () => {
   const req = buildFacturaCRequest(
@@ -33,13 +34,36 @@ test("buildFacturaCRequest arma una Factura C sin IVA", () => {
 });
 
 test("buildFacturaCRequest redondea el total a 2 decimales", () => {
+  // Mediodía UTC, lejos del borde de medianoche argentina: no es el foco de
+  // este test (ver los tests de CbteFch más abajo para el caso del borde).
   const req = buildFacturaCRequest(
-    { salesPoint: "1", total: 1500.005, date: new Date("2026-01-02T00:00:00Z") },
+    { salesPoint: "1", total: 1500.005, date: new Date("2026-01-02T15:00:00Z") },
     0,
   );
   assert.equal(req.ImpTotal, 1500.01);
   assert.equal(req.ImpNeto, 1500.01);
   assert.equal(req.CbteFch, "20260102");
+});
+
+test("CbteFch usa el calendario argentino, no UTC", () => {
+  // 23:30 del 18 de junio en Argentina = 02:30 del 19 en UTC. La factura tiene
+  // que salir con fecha 18, que es el día que corre para el fisco argentino.
+  const instante = new Date("2026-06-19T02:30:00Z");
+  const req = buildFacturaCRequest(
+    { salesPoint: "0001", total: 1000, date: instante },
+    0,
+  );
+
+  assert.equal(req.CbteFch, "20260618");
+  assert.equal(req.CbteFch, getArgentinaToday(instante).replace(/-/g, ""));
+});
+
+test("CbteFch de un instante de mediodia no se corre", () => {
+  const req = buildFacturaCRequest(
+    { salesPoint: "0001", total: 1000, date: new Date("2026-06-18T15:00:00Z") },
+    0,
+  );
+  assert.equal(req.CbteFch, "20260618");
 });
 
 test("formatNumeroFactura usa PtoVta-Comprobante con padding", () => {

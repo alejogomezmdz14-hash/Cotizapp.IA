@@ -11,6 +11,8 @@
 
 import type { ITicketStoragePort } from "@arcasdk/core";
 
+import { getArgentinaToday } from "@/lib/argentina-time";
+
 export type ArcaEnvironment = "homologacion" | "produccion";
 
 const CBTE_TIPO_FACTURA_C = 11;
@@ -50,6 +52,7 @@ export type FacturaCResult = {
   caeVencimiento: string; // ISO date YYYY-MM-DD
   numeroComprobante: number;
   numeroFactura: string; // "0001-00000123"
+  cbteFch: string; // ISO date YYYY-MM-DD, la fecha informada a ARCA (horario argentino)
 };
 
 function round2(value: number): number {
@@ -57,10 +60,9 @@ function round2(value: number): number {
 }
 
 function formatCbteFch(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
+  // Horario argentino, no UTC: Vercel corre en UTC y después de las 21:00 ART
+  // el día ya cambió allá, así que la factura saldría fechada mañana.
+  return getArgentinaToday(date).replace(/-/g, "");
 }
 
 function salesPointToNumber(salesPoint: string): number {
@@ -129,6 +131,7 @@ export function simulateFacturaC(
     caeVencimiento: isoDate(vencimiento),
     numeroComprobante: sequence,
     numeroFactura: `DEMO-${formatNumeroFactura(salesPoint, sequence)}`,
+    cbteFch: getArgentinaToday(date),
   };
 }
 
@@ -175,6 +178,7 @@ export async function issueFacturaC(
     caeVencimiento: parseArcaDate(outcome.caeVencimiento),
     numeroComprobante: request.CbteDesde,
     numeroFactura: formatNumeroFactura(input.salesPoint, request.CbteDesde),
+    cbteFch: getArgentinaToday(input.date),
   };
 }
 
