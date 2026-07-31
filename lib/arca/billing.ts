@@ -3,11 +3,13 @@
 // ElectronicBilling.
 //
 // API real confirmada en node_modules/@arcasdk/core@1.3.1:
-//   new Arca({ cuit: number, cert, key, production?, useHttpsAgent?, ticketPath? })
+//   new Arca({ cuit: number, cert, key, production?, useHttpsAgent?, ticketStorage? })
 //   arca.electronicBillingService.getLastVoucher(salesPoint, type) -> { cbteNro, ... }
 //   arca.electronicBillingService.createVoucher(req: IVoucher)
 //     -> { cae, caeFchVto (YYYYMMDD), response: { FeCabResp: { Resultado } } }
 //   IVoucher exige CondicionIVAReceptorId (Consumidor Final = 5).
+
+import type { ITicketStoragePort } from "@arcasdk/core";
 
 export type ArcaEnvironment = "homologacion" | "produccion";
 
@@ -181,6 +183,9 @@ export type ArcaCredentials = {
   certPem: string;
   keyPem: string;
   environment: ArcaEnvironment;
+  /** Storage del ticket WSAA. Obligatorio: sin esto el SDK cae en su
+   * FileSystemTicketStorage, que indexa por CUIT en un /tmp compartido. */
+  ticketStorage: ITicketStoragePort;
 };
 
 // Recorre la respuesta SOAP de ARCA juntando los textos de Observaciones/Errores
@@ -210,8 +215,6 @@ export async function emitirFacturaC(
   credentials: ArcaCredentials,
   input: FacturaCInput,
 ): Promise<FacturaCResult> {
-  const os = await import("node:os");
-  const path = await import("node:path");
   const { Arca } = await import("@arcasdk/core");
 
   const arca = new Arca({
@@ -221,8 +224,10 @@ export async function emitirFacturaC(
     production: credentials.environment === "produccion",
     // ARCA usa TLS legacy; en Node hace falta el agente HTTPS legacy.
     useHttpsAgent: true,
-    // En serverless (Vercel) solo /tmp es escribible para cachear el ticket WSAA.
-    ticketPath: path.join(os.tmpdir(), "arca-tickets"),
+    // SIEMPRE explícito. Omitirlo no alcanza: el SDK rellena un default que
+    // apunta dentro de node_modules (solo lectura en Vercel) y vuelve a elegir
+    // FileSystemTicketStorage, que keyea por CUIT en un /tmp compartido.
+    ticketStorage: credentials.ticketStorage,
   });
 
   const service = arca.electronicBillingService;
