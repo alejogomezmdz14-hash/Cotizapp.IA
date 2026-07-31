@@ -45,7 +45,10 @@ export default clerkMiddleware(async (auth, req) => {
   const gateEnabled = process.env.ACCESS_GATE_ENABLED === '1'
   const access = decideAccess(sessionClaims, gateEnabled)
 
-  if (access.reason === 'claims-unavailable') {
+  // Solo si hay sesión: un visitante anónimo nunca trae claims, y logear eso en
+  // cada visita a la landing inundaría los logs y haría que el aviso pierda
+  // sentido justo cuando importa.
+  if (userId && access.reason === 'claims-unavailable') {
     // El session token de Clerk no está exponiendo publicMetadata. El gate no
     // puede funcionar así, y bloquear dejaría afuera a todos. Se deja pasar y se
     // avisa fuerte: hay que agregar { "metadata": "{{user.public_metadata}}" } en
