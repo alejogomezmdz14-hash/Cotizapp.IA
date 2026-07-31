@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PURPOSE_PRIVATE_KEY, aadFor } from "../lib/fiscal/aad";
+import { PURPOSE_PRIVATE_KEY, aadFor, aadForTicket } from "../lib/fiscal/aad";
 
 // Fija el valor EXACTO que produce aadFor: lib/fiscal/credentials.ts y
 // scripts/migrar-credenciales-fiscales.ts tienen que armar carácter por
@@ -20,4 +20,26 @@ test("PURPOSE_PRIVATE_KEY es el propósito fijo que compone la AAD", () => {
 
 test("aadFor distingue usuarios distintos", () => {
   assert.notEqual(aadFor("user_a"), aadFor("user_b"));
+});
+
+test("aadForTicket ata el ticket al usuario, al servicio y al entorno", () => {
+  assert.equal(
+    aadForTicket("user_x", "wsfe", "produccion"),
+    "user_x|wsaa-ticket|wsfe|produccion",
+  );
+});
+
+test("aadForTicket distingue entornos y servicios", () => {
+  assert.notEqual(
+    aadForTicket("user_x", "wsfe", "produccion"),
+    aadForTicket("user_x", "wsfe", "homologacion"),
+  );
+  assert.notEqual(
+    aadForTicket("user_x", "wsfe", "produccion"),
+    aadForTicket("user_x", "wsfex", "produccion"),
+  );
+});
+
+test("aadForTicket nunca colisiona con la AAD de la clave privada", () => {
+  assert.notEqual(aadForTicket("user_x", "wsfe", "produccion"), aadFor("user_x"));
 });

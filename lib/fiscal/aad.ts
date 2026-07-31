@@ -21,3 +21,18 @@ export const PURPOSE_PRIVATE_KEY = "fiscal-private-key";
 export function aadFor(clerkUserId: string): string {
   return `${clerkUserId}|${PURPOSE_PRIVATE_KEY}`;
 }
+
+export const PURPOSE_WSAA_TICKET = "wsaa-ticket";
+
+/**
+ * Contexto de AAD para un ticket WSAA. Ata el criptograma al usuario, al
+ * servicio y al entorno: un ticket de homologación no puede abrirse como si
+ * fuera de producción, ni el de un usuario como el de otro.
+ */
+export function aadForTicket(
+  clerkUserId: string,
+  serviceName: string,
+  environment: string,
+): string {
+  return `${clerkUserId}|${PURPOSE_WSAA_TICKET}|${serviceName}|${environment}`;
+}
