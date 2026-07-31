@@ -1,10 +1,21 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Clock, Mail } from "lucide-react";
+import { Clock, Mail, MessageCircle } from "lucide-react";
 
 import { CotizappLogo } from "@/components/brand/cotizapp-logo";
+import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/layout/sign-out-button";
+import { UPGRADE_WHATSAPP } from "@/lib/trial";
+
+// El mensaje de UPGRADE_WHATSAPP habla de pasar a Pro, que no aplica acá.
+// Reutilizamos el mismo número de teléfono pero con nuestro propio texto.
+const WAITLIST_WHATSAPP_MESSAGE = "Hola! Quiero acceso a Cotizapp.";
+const WAITLIST_WHATSAPP_PHONE =
+  UPGRADE_WHATSAPP.split("wa.me/")[1]?.split("?")[0] ?? "";
+const WAITLIST_WHATSAPP_HREF =
+  `https://wa.me/${WAITLIST_WHATSAPP_PHONE}?text=` +
+  encodeURIComponent(WAITLIST_WHATSAPP_MESSAGE);
 
 export default function WaitlistPage() {
   const { user, isLoaded } = useUser();
@@ -27,24 +38,32 @@ export default function WaitlistPage() {
               Estás en la lista de espera
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              Ya tenés tu cuenta creada. Estamos revisando los accesos y en
-              menos de 24 horas te llega un email cuando el tuyo esté listo.
+              Tu cuenta se creó sin problemas. Estamos abriendo Cotizapp de a
+              poco, por invitación, para acompañar bien a cada negocio que se
+              suma. Te vamos a avisar en cuanto sea tu turno.
             </p>
           </div>
 
           {isLoaded && email ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-token bg-background/70 px-4 py-3 text-sm">
               <Mail className="h-4 w-4 shrink-0 text-accent-token" />
-              <span className="truncate font-medium text-foreground">{email}</span>
+              <span className="truncate font-medium text-foreground">
+                {email}
+              </span>
             </div>
           ) : null}
 
-          <p className="text-xs leading-5 text-muted-foreground">
-            Cuando activemos tu acceso, cerrá sesión y volvé a entrar para que se
-            aplique.
-          </p>
-
-          <div className="pt-1">
+          <div className="space-y-2 pt-1">
+            <Button asChild className="min-h-12 w-full justify-center">
+              <a
+                href={WAITLIST_WHATSAPP_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Pedir acceso por WhatsApp
+              </a>
+            </Button>
             <SignOutButton className="w-full justify-center" />
           </div>
         </div>
