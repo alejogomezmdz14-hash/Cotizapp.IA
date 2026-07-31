@@ -18,6 +18,28 @@ function toNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/**
+ * Convierte un campo fiscal (punto de venta, número de comprobante o CAE) a
+ * número para el QR de ARCA. A diferencia de `toNumber`, acá un valor no
+ * numérico en un comprobante real es un dato corrupto: antes se devolvía 0 en
+ * silencio y el QR salía inválido sin que nadie lo notara. Ahora cortamos con
+ * un error amigable. En un comprobante de prueba el CAE es "DEMO-..." a
+ * propósito (no numérico), así que ahí no cortamos: seguimos renderizando,
+ * ya con el cartel de "comprobante de prueba" puesto.
+ */
+function toFiscalNumber(value: unknown, esPrueba: boolean): number {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+  if (esPrueba) {
+    return 0;
+  }
+  throw new FacturaPdfError(
+    "No pudimos generar el PDF: los datos fiscales de esta factura son inválidos. Contactá a soporte.",
+  );
+}
+
 /** "YYYY-MM-DD" → "DD/MM/YYYY". Si no matchea, devuelve el original. */
 function toDisplayDate(isoDate: string | null): string {
   if (!isoDate) {
@@ -66,7 +88,11 @@ export async function renderFacturaPdfForUser(
     .eq("quotation_id", quotationId)
     .order("position", { ascending: true });
 
-  const [puntoVenta, numeroComprobante] = quotation.numero_factura.split("-");
+  // "0001-00000123" o "DEMO-0001-00000123": el punto de venta y el número son
+  // siempre los dos últimos segmentos.
+  const partes = String(quotation.numero_factura).split("-");
+  const numeroComprobante = partes[partes.length - 1] ?? "";
+  const puntoVenta = partes[partes.length - 2] ?? "";
   const total = toNumber(quotation.total);
   const cae = String(quotation.cae);
   const fechaIso = getArgentinaToday(
@@ -86,13 +112,13 @@ export async function renderFacturaPdfForUser(
   const qrDataUrl = await buildAfipQrDataUrl({
     fecha: fechaIso,
     cuit: toNumber(fiscal.cuit.replace(/\D/g, "")),
-    ptoVta: toNumber(puntoVenta),
+    ptoVta: toFiscalNumber(puntoVenta, esPrueba),
     tipoCmp: CBTE_TIPO_FACTURA_C,
-    nroCmp: toNumber(numeroComprobante),
+    nroCmp: toFiscalNumber(numeroComprobante, esPrueba),
     importe: total,
     moneda: "PES",
     ctz: 1,
-    codAut: toNumber(cae),
+    codAut: toFiscalNumber(cae, esPrueba),
   });
 
   const items: FacturaPdfItem[] = (itemRows ?? []).map((row) => ({

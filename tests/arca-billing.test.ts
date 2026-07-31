@@ -79,8 +79,14 @@ test("simulateFacturaC genera un CAE y número marcados como DEMO", () => {
   const result = simulateFacturaC("0001", 7, new Date("2026-06-18T12:00:00Z"));
   assert.equal(result.numeroComprobante, 7);
   assert.equal(result.numeroFactura, "DEMO-0001-00000007");
-  assert.equal(result.cae, "70000000000007");
+  assert.equal(result.cae, "DEMO-00000007");
   assert.equal(result.caeVencimiento, "2026-06-28"); // +10 días
+});
+
+test("un CAE demo no puede confundirse con uno real", () => {
+  const r = simulateFacturaC("0001", 7, new Date("2026-06-18T12:00:00Z"));
+  assert.match(r.cae, /^DEMO/);
+  assert.doesNotMatch(r.cae, /^\d{14}$/);
 });
 
 import {

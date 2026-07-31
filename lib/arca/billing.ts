@@ -136,7 +136,10 @@ export function simulateFacturaC(
 ): FacturaCResult {
   const vencimiento = new Date(date.getTime() + 10 * 24 * 60 * 60 * 1000);
   return {
-    cae: `7${String(sequence).padStart(13, "0")}`,
+    // Antes: un CAE de 14 dígitos empezando en 7, indistinguible en forma de
+    // uno real. Con el prefijo `DEMO-` queda imposible de confundir, incluso
+    // si algún día se guarda en la misma columna que un CAE real.
+    cae: `DEMO-${String(sequence).padStart(8, "0")}`,
     caeVencimiento: isoDate(vencimiento),
     numeroComprobante: sequence,
     numeroFactura: `DEMO-${formatNumeroFactura(salesPoint, sequence)}`,
