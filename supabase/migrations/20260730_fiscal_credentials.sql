@@ -11,7 +11,12 @@
 create table if not exists public.fiscal_credentials (
   clerk_user_id       text primary key,
   cuit                text not null,
-  private_key_enc     bytea not null,
+  -- El sobre AES-256-GCM completo, en base64. Es `text` y no `bytea` a
+  -- propósito: PostgREST transporta JSON, así que un bytea vuelve como string
+  -- hexadecimal "\x..." al leer y no acepta un Buffer al escribir. Base64 sobre
+  -- text es inequívoco en las dos direcciones y no pierde nada, porque el sobre
+  -- ya es un blob binario autodescriptivo.
+  private_key_enc     text not null,
   cert_pem            text,
   cert_serial         text,
   cert_not_after      timestamptz,
