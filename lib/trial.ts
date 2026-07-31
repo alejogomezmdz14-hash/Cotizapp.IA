@@ -18,10 +18,19 @@ export const QUOTATION_TRIAL_LIMIT_ERROR = "__TRIAL_LIMIT_QUOTATIONS__";
 /** Mensaje reconocible para que la UI muestre el paywall en vez del error genérico. */
 export const INVOICE_TRIAL_LIMIT_ERROR = "__TRIAL_LIMIT_INVOICES__";
 
+/** WhatsApp del fundador. Todo contacto manual (upgrade, pedido de acceso) sale
+ * de acá: es un solo lugar para cambiarlo el día que el número cambie. */
+export const FOUNDER_WHATSAPP_NUMBER = "542617679830";
+
+/** Arma un link de WhatsApp al fundador con un mensaje precargado. */
+export function whatsappLink(message: string): string {
+  return `https://wa.me/${FOUNDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 /** WhatsApp del fundador con mensaje precargado para pasar a Pro (upgrade manual). */
-export const UPGRADE_WHATSAPP =
-  "https://wa.me/542617679830?text=" +
-  encodeURIComponent("Hola! Quiero pasar a Pro en Cotizapp.");
+export const UPGRADE_WHATSAPP = whatsappLink(
+  "Hola! Quiero pasar a Pro en Cotizapp.",
+);
 
 /** ¿Puede crear otra cotización? Los pagos siempre pueden; el trial hasta el cupo. */
 export function canCreateQuotation(

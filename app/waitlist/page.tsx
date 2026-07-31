@@ -6,16 +6,11 @@ import { Clock, Mail, MessageCircle } from "lucide-react";
 import { CotizappLogo } from "@/components/brand/cotizapp-logo";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/layout/sign-out-button";
-import { UPGRADE_WHATSAPP } from "@/lib/trial";
+import { whatsappLink } from "@/lib/trial";
 
-// El mensaje de UPGRADE_WHATSAPP habla de pasar a Pro, que no aplica acá.
-// Reutilizamos el mismo número de teléfono pero con nuestro propio texto.
-const WAITLIST_WHATSAPP_MESSAGE = "Hola! Quiero acceso a Cotizapp.";
-const WAITLIST_WHATSAPP_PHONE =
-  UPGRADE_WHATSAPP.split("wa.me/")[1]?.split("?")[0] ?? "";
-const WAITLIST_WHATSAPP_HREF =
-  `https://wa.me/${WAITLIST_WHATSAPP_PHONE}?text=` +
-  encodeURIComponent(WAITLIST_WHATSAPP_MESSAGE);
+// Mismo número que el resto de los contactos manuales, con nuestro propio texto:
+// el mensaje de UPGRADE_WHATSAPP habla de pasar a Pro, que acá no aplica.
+const WAITLIST_WHATSAPP_HREF = whatsappLink("Hola! Quiero acceso a Cotizapp.");
 
 export default function WaitlistPage() {
   const { user, isLoaded } = useUser();
