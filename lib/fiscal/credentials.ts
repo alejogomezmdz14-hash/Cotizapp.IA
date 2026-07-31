@@ -8,6 +8,7 @@ import {
   seal,
 } from "@/lib/crypto/envelope";
 import { ACTIVE_KEY_ID, getFiscalKeyring } from "@/lib/crypto/fiscal-key";
+import { aadFor } from "@/lib/fiscal/aad";
 import {
   CertificateError,
   assertKeyMatchesCertificate,
@@ -31,14 +32,9 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 // Buffer de verdad.
 
 const TABLE = "fiscal_credentials";
-const PURPOSE_PRIVATE_KEY = "fiscal-private-key";
 
 const GENERIC_TRANSIENT_MESSAGE =
   "Tuvimos un problema para conectarnos. Probá de nuevo en un momento.";
-
-function aadFor(clerkUserId: string): string {
-  return `${clerkUserId}|${PURPOSE_PRIVATE_KEY}`;
-}
 
 function pgErrorExtra(error: PostgrestError): Record<string, string> {
   return { code: error.code ?? "" };

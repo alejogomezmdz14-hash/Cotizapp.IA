@@ -7,6 +7,12 @@
 -- haya terminado con "fallidos: 0" y "Barrido final OK".
 --
 -- Se aplica a mano en el SQL Editor del Dashboard (proyecto cotizapp-ia).
+--
+-- En una transacción: si el `alter table` de abajo fallara, no queremos que
+-- la policy quede dropeada mientras las columnas de paths siguen ahí (ese
+-- estado a mitad de camino es peor que no haber corrido nada).
+
+begin;
 
 drop policy if exists "Users manage their own fiscal credentials" on storage.objects;
 
@@ -18,3 +24,5 @@ drop policy if exists "Users manage their own fiscal credentials" on storage.obj
 alter table public.fiscal_profiles
   drop column if exists cert_path,
   drop column if exists key_path;
+
+commit;
