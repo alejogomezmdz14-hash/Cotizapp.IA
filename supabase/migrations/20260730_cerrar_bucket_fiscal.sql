@@ -3,8 +3,17 @@
 -- el navegador, la clave privada fiscal era descargable desde JavaScript del
 -- cliente. El material ya vive cifrado en public.fiscal_credentials.
 --
--- Correr SOLO después de que scripts/migrar-credenciales-fiscales.ts --aplicar
--- haya terminado con "fallidos: 0" y "Barrido final OK".
+-- CUÁNDO CORRERLA. Hay dos caminos, y en los dos esta migración va AL FINAL:
+--
+--   a) Rehacer el certificado con el wizard (recomendado mientras haya pocos
+--      usuarios): desplegar el código nuevo, completar el wizard, emitir una
+--      factura real de prueba, y recién ahí correr esto.
+--   b) Migrar el material viejo: correr scripts/migrar-credenciales-fiscales.ts
+--      --aplicar y esperar "fallidos: 0" y "Barrido final OK".
+--
+-- Nunca antes de desplegar el código nuevo: esta migración borra cert_path y
+-- key_path, y el código viejo los lee para decidir si mostrar el botón de
+-- facturar. Correrla antes deja ese botón invisible sin ningún mensaje.
 --
 -- Se aplica a mano en el SQL Editor del Dashboard (proyecto cotizapp-ia).
 --
