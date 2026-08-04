@@ -9,15 +9,28 @@
 
 export const TRIAL_QUOTATION_LIMIT = 15;
 export const TRIAL_INVOICE_SCAN_LIMIT = 10;
+export const TRIAL_INVOICE_LIMIT = 5;
 
 /** Mensaje de error reconocible que lanza `createDraftQuotationAction` cuando el
  * trial se quedó sin cupo. La UI lo traduce al paywall en vez del error genérico. */
 export const QUOTATION_TRIAL_LIMIT_ERROR = "__TRIAL_LIMIT_QUOTATIONS__";
 
+/** Mensaje reconocible para que la UI muestre el paywall en vez del error genérico. */
+export const INVOICE_TRIAL_LIMIT_ERROR = "__TRIAL_LIMIT_INVOICES__";
+
+/** WhatsApp del fundador. Todo contacto manual (upgrade, pedido de acceso) sale
+ * de acá: es un solo lugar para cambiarlo el día que el número cambie. */
+export const FOUNDER_WHATSAPP_NUMBER = "542617679830";
+
+/** Arma un link de WhatsApp al fundador con un mensaje precargado. */
+export function whatsappLink(message: string): string {
+  return `https://wa.me/${FOUNDER_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 /** WhatsApp del fundador con mensaje precargado para pasar a Pro (upgrade manual). */
-export const UPGRADE_WHATSAPP =
-  "https://wa.me/542617679830?text=" +
-  encodeURIComponent("Hola! Quiero pasar a Pro en Cotizapp.");
+export const UPGRADE_WHATSAPP = whatsappLink(
+  "Hola! Quiero pasar a Pro en Cotizapp.",
+);
 
 /** ¿Puede crear otra cotización? Los pagos siempre pueden; el trial hasta el cupo. */
 export function canCreateQuotation(
@@ -41,6 +54,15 @@ export function canScanInvoice(
   }
 
   return invoiceScansUsed < TRIAL_INVOICE_SCAN_LIMIT;
+}
+
+/** ¿Puede emitir otra factura electrónica? Los pagos siempre pueden. */
+export function canIssueInvoice(invoicesUsed: number, isPaid: boolean): boolean {
+  if (isPaid) {
+    return true;
+  }
+
+  return invoicesUsed < TRIAL_INVOICE_LIMIT;
 }
 
 /** Cupo restante (nunca negativo) para mostrar en banners/UI del trial. */
