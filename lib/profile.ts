@@ -36,6 +36,7 @@ type OnboardingProfileUpsertInput = ProfileUpsertIdentity & {
   fallbackEmail: string | null;
   address: string | null;
   currency: string;
+  country?: string | null;
 };
 
 type BusinessProfileUpsertInput = ProfileUpsertIdentity &
@@ -296,6 +297,7 @@ export function buildOnboardingProfileUpsertInput({
   fallbackEmail,
   address,
   currency,
+  country,
 }: OnboardingProfileUpsertInput) {
   return buildBusinessProfileUpsertInput({
     userId,
@@ -307,6 +309,7 @@ export function buildOnboardingProfileUpsertInput({
     fallbackEmail,
     address,
     currency,
+    country,
     pdfFooter: undefined,
     logoPath: undefined,
     // Omitimos el estado de onboarding del logo para no sobrescribir
@@ -325,6 +328,7 @@ export function buildBusinessProfileUpsertInput({
   fallbackEmail,
   address,
   currency,
+  country,
   taxId,
   pdfFooter,
   quotationNumberingMode,
@@ -338,6 +342,7 @@ export function buildBusinessProfileUpsertInput({
     clerk_id: clerkId,
     business_name: normalizeEntityName(businessName),
     industry: normalizeEntityName(industry),
+    ...(country !== undefined ? { country } : {}),
     ...(taxId !== undefined ? { tax_id: taxId } : {}),
     ...(quotationNumberingMode !== undefined
       ? { quotation_numbering_mode: quotationNumberingMode }

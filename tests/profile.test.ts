@@ -6,6 +6,7 @@ import {
   buildOnboardingProfileUpsertInput,
   isProfileComplete,
 } from "../lib/profile";
+import { isArgentina } from "../lib/profile-countries";
 
 test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not overwrite uploads", () => {
   const payload = buildOnboardingProfileUpsertInput({
@@ -31,6 +32,40 @@ test("buildOnboardingProfileUpsertInput omits logo_url so onboarding does not ov
     currency: "ARS",
   });
   assert.equal("logo_url" in payload, false);
+});
+
+test("buildOnboardingProfileUpsertInput persists country with a value isArgentina recognizes", () => {
+  const payload = buildOnboardingProfileUpsertInput({
+    userId: "user-1",
+    clerkId: "user_clerk_1",
+    businessName: "Corralon Centro",
+    industry: "Construccion",
+    phone: "2615551234",
+    email: null,
+    fallbackEmail: "ventas@corralon.com",
+    address: "Rodriguez Pena 3341",
+    currency: "ARS",
+    country: "Argentina",
+  });
+
+  assert.equal(payload.country, "Argentina");
+  assert.equal(isArgentina(payload.country), true);
+});
+
+test("buildOnboardingProfileUpsertInput omits country when it is not provided", () => {
+  const payload = buildOnboardingProfileUpsertInput({
+    userId: "user-1",
+    clerkId: "user_clerk_1",
+    businessName: "Corralon Centro",
+    industry: "Construccion",
+    phone: "2615551234",
+    email: null,
+    fallbackEmail: "ventas@corralon.com",
+    address: "Rodriguez Pena 3341",
+    currency: "ARS",
+  });
+
+  assert.equal("country" in payload, false);
 });
 
 test("isProfileComplete treats legacy profiles without logo onboarding flag as complete", () => {

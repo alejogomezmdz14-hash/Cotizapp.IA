@@ -67,6 +67,7 @@ export async function saveOnboarding(formData: FormData) {
       fallbackEmail: user.email ?? null,
       address: getOptionalValue(formData, "address"),
       currency,
+      country: getOptionalValue(formData, "country"),
     });
   } catch (validationError) {
     redirectWithOnboardingError(

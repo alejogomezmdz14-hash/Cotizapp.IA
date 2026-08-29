@@ -81,7 +81,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
           <section className="order-2 shell-panel-strong shell-highlight flex flex-col justify-between gap-6 p-6 sm:p-8 lg:order-1">
             <div className="space-y-4">
               <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                Último paso
+                Antes de empezar
               </span>
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
