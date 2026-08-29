@@ -189,11 +189,29 @@ export async function emitirFacturaAction(
           fiscal!.sales_point,
         );
 
-        await supabase
+        // Si la reserva no se guarda, NO llamamos a ARCA. Ese numero es lo unico
+        // que despues permite preguntarle si el comprobante existe: sin el, un
+        // corte de red deja al usuario con una factura que puede haber salido o
+        // no, y el boton "Verificar" sin nada con que buscarla. Es preferible
+        // fallar antes de emitir que emitir a ciegas.
+        const { error: reservaError } = await supabase
           .from("quotations")
           .update({ cbte_nro: numeroReservado, factura_estado: "reservado" })
           .eq("id", quotationId)
           .eq("user_id", user.id);
+
+        if (reservaError) {
+          logError("facturacion.reserva", reservaError, {
+            quotationId,
+            code: reservaError.code ?? null,
+          });
+          await releaseClaim();
+          return {
+            ok: false,
+            error:
+              "No pudimos preparar la emisión. Probá de nuevo en un momento.",
+          };
+        }
 
         yaSeLlamoAArca = true;
 

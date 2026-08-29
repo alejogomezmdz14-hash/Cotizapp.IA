@@ -24,6 +24,7 @@ import {
 import { isFiscalProfileComplete } from "@/lib/arca/eligibility";
 import { getQuotationInvoicing } from "@/lib/arca/invoicing-status";
 import { formatDisplayName } from "@/lib/entity-normalization";
+import { getCredentialSummary } from "@/lib/fiscal/credentials";
 import { getFiscalProfile } from "@/lib/fiscal-profile";
 import { getProfile, requireUser } from "@/lib/profile";
 import { isArgentina } from "@/lib/profile-countries";
@@ -75,17 +76,47 @@ export default async function QuotationDetailPage({
     getQuotationSignaturePreviewUrl(quotation.signature_url),
   ]);
   const showFiscalAr = isArgentina(profile?.country ?? null);
-  const [fiscalProfile, invoicing] = await Promise.all([
+  const [fiscalProfile, credenciales, invoicing] = await Promise.all([
     showFiscalAr
       ? getFiscalProfile(user.clerkId).catch(() => null)
       : Promise.resolve(null),
+    showFiscalAr
+      ? getCredentialSummary(user.clerkId).catch(() => null)
+      : Promise.resolve(null),
     getQuotationInvoicing(user.id, quotation.id),
   ]);
+
+  // El certificado tiene que estar verificado contra ARCA Y vigente. Sin este
+  // chequeo el boton aparecia igual, la emision caia en modo demo en silencio,
+  // y la pantalla decia "Factura emitida" con un CAE falso — dejando ademas la
+  // cotizacion quemada, porque despues no se puede volver a facturar.
+  const certificadoListo = Boolean(
+    credenciales?.verifiedAt &&
+      credenciales.certNotAfter &&
+      new Date(credenciales.certNotAfter).getTime() > Date.now(),
+  );
+
+  const datosFiscalesListos = isFiscalProfileComplete(fiscalProfile);
+
   const canIssueInvoice =
     quotation.status === "accepted" &&
     showFiscalAr &&
-    isFiscalProfileComplete(fiscalProfile) &&
+    datosFiscalesListos &&
+    certificadoListo &&
     !invoicing.cae;
+
+  // Cuando no se puede facturar, decir POR QUE. Antes la barra quedaba muda y
+  // el usuario no tenia forma de saber que le faltaba.
+  const motivoSinFacturar =
+    quotation.status !== "accepted" || invoicing.cae
+      ? null
+      : !showFiscalAr
+        ? "Para facturar en Argentina, cargá tu país en Mi perfil."
+        : !datosFiscalesListos
+          ? "Completá tus datos fiscales en Mi empresa para poder facturar."
+          : !certificadoListo
+            ? "Terminá de configurar tu certificado de ARCA en Mi empresa para poder facturar."
+            : null;
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
   const canEditDraft = Boolean(reopenDraftHref);
   const isExpired = shouldDisplayQuotationAsExpired(
@@ -317,6 +348,15 @@ export default async function QuotationDetailPage({
               quotationId={quotation.id}
               estado={invoicing.facturaEstado}
             />
+          ) : motivoSinFacturar ? (
+            <div className="rounded-md border border-token bg-background/60 p-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                {motivoSinFacturar}
+              </p>
+              <Button asChild size="sm" variant="outline" className="mt-3 bg-background/75">
+                <Link href="/perfil-empresa">Ir a Mi empresa</Link>
+              </Button>
+            </div>
           ) : null}
           <QuotationPaidToggle
             quotationId={quotation.id}
