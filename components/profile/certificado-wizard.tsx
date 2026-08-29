@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  Download,
+  FileCheck2,
   KeyRound,
   Loader2,
   ShieldCheck,
@@ -87,6 +89,14 @@ export function CertificadoWizard({
   const [loadingGenerar, setLoadingGenerar] = useState(false);
   const [errorGenerar, setErrorGenerar] = useState<string | null>(null);
 
+  // El navegador descarga el .csr sin decir nada, y en Safari móvil eso es
+  // literalmente invisible. Guardamos el nombre para poder confirmárselo al
+  // usuario: sin esto no sabe si pasó algo.
+  const [csrDescargado, setCsrDescargado] = useState<string | null>(null);
+
+  // Un input de archivo nativo no dice qué elegiste en un formato legible.
+  const [archivoElegido, setArchivoElegido] = useState<string | null>(null);
+
   const [loadingRedescargar, setLoadingRedescargar] = useState(false);
   const [errorRedescargar, setErrorRedescargar] = useState<string | null>(null);
 
@@ -104,6 +114,7 @@ export function CertificadoWizard({
       const res = await generarLlaveAction();
       if (res.ok) {
         descargarCsr(res.csrPem, res.nombreArchivo);
+        setCsrDescargado(res.nombreArchivo);
         router.refresh();
       } else {
         setErrorGenerar(res.error);
@@ -122,6 +133,7 @@ export function CertificadoWizard({
       const res = await descargarCsrAction();
       if (res.ok) {
         descargarCsr(res.csrPem, res.nombreArchivo);
+        setCsrDescargado(res.nombreArchivo);
       } else {
         setErrorRedescargar(res.error);
       }
@@ -196,14 +208,14 @@ export function CertificadoWizard({
       </div>
 
       {paso === "datos" ? (
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="wizard-step text-sm leading-6 text-muted-foreground">
           Primero completá tus datos fiscales acá abajo: CUIT, razón social y
           punto de venta.
         </p>
       ) : null}
 
       {paso === "generar" ? (
-        <div className="space-y-3">
+        <div className="wizard-step space-y-3">
           <p className="text-sm leading-6 text-muted-foreground">
             Cotizapp te genera la llave privada automáticamente: no hace falta
             instalar nada ni usar la terminal. Vas a bajar un archivo (el{" "}
@@ -229,8 +241,19 @@ export function CertificadoWizard({
       ) : null}
 
       {paso === "tramite" || paso === "subir" ? (
-        <div className="space-y-4">
+        <div className="wizard-step space-y-4">
           <div className="space-y-3">
+            {csrDescargado ? (
+              <div className="flex items-start gap-2 rounded-md border border-[rgb(var(--accent-rgb)/0.4)] bg-[rgb(var(--accent-rgb)/0.08)] p-3">
+                <Download className="mt-0.5 h-4 w-4 shrink-0 text-accent-token" />
+                <p className="text-sm leading-6 text-foreground">
+                  Se descargó{" "}
+                  <span className="font-medium break-all">{csrDescargado}</span>
+                  . Buscalo en tu carpeta de Descargas: es el archivo que vas a
+                  subir a ARCA en el paso 1.
+                </p>
+              </div>
+            ) : null}
             <p className="text-sm leading-6 text-foreground">
               Ya generamos tu llave. Ahora te toca hacer esto en el sitio de
               ARCA:
@@ -272,7 +295,16 @@ export function CertificadoWizard({
               type="file"
               accept=".crt,.pem"
               ref={fileInputRef}
+              onChange={(event) =>
+                setArchivoElegido(event.target.files?.[0]?.name ?? null)
+              }
             />
+            {archivoElegido ? (
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <FileCheck2 className="h-4 w-4 shrink-0 text-accent-token" />
+                <span className="truncate">{archivoElegido}</span>
+              </p>
+            ) : null}
             <Button
               type="button"
               onClick={handleSubir}
@@ -297,7 +329,7 @@ export function CertificadoWizard({
               variant="link"
               onClick={handleRedescargar}
               disabled={loadingRedescargar}
-              className="h-auto min-h-0 p-0 text-sm"
+              className="h-auto min-h-11 justify-start px-0 text-sm"
             >
               {loadingRedescargar
                 ? "Descargando..."
@@ -311,7 +343,7 @@ export function CertificadoWizard({
       ) : null}
 
       {paso === "verificar" ? (
-        <div className="space-y-3">
+        <div className="wizard-step space-y-3">
           <div className="space-y-1 text-sm text-foreground">
             {cuitVerificado ? <p>CUIT del certificado: {cuitVerificado}</p> : null}
             {fechaVencimiento ? <p>Vence el {fechaVencimiento}</p> : null}
@@ -340,7 +372,7 @@ export function CertificadoWizard({
       ) : null}
 
       {paso === "listo" ? (
-        <div className="space-y-3">
+        <div className="wizard-step space-y-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-accent-token" />
             <p className="text-sm font-semibold text-foreground">

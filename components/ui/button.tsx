@@ -5,7 +5,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  // `transition-all` transicionaba propiedades que nadie quiere animar (layout
+  // incluido). Acá se listan solo las que cambian de verdad.
+  // `active:scale-[0.97]` es el detalle que hace que un botón se sienta vivo:
+  // confirma al instante que la interfaz escuchó el toque. Se ve poco y se
+  // siente mucho.
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-[transform,background-color,border-color,box-shadow,filter,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -18,7 +23,7 @@ const buttonVariants = cva(
         secondary:
           "border border-white/10 bg-secondary/70 text-secondary-foreground shadow-none hover:bg-secondary",
         ghost: "text-muted-foreground hover:bg-white/5 hover:text-foreground",
-        link: "text-accent-token underline-offset-4 hover:underline",
+        link: "text-accent-token underline-offset-4 hover:underline active:scale-100",
       },
       size: {
         default: "h-11 px-4 py-2",

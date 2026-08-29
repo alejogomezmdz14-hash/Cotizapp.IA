@@ -4,6 +4,14 @@
 
 @layer base {
   :root {
+    /* Curvas de easing. Las nativas de CSS son deliberadamente suaves y hacen
+       que todo se sienta genérico; estas tienen la fuerza que necesita una
+       interfaz para sentirse intencional.
+       --ease-out para entradas y feedback (arranca rápido = se siente responsivo).
+       --ease-in-out para cosas que se mueven en pantalla.
+       Nunca ease-in en UI: arranca lento justo cuando el usuario está mirando. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --sidebar-bg: #0a0a0f;
     --sidebar-bg-rgb: 10 10 15;
     --sidebar-text: #ffffff;
@@ -291,5 +299,45 @@
   input[type="checkbox"],
   input[type="radio"] {
     min-height: 44px;
+  }
+}
+
+/* Movimiento reducido: quien lo pide en su sistema no debería recibir
+   desplazamientos ni escalados. La opacidad se conserva a propósito — ayuda a
+   entender qué cambió y no provoca mareo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Entrada de un paso del wizard. Cambiar de paso sin transición se siente
+   roto: el contenido salta y el usuario no registra que avanzó. Es una
+   animación que se ve cinco veces en la vida de un usuario, así que puede
+   permitirse existir. Sale de abajo y muy poco: sugiere avance sin distraer.
+   El movimiento lo anula el bloque de prefers-reduced-motion de más arriba. */
+@keyframes wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wizard-step {
+  animation: wizard-step-in 260ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-step {
+    animation: none;
   }
 }
