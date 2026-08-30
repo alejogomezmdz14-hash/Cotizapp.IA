@@ -124,19 +124,16 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
 
           <section className="order-1 shell-panel-strong p-6 sm:p-8 lg:order-2">
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-              <div className="space-y-3">
-                <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  Paso 1 de 2
-                </span>
-                <div className="space-y-2">
-                  <h2 className="text-3xl font-semibold tracking-tight">
-                    Datos de tu negocio
-                  </h2>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Completá lo básico y entrá a tu cuenta. El logo lo cargás
-                    en el paso siguiente.
-                  </p>
-                </div>
+              {/* El contador de pasos y el título de cada paso los pone el
+                  propio formulario, que es quien sabe en cuál está. Acá solo
+                  queda el encabezado de la pantalla. */}
+              <div className="space-y-2">
+                <h2 className="text-3xl font-semibold tracking-tight">
+                  Configurá tu negocio
+                </h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Son cuatro pasos cortos. Después entrás y empezás a cotizar.
+                </p>
               </div>
 
               {onboardingError ? (
