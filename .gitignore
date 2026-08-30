@@ -36,3 +36,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .superpowers/
+
+# Archivos sueltos que fueron a parar a public/icons/ por accidente
+# (boletos, PDFs, imagenes de clinicas). No son assets de la app.
+public/icons/*.pdf
+public/icons/images*.jpg
+public/icons/clinica*
