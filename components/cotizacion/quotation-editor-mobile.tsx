@@ -993,7 +993,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2 rounded-[1.5rem] border border-token bg-[#0F1117] p-4">
+    <section className="space-y-2 rounded-[1.5rem] border border-token bg-background p-4">
       {title ? (
         <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {title}

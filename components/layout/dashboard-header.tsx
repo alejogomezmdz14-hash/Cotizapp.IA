@@ -30,7 +30,7 @@ export function DashboardHeader({
           <BusinessAvatar businessName={businessName} logoUrl={logoUrl} />
 
           <div className="min-w-0 flex-1">
-            <p className="ui-shell-kicker truncate text-header/70">
+            <p className="ui-shell-kicker truncate">
               Panel principal
             </p>
             <h1 className="truncate text-[15px] font-medium tracking-[-0.02em] text-header">

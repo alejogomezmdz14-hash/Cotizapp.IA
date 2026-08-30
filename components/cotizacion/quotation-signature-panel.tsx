@@ -32,9 +32,21 @@ export function QuotationSignaturePanel({
     }
 
     const rect = canvas.getBoundingClientRect();
+
+    // El canvas tiene un bitmap fijo pero se muestra con `w-full`, así que en un
+    // teléfono mide bastante menos. moveTo/lineTo trabajan en coordenadas del
+    // bitmap, no en píxeles de pantalla: sin escalar, la tinta caía corrida
+    // respecto del dedo (al ~71% del recorrido) y el borde derecho quedaba
+    // fuera de alcance.
+    const escalaX = canvas.width / rect.width;
+    const escalaY = canvas.height / rect.height;
+
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * escalaX,
+      y: (event.clientY - rect.top) * escalaY,
+      // Para que el trazo se vea del mismo grosor sin importar el tamaño real
+      // del canvas en pantalla.
+      escala: escalaX,
     };
   }
 
@@ -51,7 +63,7 @@ export function QuotationSignaturePanel({
     }
 
     context.strokeStyle = "#111827";
-    context.lineWidth = 2;
+    context.lineWidth = 2 * point.escala;
     context.lineCap = "round";
     context.beginPath();
     context.moveTo(point.x, point.y);
@@ -210,8 +222,8 @@ export function QuotationSignaturePanel({
 
       <canvas
         ref={canvasRef}
-        width={480}
-        height={160}
+        width={960}
+        height={320}
         className="w-full touch-none rounded-xl border border-dashed border-token bg-white"
         onPointerDown={startDrawing}
         onPointerMove={draw}

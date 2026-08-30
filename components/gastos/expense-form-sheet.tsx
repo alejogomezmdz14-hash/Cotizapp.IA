@@ -310,7 +310,10 @@ export function ExpenseFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent
+        side="bottom"
+        className="max-h-[90dvh] overflow-y-auto rounded-t-[1.75rem] sm:max-w-lg"
+      >
         <SheetHeader>
           <SheetTitle>{isEditing ? "Editar gasto" : "Nuevo gasto"}</SheetTitle>
           <SheetDescription>
