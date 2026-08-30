@@ -5,7 +5,7 @@ import { SignUp } from '@clerk/nextjs'
 export default function SignUpPage() {
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
+      className="flex min-h-dvh items-center justify-center"
       style={{ backgroundColor: '#0A0A0F' }}
     >
       <SignUp

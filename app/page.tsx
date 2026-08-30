@@ -29,7 +29,7 @@ const heroChips = [
 
 export default function HomePage() {
   return (
-    <main className="dark min-h-screen bg-[rgb(var(--background-rgb))] text-white">
+    <main className="dark min-h-dvh bg-[rgb(var(--background-rgb))] text-white">
       <LandingNavbar />
       <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 pb-16 pt-24">
         <div

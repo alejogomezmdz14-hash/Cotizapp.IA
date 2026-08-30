@@ -17,7 +17,7 @@ export default function WaitlistPage() {
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   return (
-    <main className="shell-backdrop flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10 text-foreground">
+    <main className="shell-backdrop flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10 text-foreground">
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center">
           <CotizappLogo variant="auto" width={150} priority />

@@ -72,7 +72,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   }
 
   return (
-    <main className="shell-backdrop min-h-screen bg-background px-4 py-10 sm:px-6 sm:py-12">
+    <main className="shell-backdrop min-h-dvh bg-background px-4 py-10 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-6xl">
         <div className="mb-8 flex justify-center">
           <CotizappLogo variant="auto" width={160} priority />

@@ -17,7 +17,7 @@ export default function OnboardingError({ error, reset }: OnboardingErrorProps) 
   }, [error]);
 
   return (
-    <main className="shell-backdrop flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <main className="shell-backdrop flex min-h-dvh items-center justify-center bg-background px-4 py-10">
       <div className="shell-panel-strong w-full max-w-lg space-y-5 border border-token p-6 sm:p-8">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-destructive/40 bg-destructive/10 text-destructive">

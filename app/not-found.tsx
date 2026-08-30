@@ -10,7 +10,7 @@ import { getCurrentUser, getProfile, isProfileComplete } from "@/lib/profile";
 
 function PublicNotFound() {
   return (
-    <main className="shell-backdrop flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <main className="shell-backdrop flex min-h-dvh items-center justify-center bg-background px-4 py-10">
       <section className="shell-panel-strong w-full max-w-lg space-y-5 border border-token p-6 text-center sm:p-8">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -61,9 +61,9 @@ export default async function NotFound() {
       };
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:flex">
+    <div className="min-h-dvh bg-background text-foreground lg:flex">
       <Sidebar />
-      <div className="shell-backdrop relative flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="shell-backdrop relative flex min-h-dvh min-w-0 flex-1 flex-col">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[rgb(var(--accent-rgb)/0.12)] to-transparent" />
         <DashboardHeader
           businessName={branding.businessName}

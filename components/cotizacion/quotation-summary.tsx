@@ -60,7 +60,7 @@ export function QuotationSummary({
   const totals = calculateQuotationTotals(items, taxRate);
 
   return (
-    <Card className="shell-panel-strong shell-highlight overflow-hidden shadow-none">
+    <Card className="shell-panel-strong shell-highlight overflow-hidden tabular-nums shadow-none">
       <CardHeader>
         <CardTitle className="text-xl">Resumen</CardTitle>
       </CardHeader>

@@ -47,7 +47,7 @@ export function ExpenseKpis({ stats }: ExpenseKpisProps) {
   ] as const;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 tabular-nums md:grid-cols-3">
       {cards.map(({ title, value, icon: Icon, accent }) => (
         <div
           key={title}

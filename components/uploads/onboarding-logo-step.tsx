@@ -83,13 +83,13 @@ export function OnboardingLogoStep({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-dvh overflow-hidden">
       {/* Fondo estilo “invoice fly” (placeholder CSS hasta que nos pasen una foto real). */}
       <div className="absolute inset-0 bg-background" />
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_15%,rgba(245,196,0,0.35),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(16,185,129,0.20),transparent_50%),linear-gradient(to_bottom,rgba(255,255,255,0.04),rgba(0,0,0,0.35))]" />
       <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(90deg,rgba(245,196,0,0.25)_1px,transparent_1px),linear-gradient(rgba(245,196,0,0.25)_1px,transparent_1px)] [background-size:64px_64px]" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-8 flex justify-center">
           <CotizappLogo variant="auto" width={160} priority />
         </div>

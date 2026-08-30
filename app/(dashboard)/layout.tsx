@@ -35,9 +35,9 @@ export default async function DashboardLayout({
   }));
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:flex">
+    <div className="min-h-dvh bg-background text-foreground lg:flex">
       <Sidebar />
-      <div className="shell-backdrop relative flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="shell-backdrop relative flex min-h-dvh min-w-0 flex-1 flex-col">
         <DashboardHeader
           businessName={branding.businessName}
           logoUrl={branding.logoUrl}

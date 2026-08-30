@@ -42,7 +42,7 @@ export function DashboardStatTiles({
   expensesSeries,
 }: DashboardStatTilesProps) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3 tabular-nums">
       <div className="rounded-2xl border border-[rgb(var(--accent-rgb)/0.35)] bg-[rgb(var(--accent-rgb)/0.08)] p-4">
         <p className="text-xs text-muted-foreground">Aceptado</p>
         <p className="mt-1 text-xl font-bold text-accent-token">
