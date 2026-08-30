@@ -89,24 +89,55 @@ export function OnboardingLogoStep({
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_15%,rgba(245,196,0,0.35),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(16,185,129,0.20),transparent_50%),linear-gradient(to_bottom,rgba(255,255,255,0.04),rgba(0,0,0,0.35))]" />
       <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(90deg,rgba(245,196,0,0.25)_1px,transparent_1px),linear-gradient(rgba(245,196,0,0.25)_1px,transparent_1px)] [background-size:64px_64px]" />
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
-        <div className="mb-8 flex justify-center">
-          <CotizappLogo variant="auto" width={160} priority />
+      {/* Mismo ancho y misma tarjeta que los tres pasos anteriores: si el
+          último paso cambia de forma, el alta se siente como otra app. */}
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-4 py-8">
+        <div className="mb-6 flex justify-center">
+          <CotizappLogo variant="auto" width={150} priority />
         </div>
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Paso 4 de 4
+            </span>
+            <div
+              className="h-1 w-full overflow-hidden rounded-full bg-[rgb(var(--border-rgb)/0.5)]"
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={4}
+              aria-valuenow={4}
+            >
+              <div className="h-full w-full rounded-full bg-accent-token" />
+            </div>
+            <h1 className="pt-1 text-lg font-semibold tracking-tight">
               Subí el logo de tu negocio
             </h1>
-            <p className="text-sm leading-7 text-muted-foreground sm:text-base">
+            <p className="text-sm leading-6 text-muted-foreground">
               Aparecerá en todas tus cotizaciones. Podés cambiarlo cuando
               quieras.
             </p>
           </div>
 
-          <div className="mt-8 rounded-[1.75rem] border border-token/80 bg-background/70 p-4 sm:p-6">
+          <div className="mt-5 rounded-[1.75rem] border border-token/80 bg-background/70 p-4">
+            {/* El área entera abre el selector al tocarla. Antes solo aceptaba
+                arrastrar y soltar — un gesto que en un teléfono no existe — así
+                que había que encontrar el botón chico de abajo. */}
             <div
-              className="relative flex min-h-[280px] flex-col items-center justify-center gap-4 overflow-hidden rounded-[1.5rem] border-2 border-dashed border-token/80 bg-background/60 p-6 text-center transition"
+              role="button"
+              tabIndex={0}
+              aria-label="Elegir el logo de tu negocio"
+              className="relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center gap-4 overflow-hidden rounded-[1.5rem] border-2 border-dashed border-token/80 bg-background/60 p-6 text-center transition-[border-color,background-color] duration-150 active:bg-background/80"
+              onClick={() => {
+                if (!isUploading) {
+                  inputRef.current?.click();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
               onDragOver={(e) => {
                 e.preventDefault();
               }}
@@ -160,16 +191,22 @@ export function OnboardingLogoStep({
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-foreground">
-                      Arrastrá y soltá tu logo acá
+                      Tocá acá para elegir tu logo
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Formatos PNG, JPG y WEBP. Máximo 5 MB.
+                      PNG, JPG o WEBP. Hasta 5 MB.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              {/* Estos botones viven DENTRO del área tocable, así que hay que
+                  frenar la propagación: si no, apretar "Subir logo" burbujea al
+                  contenedor y vuelve a abrir el selector de archivos. */}
+              <div
+                className="flex flex-wrap items-center justify-center gap-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Button
                   type="button"
                   variant="outline"

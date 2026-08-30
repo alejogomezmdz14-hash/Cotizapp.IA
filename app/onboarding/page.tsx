@@ -1,29 +1,10 @@
 import { redirect } from "next/navigation";
-import { BadgeCheck, Building2, Palette, PhoneCall } from "lucide-react";
 
 import { getProfileLogoUploadState } from "@/app/actions/uploads";
 import { CotizappLogo } from "@/components/brand/cotizapp-logo";
 import { OnboardingForm } from "@/components/uploads/onboarding-form";
 import { getProfile, isProfileComplete, requireUser } from "@/lib/profile";
 import { OnboardingLogoStep } from "@/components/uploads/onboarding-logo-step";
-
-const onboardingHighlights = [
-  {
-    title: "Tu marca en cada cotización",
-    description: "Tus cotizaciones salen con tu nombre y tu logo, como las de una empresa grande.",
-    icon: Building2,
-  },
-  {
-    title: "PDF listo para mandar",
-    description: "Generás el PDF y lo compartís por WhatsApp con un toque.",
-    icon: Palette,
-  },
-  {
-    title: "Tu cliente sabe cómo contactarte",
-    description: "Tu teléfono y email aparecen en cada cotización que enviás.",
-    icon: PhoneCall,
-  },
-] as const;
 
 type OnboardingPageProps = {
   searchParams?: {
@@ -72,83 +53,36 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   }
 
   return (
-    <main className="shell-backdrop min-h-dvh bg-background px-4 py-10 sm:px-6 sm:py-12">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-8 flex justify-center">
-          <CotizappLogo variant="auto" width={160} priority />
+    // Una sola tarjeta centrada con el paso actual, y nada más.
+    // Antes esta pantalla era una grilla de dos columnas: el formulario en una
+    // y en la otra un panel con título grande, tres tarjetas de beneficios y un
+    // bloque extra. En el celular todo eso quedaba apilado DEBAJO del
+    // formulario, así que el alta se sentía interminable aunque el paso en sí
+    // fuera corto. El texto de venta no va acá: el usuario ya se registró.
+    <main className="shell-backdrop flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex justify-center">
+          <CotizappLogo variant="auto" width={150} priority />
         </div>
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
-          <section className="order-2 shell-panel-strong shell-highlight flex flex-col justify-between gap-6 p-6 sm:p-8 lg:order-1">
-            <div className="space-y-4">
-              <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                Antes de empezar
-              </span>
-              <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Contanos de tu negocio
-                </h1>
-                <p className="text-sm leading-7 text-muted-foreground sm:text-base">
-                  Son 2 minutos. Con estos datos tus cotizaciones salen con tu
-                  nombre, tu logo y tus datos de contacto — listas para mandar
-                  al cliente.
-                </p>
-              </div>
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              {onboardingHighlights.map(({ title, description, icon: Icon }) => (
-                <div
-                  key={title}
-                  className="rounded-md border border-token bg-background/70 px-4 py-4"
-                >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-token/80 bg-background text-accent-token">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">{title}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {description}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <section className="shell-panel-strong space-y-6 p-5 sm:p-7">
+          {onboardingError ? (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {onboardingError}
+            </p>
+          ) : null}
 
-            <div className="rounded-md border border-token bg-background/70 px-4 py-4 text-sm text-muted-foreground">
-              <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                <BadgeCheck className="h-4 w-4 text-accent-token" />
-                Después de esto, a cotizar
-              </div>
-              Completás el nombre de tu negocio, a qué te dedicás y cómo
-              contactarte. Nada más. Todo se puede cambiar después desde Ajustes.
-            </div>
-          </section>
+          {/* El contador y el título de cada paso los pone el propio
+              formulario, que es quien sabe en cuál está. */}
+          <OnboardingForm
+            profile={profile}
+            fallbackEmail={user.email ?? null}
+          />
+        </section>
 
-          <section className="order-1 shell-panel-strong p-6 sm:p-8 lg:order-2">
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-              {/* El contador de pasos y el título de cada paso los pone el
-                  propio formulario, que es quien sabe en cuál está. Acá solo
-                  queda el encabezado de la pantalla. */}
-              <div className="space-y-2">
-                <h2 className="text-3xl font-semibold tracking-tight">
-                  Configurá tu negocio
-                </h2>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Son cuatro pasos cortos. Después entrás y empezás a cotizar.
-                </p>
-              </div>
-
-              {onboardingError ? (
-                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {onboardingError}
-                </p>
-              ) : null}
-
-              <OnboardingForm
-                profile={profile}
-                fallbackEmail={user.email ?? null}
-              />
-            </div>
-          </section>
-        </div>
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          Todo esto se puede cambiar después desde Ajustes.
+        </p>
       </div>
     </main>
   );
