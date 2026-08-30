@@ -4,6 +4,7 @@ import { saveFiscalProfileAction } from "@/app/actions/fiscal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { FiscalProfile } from "@/lib/fiscal-profile";
 
 type FiscalProfileFormProps = {
@@ -11,9 +12,6 @@ type FiscalProfileFormProps = {
   defaultCuit: string;
   defaultBusinessName: string;
 };
-
-const selectClassName =
-  "flex h-10 w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
 export function FiscalProfileForm({
   fiscalProfile,
@@ -43,16 +41,15 @@ export function FiscalProfileForm({
 
         <div className="space-y-2">
           <Label htmlFor="contributor_type">Tipo de contribuyente</Label>
-          <select
+          <NativeSelect
             id="contributor_type"
             name="contributor_type"
             defaultValue={fiscalProfile?.contributor_type ?? ""}
             required
-            className={selectClassName}
           >
             <option value="">Elegí una opción</option>
             <option value="monotributista">Monotributista</option>
-          </select>
+          </NativeSelect>
           <p className="text-xs text-muted-foreground">
             Por ahora Cotizapp emite Factura C, así que la facturación electrónica
             está disponible solo para monotributistas.

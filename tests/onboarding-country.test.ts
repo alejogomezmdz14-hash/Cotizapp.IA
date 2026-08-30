@@ -9,7 +9,7 @@ test("OnboardingForm pregunta el país con PROFILE_COUNTRIES y Argentina presele
   );
 
   assert.match(source, /PROFILE_COUNTRIES/);
-  assert.match(source, /<select[\s\S]*name="country"/);
+  assert.match(source, /<(select|NativeSelect)[\s\S]*name="country"/);
   assert.match(source, /defaultValue=\{profile\?\.country \?\? "Argentina"\}/);
 });
 

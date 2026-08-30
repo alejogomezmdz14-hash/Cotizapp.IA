@@ -9,7 +9,7 @@ test("user-profile-form usa un selector de país poblado con PROFILE_COUNTRIES",
   );
 
   assert.match(source, /PROFILE_COUNTRIES/);
-  assert.match(source, /<select[\s\S]*name="country"/);
+  assert.match(source, /<(select|NativeSelect)[\s\S]*name="country"/);
 });
 
 test("FiscalProfileForm tiene los campos fiscales y el disclaimer", async () => {

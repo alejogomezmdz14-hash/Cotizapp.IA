@@ -5,6 +5,7 @@ import { CalendarDays, PhoneCall } from "lucide-react";
 
 import { saveUserProfileAction } from "@/app/actions/profile";
 import { AvatarUploader } from "@/components/uploads/avatar-uploader";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,11 +94,10 @@ export function UserProfileForm({
 
           <div className="space-y-2">
             <Label htmlFor="country">País</Label>
-            <select
+            <NativeSelect
               id="country"
               name="country"
               defaultValue={profile?.country ?? ""}
-              className="flex h-9 w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
               <option value="">Seleccioná tu país</option>
               {PROFILE_COUNTRIES.map((country) => (
@@ -105,7 +105,7 @@ export function UserProfileForm({
                   {country}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <div className="space-y-2">

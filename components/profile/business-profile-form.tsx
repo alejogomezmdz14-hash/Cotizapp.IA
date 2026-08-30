@@ -6,6 +6,7 @@ import { Building2, ChevronDown, Hash, Mail, Sparkles } from "lucide-react";
 
 import { saveBusinessProfileAction } from "@/app/actions/profile";
 import { LogoUploader } from "@/components/uploads/logo-uploader";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,19 +95,18 @@ export function BusinessProfileForm({
 
             <div className="space-y-2">
               <Label htmlFor="currency">Moneda</Label>
-              <select
+              <NativeSelect
                 id="currency"
                 name="currency"
                 defaultValue={(profile?.currency ?? "ARS").toUpperCase()}
                 required
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {PROFILE_CURRENCIES.map((currency) => (
                   <option key={currency} value={currency}>
                     {currency}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -195,18 +195,17 @@ export function BusinessProfileForm({
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="quotation_numbering_mode">Modo</Label>
-                <select
+                <NativeSelect
                   id="quotation_numbering_mode"
                   name="quotation_numbering_mode"
                   defaultValue={numberingMode}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
+                                  >
                   <option value="auto">Automático (el sistema lo genera solo)</option>
                   <option value="sequential">
                     Numeración automática: COT-001, COT-002...
                   </option>
                   <option value="custom">Con texto propio: ej. INST-001</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="quotation_prefix">Prefijo</Label>

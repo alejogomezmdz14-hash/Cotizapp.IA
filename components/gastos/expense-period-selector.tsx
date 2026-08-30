@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { NativeSelect } from "@/components/ui/native-select";
 
 import { Label } from "@/components/ui/label";
 
@@ -18,10 +19,10 @@ export function ExpensePeriodSelector({
   return (
     <div className="space-y-2">
       <Label htmlFor="expense-period">Ver mes</Label>
-      <select
+      <NativeSelect
         id="expense-period"
         value={selectedMonthKey}
-        className="w-full rounded-md border border-token bg-background px-3 py-2 text-sm text-foreground sm:max-w-xs"
+        className="sm:max-w-xs"
         onChange={(event) => {
           const nextMonth = event.target.value;
           router.replace(nextMonth ? `/gastos?month=${nextMonth}` : "/gastos");
@@ -32,7 +33,7 @@ export function ExpensePeriodSelector({
             {group.monthLabel}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 }

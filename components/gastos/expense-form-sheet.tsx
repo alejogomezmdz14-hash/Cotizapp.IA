@@ -7,6 +7,7 @@ import {
   createExpenseFromInput,
   updateExpenseFromInput,
 } from "@/app/actions/expenses";
+import { NativeSelect } from "@/components/ui/native-select";
 import { ActionHint } from "@/components/ui/action-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -360,37 +361,35 @@ export function ExpenseFormSheet({
 
             <div className="space-y-2">
               <Label htmlFor="expense-currency">Moneda</Label>
-              <select
+              <NativeSelect
                 id="expense-currency"
                 value={currency}
                 onChange={(event) => setCurrency(event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {EXPENSE_CURRENCIES.map((item) => (
                   <option key={item.code} value={item.code}>
                     {item.label} ({item.code})
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="expense-category">Categoría</Label>
-              <select
+              <NativeSelect
                 id="expense-category"
                 name="category"
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {EXPENSE_CATEGORIES.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
 
             <div className="space-y-2">
