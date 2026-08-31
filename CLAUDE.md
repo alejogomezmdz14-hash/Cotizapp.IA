@@ -66,9 +66,13 @@ El dark mode es solo para la interfaz, nunca para documentos generados.
 /perfil-empresa            → Datos del negocio, logo, PDF, numeración
 /ajustes                   → Configuración completa de la cuenta
 
-## MÓDULO OCULTO (no mostrar en UI hasta nuevo aviso)
-/facturas                  → Módulo de facturas — código existe pero NO mostrar
-                             en sidebar, navegación ni CTAs
+## Facturación
+/facturas                  → Lista de facturas internas (numeración FAC, sin
+                             valor fiscal). Ya NO es un módulo oculto.
+Facturación electrónica ARCA (CAE, Factura C, QR de AFIP) se emite desde el
+detalle de la cotización con el botón "Emitir factura". Requiere: cotización
+aceptada, país Argentina, datos fiscales completos y certificado ARCA
+verificado y vigente. Si falta algo, la UI siempre tiene que decir QUÉ falta.
 
 ## Base de datos (Supabase)
 Tablas principales:
@@ -222,7 +226,7 @@ cualquier deploy de un PR podría leer o descifrar material de producción.
 - **No desplegar ni vincular a ningún proyecto Vercel que no sea `cotizapp-ia`**
 - No usar el userId de Clerk ("user_xxx") directo en queries — siempre requireUser().id
 - No usar auth.uid() en políticas RLS — bajo Clerk devuelve NULL; usar current_profile_id()
-- No mostrar /facturas en ninguna parte de la UI hasta nuevo aviso
+- No dejar la UI muda cuando no se puede facturar — siempre explicar qué falta
 - No mostrar el costo ni el margen en el PDF — es información privada
 - No usar páginas /api para cosas que Supabase puede hacer directo
 - No instalar librerías sin verificar que no exista algo en el stack

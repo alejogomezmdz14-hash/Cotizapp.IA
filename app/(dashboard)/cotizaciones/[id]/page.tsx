@@ -105,18 +105,22 @@ export default async function QuotationDetailPage({
     certificadoListo &&
     !invoicing.cae;
 
-  // Cuando no se puede facturar, decir POR QUE. Antes la barra quedaba muda y
-  // el usuario no tenia forma de saber que le faltaba.
-  const motivoSinFacturar =
-    quotation.status !== "accepted" || invoicing.cae
-      ? null
-      : !showFiscalAr
-        ? "Para facturar en Argentina, cargá tu país en Mi perfil."
-        : !datosFiscalesListos
-          ? "Completá tus datos fiscales en Mi empresa para poder facturar."
-          : !certificadoListo
-            ? "Terminá de configurar tu certificado de ARCA en Mi empresa para poder facturar."
-            : null;
+  // Cuando no se puede facturar, decir POR QUE. La cotización enviada pero sin
+  // aceptar no mostraba ni botón ni explicación: la barra quedaba muda y no
+  // había forma de saber que faltaba aceptarla.
+  const motivoSinFacturar = invoicing.cae
+    ? null
+    : quotation.status === "pending"
+      ? "Para poder facturar, primero marcá esta cotización como aceptada."
+      : quotation.status !== "accepted"
+        ? null
+        : !showFiscalAr
+          ? "Para facturar en Argentina, cargá tu país en Mi perfil."
+          : !datosFiscalesListos
+            ? "Completá tus datos fiscales en Mi empresa para poder facturar."
+            : !certificadoListo
+              ? "Terminá de configurar tu certificado de ARCA en Mi empresa para poder facturar."
+              : null;
   const reopenDraftHref = getDraftQuotationEditorHref(quotation);
   const canEditDraft = Boolean(reopenDraftHref);
   const isExpired = shouldDisplayQuotationAsExpired(
