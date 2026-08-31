@@ -57,7 +57,7 @@ export function SignOutButton({ className, menuItem = false }: SignOutButtonProp
       <button
         type="button"
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+          "flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
           className,
         )}
         onClick={handleSignOut}
