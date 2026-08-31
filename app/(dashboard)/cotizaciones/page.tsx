@@ -22,7 +22,11 @@ export default async function QuotationsPage() {
 
   return (
     <div className="space-y-5 lg:space-y-6">
-      <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+      {/* Solo escritorio. En un celular este bloque eran ~450px de título 3xl,
+          un párrafo de relleno, un botón que duplica el "+" de la barra de
+          abajo y dos recuadros de estadísticas — todo antes de ver una sola
+          cotización. En mobile la lista arranca arriba de todo. */}
+      <section className="hidden shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7 lg:block">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] xl:items-end">
           <div className="space-y-5">
             <div className="space-y-3">
@@ -56,7 +60,9 @@ export default async function QuotationsPage() {
         </div>
       </section>
 
-      <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
+      {/* Sin panel ni padding en mobile: la lista no necesita otra caja
+          alrededor, y ese marco le comía ancho a cada fila. */}
+      <section className="overflow-hidden lg:shell-panel lg:px-6 lg:py-6">
         <QuotationsList
           quotations={quotations}
           currency={profile?.currency ?? null}

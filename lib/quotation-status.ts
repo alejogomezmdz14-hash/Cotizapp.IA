@@ -81,6 +81,23 @@ export function formatQuotationStatusLabel(value: string | null) {
   }
 }
 
+/**
+ * Color del estado cuando se muestra como texto suelto, sin la píldora.
+ * En la lista móvil las filas no llevan badge: el estado va como una línea
+ * chica debajo del monto, así que solo hace falta el color del texto.
+ */
+export function getQuotationStatusTextClassName(value: string | null) {
+  switch (normalizeQuotationStatus(value)) {
+    case "accepted":
+      return "text-primary";
+    case "rejected":
+    case "expired":
+      return "text-destructive";
+    default:
+      return "text-muted-foreground";
+  }
+}
+
 export function getQuotationStatusBadgeClassName(value: string | null) {
   switch (normalizeQuotationStatus(value)) {
     case "accepted":

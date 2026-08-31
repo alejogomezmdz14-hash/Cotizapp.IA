@@ -5,18 +5,16 @@ import { useMemo, useState } from "react";
 import { LayoutGrid, List, Search } from "lucide-react";
 
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
-import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrencyAmount } from "@/lib/formatting";
 import { formatDisplayName } from "@/lib/entity-normalization";
 import { shouldDisplayQuotationAsExpired } from "@/lib/quotation-expiry";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
-import { getDraftQuotationEditorHref } from "@/lib/quotation-editor-links";
 import {
   formatQuotationStatusLabel,
   getQuotationStatusBadgeClassName,
-  isDraftQuotationStatus,
+  getQuotationStatusTextClassName,
   matchesQuotationStatusFilter,
 } from "@/lib/quotation-status";
 import { cn } from "@/lib/utils";
@@ -86,8 +84,6 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
     });
   }, [quotations, searchQuery, statusFilter]);
 
-  const summaryCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
-
   if (quotations.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-token bg-background/60 px-5 py-10 text-center">
@@ -140,14 +136,17 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {/* Una sola fila que scrollea, en vez de envolver en dos. Con cinco chips
+          y el ancho de un celular, flex-wrap empujaba la primera cotización
+          otra fila más abajo. */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
         {statusFilters.map((filter) => (
           <button
             key={filter.id}
             type="button"
             onClick={() => setStatusFilter(filter.id)}
             className={cn(
-              "min-h-11 rounded-full border px-4 text-sm font-medium transition active:scale-[0.97]",
+              "min-h-11 shrink-0 rounded-full border px-4 text-sm font-medium transition active:scale-[0.97]",
               statusFilter === filter.id
                 ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.14)] text-foreground"
                 : "border-token/80 bg-background/70 text-muted-foreground hover:text-foreground",
@@ -245,87 +244,62 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
             </div>
           ) : null}
 
-          <div className={cn("grid gap-4", showTable && "lg:hidden")}>
-          {filteredQuotations.map((quotation) => {
-            const reopenDraftHref = getDraftQuotationEditorHref(quotation);
-            const isDraft = isDraftQuotationStatus(quotation.status);
-            const isExpired = shouldDisplayQuotationAsExpired(
-              quotation.valid_until,
-              quotation.status,
-            );
-            const detailHref = `/cotizaciones/${quotation.id}`;
+          {/* Filas, no tarjetas. Antes cada cotización era una tarjeta con
+              borde, badges, y adentro del <Link> unos botones y un menú — HTML
+              inválido (interactivos dentro de un ancla) que además obligaba a
+              un stopPropagation. En un celular entraban dos por pantalla.
+              Ahora la fila solo navega; compartir y el resto de las acciones
+              viven en el detalle, que es donde son la acción principal. */}
+          <ul
+            className={cn(
+              "divide-y divide-token/60 border-y border-token/60",
+              showTable && "lg:hidden",
+            )}
+          >
+            {filteredQuotations.map((quotation) => {
+              const isExpired = shouldDisplayQuotationAsExpired(
+                quotation.valid_until,
+                quotation.status,
+              );
+              const statusLabel = isExpired
+                ? "Vencida"
+                : formatQuotationStatusLabel(quotation.status);
+              const statusClassName = isExpired
+                ? "text-destructive"
+                : getQuotationStatusTextClassName(quotation.status);
 
-            return (
-              <Link
-                key={quotation.id}
-                href={detailHref}
-                className={cn(
-                  summaryCardClassName,
-              "block rounded-md border p-5 transition hover:border-[rgb(var(--accent-rgb)/0.28)]",
-                  isExpired && "!border-destructive/50 !bg-destructive/5",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-medium ${getQuotationStatusBadgeClassName(quotation.status)}`}
-                    >
-                      {formatQuotationStatusLabel(quotation.status)}
-                    </span>
-                    {isExpired ? (
-                      <span className="rounded-full border border-destructive/50 bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">
-                        Vencida
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="shrink-0 text-lg font-semibold text-foreground">
-                    {formatCurrencyAmount(quotation.total, currency)}
-                  </p>
-                </div>
+              return (
+                <li key={quotation.id}>
+                  <Link
+                    href={`/cotizaciones/${quotation.id}`}
+                    className="flex min-h-16 items-center justify-between gap-3 py-3 transition active:opacity-70"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-foreground">
+                        {formatDisplayName(quotation.client_name) ||
+                          "Cliente sin asignar"}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {quotation.number} · Vence{" "}
+                        {formatShortDate(
+                          sanitizeQuotationValidityDate(quotation.valid_until),
+                        )}
+                      </p>
+                    </div>
 
-                <div className="mt-3 min-w-0">
-                  <p className="break-words text-lg font-semibold text-foreground">
-                    {formatDisplayName(quotation.client_name) || "Cliente sin asignar"}
-                  </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {quotation.number} · Vence{" "}
-                    {formatShortDate(sanitizeQuotationValidityDate(quotation.valid_until))}
-                  </p>
-                </div>
-
-                {/* Acá había una píldora verde "Ver cotización" que no era un
-                    botón: la tarjeta entera ya es un Link. Era el elemento más
-                    prominente y no hacía nada, mientras la acción real
-                    (mandarla por WhatsApp) quedaba chica al lado. */}
-                <div
-                  className="mt-3 flex items-center gap-2"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <QuotationShareActions
-                    quotationId={quotation.id}
-                    quotationNumber={quotation.number}
-                    initialPdfGeneratedAt={quotation.pdf_generated_at}
-                    initialShareToken={quotation.share_token}
-                    initialSentAt={quotation.sent_at}
-                    initialStatus={quotation.status}
-                    isDraft={isDraft}
-                    variant="listPrimary"
-                  />
-                  <QuotationMoreMenu
-                    quotationId={quotation.id}
-                    quotationNumber={quotation.number}
-                    initialStatus={quotation.status}
-                    paidAt={quotation.paid_at ?? null}
-                    pdfGeneratedAt={quotation.pdf_generated_at}
-                    shareToken={quotation.share_token}
-                    reopenHref={reopenDraftHref}
-                    showSecondaryPdfActions
-                  />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums text-foreground">
+                        {formatCurrencyAmount(quotation.total, currency)}
+                      </p>
+                      <p className={cn("mt-0.5 text-xs font-medium", statusClassName)}>
+                        {statusLabel}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </>
       )}
     </div>

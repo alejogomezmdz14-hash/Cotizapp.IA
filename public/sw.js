@@ -1,4 +1,4 @@
-const CACHE_NAME = "cotizapp-shell-v20";
+const CACHE_NAME = "cotizapp-shell-v21";
 const SHELL_ASSETS = [
   "/manifest.json",
   "/icons/icon-192.png",
