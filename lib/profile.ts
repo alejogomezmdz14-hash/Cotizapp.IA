@@ -76,6 +76,26 @@ function normalizeOptionalText(value: string | null | undefined) {
   return normalizedValue.length > 0 ? normalizedValue : null;
 }
 
+/**
+ * Lee un campo opcional distinguiendo TRES casos, porque los upserts de perfil
+ * tratan `undefined` y `null` distinto: `undefined` omite la columna y `null` la
+ * escribe en null (o sea, la borra).
+ *
+ * - ausente en el FormData → `undefined`: ese formulario no edita el campo.
+ * - enviado vacío → `null`: el usuario lo borró a propósito.
+ * - enviado con contenido → el texto sin espacios sobrantes.
+ *
+ * Colapsar los dos primeros casos en `null` hace que guardar un formulario pise
+ * columnas que ese formulario ni muestra.
+ */
+export function readOptionalFormField(formData: FormData, field: string) {
+  if (!formData.has(field)) {
+    return undefined;
+  }
+
+  return normalizeOptionalText(formData.get(field) as string | null);
+}
+
 export async function resolveProfileUserId(userRef: string) {
   if (!isClerkUserId(userRef)) {
     return userRef;

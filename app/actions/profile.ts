@@ -9,6 +9,7 @@ import {
   buildBusinessProfileUpsertInput,
   buildOnboardingProfileUpsertInput,
   getCurrentUser,
+  readOptionalFormField,
 } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -215,7 +216,7 @@ export async function saveBusinessProfileAction(formData: FormData) {
         address: getOptionalValue(formData, "address"),
         currency,
         taxId: getOptionalValue(formData, "tax_id"),
-        pdfFooter: getOptionalValue(formData, "pdf_footer"),
+        pdfFooter: readOptionalFormField(formData, "pdf_footer"),
         quotationNumberingMode: getRequiredValue(formData, "quotation_numbering_mode"),
         quotationPrefix: getOptionalValue(formData, "quotation_prefix"),
         quotationCounter: Number.parseInt(
