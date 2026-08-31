@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, ScanLine, Upload } from "lucide-react";
+import { Camera, Loader2, ScanLine, Upload } from "lucide-react";
 
 import {
   createExpenseFromInput,
@@ -55,6 +55,7 @@ export function ExpenseFormSheet({
   onSaved,
 }: ExpenseFormSheetProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [amountError, setAmountError] = useState<string | null>(null);
@@ -195,6 +196,10 @@ export function ExpenseFormSheet({
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
+      }
+
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = "";
       }
 
       if (scan && payload.scan) {
@@ -443,6 +448,22 @@ export function ExpenseFormSheet({
               }}
             />
 
+            {/* Input separado solo para la cámara. `capture` abre la cámara
+                directo y deja de ofrecer galería y archivos, así que el input
+                de arriba queda intacto para elegir algo que ya existe (y PDFs). */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={isUploadingReceipt || isScanning || isSubmitting}
+              onChange={(event) => {
+                setSelectedFile(event.target.files?.[0] ?? null);
+                setScanPreview(null);
+              }}
+            />
+
             {selectedFile ? (
               <p className="text-sm text-muted-foreground">
                 Archivo: <span className="font-medium">{selectedFile.name}</span>
@@ -466,6 +487,17 @@ export function ExpenseFormSheet({
                 variant="outline"
                 className="bg-background/75"
                 disabled={isUploadingReceipt || isScanning || isSubmitting}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Sacar foto
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-background/75"
+                disabled={isUploadingReceipt || isScanning || isSubmitting}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="mr-2 h-4 w-4" />
@@ -483,7 +515,6 @@ export function ExpenseFormSheet({
                   (!selectedFile && !receiptPath)
                 }
                 onClick={handleScanReceipt}
-                title="El sistema lee el monto y lo carga solo"
               >
                 {isScanning ? (
                   <>
@@ -493,11 +524,19 @@ export function ExpenseFormSheet({
                 ) : (
                   <>
                     <ScanLine className="mr-2 h-4 w-4" />
-                    Sacale una foto al ticket
+                    Leer ticket con IA
                   </>
                 )}
               </Button>
             </div>
+
+            {!selectedFile && !receiptPath ? (
+              <ActionHint>
+                Sacá la foto del ticket o elegí un archivo. Después tocá
+                &quot;Leer ticket con IA&quot; y cargamos el monto y la fecha
+                por vos.
+              </ActionHint>
+            ) : null}
 
             {scanPreview ? (
               <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">

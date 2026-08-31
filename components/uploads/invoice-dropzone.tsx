@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileImage, ScanSearch, UploadCloud, X } from "lucide-react";
+import { Camera, FileImage, ScanSearch, UploadCloud, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +73,7 @@ export function InvoiceDropzone({
   onScanComplete,
 }: InvoiceDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,6 +95,10 @@ export function InvoiceDropzone({
 
     if (inputRef.current) {
       inputRef.current.value = "";
+    }
+
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
     }
   }
 
@@ -392,6 +397,16 @@ export function InvoiceDropzone({
                 type="button"
                 variant="outline"
                 className="bg-background/75"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={disabled || isUploading || isScanning}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Sacar foto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-background/75"
                 onClick={() => inputRef.current?.click()}
                 disabled={disabled || isUploading || isScanning}
               >
@@ -420,6 +435,22 @@ export function InvoiceDropzone({
             id="invoice-scan-file"
             type="file"
             accept="image/png,image/jpeg,image/webp,application/pdf"
+            disabled={disabled || isUploading || isScanning}
+            onChange={(event) => {
+              setSelectedFile(event.target.files?.[0] ?? null);
+              setError(null);
+            }}
+            className="hidden"
+          />
+          {/* Input separado solo para la cámara. `capture` abre la cámara
+              directo y deja de ofrecer galería y archivos, así que el input de
+              arriba queda intacto para elegir algo que ya existe (y PDFs). */}
+          <input
+            ref={cameraInputRef}
+            id="invoice-scan-camera"
+            type="file"
+            accept="image/*"
+            capture="environment"
             disabled={disabled || isUploading || isScanning}
             onChange={(event) => {
               setSelectedFile(event.target.files?.[0] ?? null);
