@@ -33,6 +33,25 @@ export function normalizeQuotationStatus(value: string | null) {
   return mappedValue as QuotationStatus;
 }
 
+export type QuotationStatusFilter = "all" | QuotationStatus;
+
+/**
+ * El filtro de la lista compara contra el estado NORMALIZADO, igual que el
+ * badge de la misma tarjeta. Comparar el status crudo escondía cotizaciones
+ * con alias legacy ("sent" / "approved"), que se ven como "Enviada" /
+ * "Aceptada" pero desaparecían al tocar ese chip.
+ */
+export function matchesQuotationStatusFilter(
+  value: string | null,
+  filter: QuotationStatusFilter,
+) {
+  if (filter === "all") {
+    return true;
+  }
+
+  return normalizeQuotationStatus(value) === filter;
+}
+
 export function canHydrateQuotationEditorStatus(value: string | null) {
   const normalizedStatus = normalizeQuotationStatus(value);
 

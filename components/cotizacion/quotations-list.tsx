@@ -17,6 +17,7 @@ import {
   formatQuotationStatusLabel,
   getQuotationStatusBadgeClassName,
   isDraftQuotationStatus,
+  matchesQuotationStatusFilter,
 } from "@/lib/quotation-status";
 import { cn } from "@/lib/utils";
 import type { Quotation } from "@/types";
@@ -63,8 +64,10 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return quotations.filter((quotation) => {
-      const matchesStatus =
-        statusFilter === "all" || quotation.status === statusFilter;
+      const matchesStatus = matchesQuotationStatusFilter(
+        quotation.status,
+        statusFilter,
+      );
 
       if (!matchesStatus) {
         return false;
