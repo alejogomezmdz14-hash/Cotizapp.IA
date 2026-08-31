@@ -35,10 +35,10 @@ export function BottomNav() {
       style={{ height: `calc(${BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom))` }}
       aria-label="Navegación principal"
     >
-      <ul
-        className="grid h-[4.5rem] grid-cols-6 items-stretch"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      {/* El safe-area lo reserva el <nav> de arriba. Repetirlo acá adentro le
+          comía altura a los tabs: con box-sizing border-box, en un iPhone con
+          indicador quedaban en 38px, por debajo del mínimo táctil de 44px. */}
+      <ul className="grid h-[4.5rem] grid-cols-6 items-stretch">
         {mobileBarNavItems.map((item) => {
           const active = item.href === activeHref;
           const Icon = item.icon;
@@ -75,5 +75,7 @@ export function BottomNav() {
   );
 }
 
+// 4.5rem de barra + los 0.75rem que el botón central sobresale con -mt-3.
+// Con solo 4.5rem, el bloque verde tapaba los últimos 12px del contenido.
 export const MOBILE_BOTTOM_NAV_OFFSET =
-  "calc(4.5rem + env(safe-area-inset-bottom))";
+  "calc(5.25rem + env(safe-area-inset-bottom))";
