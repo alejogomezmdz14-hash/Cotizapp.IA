@@ -72,6 +72,33 @@ export function buildExpenseReceiptPath(
   return `${userId}/receipts/${buildUniqueStorageFileName(fileName, objectId)}`;
 }
 
+// El escaneo de recibos recibe la ruta desde el navegador, así que se valida en
+// el servidor. Chequear solo que empiece con el id del usuario deja pasar
+// `<id>/../otro-usuario/recibo.png`: hoy Supabase Storage trata la clave como un
+// nombre literal y no resuelve `..`, pero eso es una garantía del proveedor, no
+// nuestra. Acá exigimos la forma exacta que produce buildExpenseReceiptPath, así
+// que no dependemos de cómo interprete la ruta quien esté del otro lado.
+//
+// El nombre de archivo que arma buildUniqueStorageFileName ya viene pasado por
+// sanitizeStorageSegment: minúsculas, solo [a-z0-9-], y una única extensión
+// opcional. Cualquier barra, punto doble o mayúscula significa que la ruta no la
+// generamos nosotros.
+const EXPENSE_RECEIPT_FILE_NAME = /^[a-z0-9][a-z0-9-]*(?:.[a-z0-9]+)?$/;
+
+export function isExpenseReceiptPathForUser(userId: string, path: string) {
+  if (!userId || !path) {
+    return false;
+  }
+
+  const prefix = `${userId}/receipts/`;
+
+  if (!path.startsWith(prefix)) {
+    return false;
+  }
+
+  return EXPENSE_RECEIPT_FILE_NAME.test(path.slice(prefix.length));
+}
+
 export function buildQuotationSignaturePath(
   userId: string,
   quotationId: string,

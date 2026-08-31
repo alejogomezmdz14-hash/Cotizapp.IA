@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { scanExpenseReceiptWithAi } from "@/lib/ai/expense-receipt";
 import { enforceAiRateLimit } from "@/lib/ai/rate-limit-response";
 import { getCurrentUser } from "@/lib/profile";
+import { isExpenseReceiptPathForUser } from "@/lib/storage/paths";
 import { createSignedFileUrl, STORAGE_BUCKETS } from "@/lib/storage/server";
 
 type ExpenseReceiptScanRequestBody = {
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     const receiptPath =
       typeof body.receiptPath === "string" ? body.receiptPath.trim() : "";
 
-    if (!receiptPath || !receiptPath.startsWith(`${user.id}/`)) {
+    if (!isExpenseReceiptPathForUser(user.id, receiptPath)) {
       return NextResponse.json(
         { error: "El recibo no es válido para escanear." },
         { status: 400 },
