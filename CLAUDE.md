@@ -55,7 +55,7 @@ El dark mode es solo para la interfaz, nunca para documentos generados.
 /sign-in y /sign-up        → Auth con Clerk (/login es legacy: redirige a /sign-in)
 /onboarding                → Setup inicial 2 pasos: datos negocio + logo
 /dashboard                 → Home con KPIs reales (solo cotizaciones aceptadas)
-/cotizaciones              → Lista con filtros, búsqueda y vista tabla/tarjetas
+/cotizaciones              → Lista: filas en móvil, tabla en escritorio
 /cotizaciones/nueva        → Crear nueva cotización (Cliente→Ítems→Escaneo→Ajustes)
 /cotizaciones/[id]         → Detalle con historial de estados
 /catalogo                  → Gestión de ítems con costo y precio de venta
@@ -65,6 +65,30 @@ El dark mode es solo para la interfaz, nunca para documentos generados.
 /perfil-usuario            → Datos personales del usuario
 /perfil-empresa            → Datos del negocio, logo, PDF, numeración
 /ajustes                   → Configuración completa de la cuenta
+
+## Modelo de negocio (trial + upgrade manual)
+Todos entran con un trial gratuito por USO (cupo total, no mensual). No hay
+tarjeta ni checkout: cuando se acaba el cupo aparece un paywall con el WhatsApp
+del fundador y el usuario pide la suscripción por ahí, a mano.
+
+Cupos en lib/trial.ts (única fuente de verdad):
+- TRIAL_QUOTATION_LIMIT = 15 cotizaciones
+- TRIAL_INVOICE_SCAN_LIMIT = 10 escaneos con IA
+- TRIAL_INVOICE_LIMIT = 5 facturas electrónicas
+- FOUNDER_WHATSAPP_NUMBER: el WhatsApp del fundador, para todo contacto manual
+
+Los planes pagos (lifetime/pro, ver lib/auth/plan.ts) son ILIMITADOS.
+
+El cupo se aplica SIEMPRE server-side, nunca solo en la UI. Los cuatro puntos de
+enforcement son: app/actions/quotations.ts (crear y confirmar borrador),
+app/actions/ai.ts (cotización creada desde el chat), app/api/ai/invoice-scan
+(escaneo) y app/actions/facturacion.ts (emisión ARCA). Si agregás un camino
+nuevo para crear cotizaciones o escanear, tenés que gatearlo también: ya pasó
+que el chat se saltara el cupo porque usaba otra acción.
+
+Al quedarse sin cupo se lanza un error reconocible (QUOTATION_TRIAL_LIMIT_ERROR
+/ INVOICE_TRIAL_LIMIT_ERROR) que la UI traduce al paywall, en vez de mostrar un
+error genérico.
 
 ## Facturación
 /facturas                  → Lista de facturas internas (numeración FAC, sin
@@ -175,10 +199,37 @@ Toda escritura requiere confirmación explícita del usuario.
 
 ## Navegación
 Desktop: sidebar izquierdo fijo con logo Cotizapp arriba.
-Mobile: bottom nav fija de 64px — NO flotante, NO tapa contenido.
-Padding-bottom en todas las páginas para no quedar tapado por la nav.
+Mobile: bottom nav fija — NO flotante, NO tapa contenido.
 Items del sidebar: Dashboard, Cotizaciones, Nueva cotización, 
 Clientes, Catálogo, Gastos, Chat IA, Ajustes (abajo), Cerrar sesión (abajo).
+
+El espacio de la barra lo reserva el `<main>` del layout del dashboard con
+MOBILE_BOTTOM_NAV_OFFSET (5.25rem = 4.5rem de barra + 0.75rem que sobresale el
+botón central). Las páginas NO deben agregar su propio pb-*: ya está reservado.
+El safe-area del iPhone lo reserva SOLO el `<nav>`; repetirlo adentro le come
+altura a los tabs y los deja por debajo del mínimo táctil.
+
+## Diseño móvil
+El usuario real es un plomero de 45 años, con una mano, apurado, en una obra.
+Si no se entiende en dos segundos, abandona.
+
+- **Una pantalla, una acción.** Un solo botón de acento (verde) por pantalla, y
+  es siempre la acción principal. Si hay dos verdes, uno está de más.
+- **Filas, no tarjetas.** Las listas van como filas separadas por una línea:
+  nombre y dato secundario a la izquierda, monto a la derecha, estado como texto
+  de color debajo. Sin píldoras, sin bordes por ítem, sin botones adentro.
+- **Nunca metas botones ni menús dentro de un `<Link>`.** Es HTML inválido y
+  obliga a parches con stopPropagation. La fila navega; las acciones van en el
+  detalle.
+- **Sin peaje antes del contenido.** Nada de título text-3xl + párrafo
+  explicativo + tiles de estadísticas antes del primer dato real. Ese bloque, si
+  existe, va `hidden lg:block`.
+- **Lo que es de escritorio, se declara de escritorio.** Tableros, gráficos y
+  trámites con descarga de archivos (el certificado de ARCA) van `hidden lg:` y
+  la UI dice explícitamente que ese paso se hace desde una computadora.
+- **Mínimo táctil de 44px** en todo lo que se toca.
+- El diseño completo y las decisiones tomadas están en
+  `docs/superpowers/specs/2026-08-31-simplificacion-movil-design.md`.
 
 ## Convenciones de código
 - Componentes: PascalCase

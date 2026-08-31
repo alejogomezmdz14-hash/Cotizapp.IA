@@ -16,7 +16,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-3">
+      {/* Solo escritorio: en el celular la barra de abajo ya marca en qué
+          pantalla estás, así que el pill + "Tus clientes" en text-3xl eran
+          ~120px de scroll repitiendo algo que el usuario ya sabe. */}
+      <section className="hidden space-y-3 lg:block">
         <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Clientes
         </span>

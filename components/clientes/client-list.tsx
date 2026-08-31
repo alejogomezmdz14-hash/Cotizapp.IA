@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Mail, MapPin, MoreVertical, Phone, Search, Users } from "lucide-react";
+import { MessageCircle, MoreVertical, Phone, Search, Users } from "lucide-react";
 
 import { useDebouncedSearchParam } from "@/hooks/use-debounced-search-param";
 
@@ -112,41 +112,35 @@ export function ClientList({ clients, search }: ClientListProps) {
 
   return (
     <section className="space-y-4">
-      <Card className="border-token bg-surface shadow-sm">
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-xl">Clientes</CardTitle>
-            </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-muted-foreground">
-              {resultLabel}
-            </span>
-          </div>
+      {/* El buscador suelto, sin Card alrededor. Antes esta pantalla decía
+          "Clientes" tres veces (pill de la página + h2 + CardTitle) y envolvía
+          un input en una tarjeta con p-6: ~200px antes del primer cliente. */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+            placeholder="Buscar cliente"
+            className="pl-9"
+            aria-label="Buscar clientes"
+          />
+        </div>
+        {normalizedSearch ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="shrink-0 text-muted-foreground"
+            onClick={clearValue}
+          >
+            Limpiar
+          </Button>
+        ) : null}
+      </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Buscar por nombre, email o teléfono"
-                className="pl-9"
-                aria-label="Buscar clientes"
-              />
-            </div>
-            {normalizedSearch ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-muted-foreground"
-                onClick={clearValue}
-              >
-                Limpiar
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-      </Card>
+      {normalizedSearch ? (
+        <p className="text-xs text-muted-foreground">{resultLabel}</p>
+      ) : null}
 
       {actionError ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -180,128 +174,110 @@ export function ClientList({ clients, search }: ClientListProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        // Filas, no tarjetas. Cada cliente ocupaba ~340px (Card + CardHeader
+        // p-6 + CardContent p-6 + una caja con borde por campo): entraban dos
+        // por pantalla. Además el menú "⋮" caía DEBAJO del nombre en móvil
+        // porque la fila era flex-col hasta sm:, y el email sin truncate
+        // empujaba la tarjeta más ancha que la pantalla.
+        <ul className="divide-y divide-token/60 border-y border-token/60">
           {clients.map((client) => {
             const isEditing = editingId === client.id;
             const isDeleting = deletingId === client.id;
+            const phone = client.phone?.trim();
+            const contacto =
+              phone || client.email?.trim() || "Sin datos de contacto";
+
+            if (isEditing) {
+              return (
+                <li key={client.id} className="py-4">
+                  <p className="mb-3 font-medium text-foreground">
+                    {formatDisplayName(client.name)}
+                  </p>
+                  <ClientForm
+                    mode="edit"
+                    initialValues={client}
+                    submitLabel="Guardar cambios"
+                    onCancel={() => setEditingId(null)}
+                    onSuccess={() => setEditingId(null)}
+                    onSubmit={async (formData) => {
+                      setActionError(null);
+                      await updateClientAction(client.id, formData);
+                    }}
+                  />
+                </li>
+              );
+            }
 
             return (
-              <Card key={client.id} className="border-token bg-surface shadow-sm">
-                <CardHeader className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 space-y-1">
-                      <CardTitle className="text-xl break-words">
-                        {formatDisplayName(client.name)}
-                      </CardTitle>
-                    </div>
-                    {!isEditing ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-12 w-12"
-                            disabled={isDeleting}
-                            aria-label="Acciones del cliente"
+              <li
+                key={client.id}
+                className="flex min-h-16 items-center justify-between gap-3 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">
+                    {formatDisplayName(client.name)}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {contacto}
+                  </p>
+                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 shrink-0"
+                      disabled={isDeleting}
+                      aria-label={`Acciones de ${formatDisplayName(client.name)}`}
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {phone ? (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <a href={`tel:${formatPhoneHref(phone)}`}>
+                            <Phone className="mr-2 h-4 w-4" />
+                            Llamar
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <a
+                            href={`https://wa.me/${formatPhoneHref(phone)}`}
+                            target="_blank"
+                            rel="noreferrer"
                           >
-                            <MoreVertical className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              setActionError(null);
-                              setEditingId(client.id);
-                            }}
-                          >
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => {
-                              void requestDelete(client);
-                            }}
-                          >
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            WhatsApp
+                          </a>
+                        </DropdownMenuItem>
+                      </>
                     ) : null}
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {isEditing ? (
-                    <ClientForm
-                      mode="edit"
-                      initialValues={client}
-                      submitLabel="Guardar cambios"
-                      onCancel={() => setEditingId(null)}
-                      onSuccess={() => setEditingId(null)}
-                      onSubmit={async (formData) => {
+                    <DropdownMenuItem
+                      onSelect={() => {
                         setActionError(null);
-                        await updateClientAction(client.id, formData);
+                        setEditingId(client.id);
                       }}
-                    />
-                  ) : (
-                    <>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {client.email?.trim() ? (
-                          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                              Email
-                            </p>
-                            <p className="text-sm leading-6 text-muted-foreground">
-                              {client.email.trim()}
-                            </p>
-                          </div>
-                        ) : null}
-                        {client.phone?.trim() ? (
-                          <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                              <Phone className="h-4 w-4 text-muted-foreground" />
-                              Teléfono
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              <a
-                                href={`tel:${formatPhoneHref(client.phone)}`}
-                                className="inline-flex min-h-12 items-center rounded-md border border-token px-4 text-sm font-medium text-foreground"
-                              >
-                                Llamar
-                              </a>
-                              <a
-                                href={`https://wa.me/${formatPhoneHref(client.phone)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex min-h-12 items-center rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 text-sm font-medium text-emerald-700 dark:text-emerald-300"
-                              >
-                                WhatsApp
-                              </a>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {client.address?.trim() ? (
-                        <div className="rounded-lg border border-token/80 bg-background/60 p-4">
-                          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            Dirección
-                          </p>
-                          <p className="text-sm leading-6 text-muted-foreground">
-                            {client.address.trim()}
-                          </p>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                    >
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onSelect={() => {
+                        void requestDelete(client);
+                      }}
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {pendingDelete && pendingDelete.quotationCount > 0 ? (
