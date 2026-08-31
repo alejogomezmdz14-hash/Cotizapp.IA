@@ -60,7 +60,7 @@ export default async function NewQuotationPage({
     Boolean(draftHydration.draftQuotation) && !editorState;
 
   return (
-    <div className="space-y-5 pb-20 lg:space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       {draftAlreadyCreated ? null : (
         <section className="space-y-3">
           <h1 className="text-[22px] font-bold leading-tight text-foreground">

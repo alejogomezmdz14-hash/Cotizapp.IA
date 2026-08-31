@@ -2,7 +2,6 @@ import { requireUser, getProfile } from "@/lib/profile";
 import { getProfileAvatarUploadState } from "@/app/actions/uploads";
 
 import { UserProfileForm } from "@/components/profile/user-profile-form";
-import { User, Building2 } from "lucide-react";
 
 type UserProfilePageProps = {
   searchParams?: {
@@ -19,7 +18,7 @@ export default async function UserProfilePage({
   const saved = searchParams?.saved === "1";
 
   return (
-    <div className="space-y-5 pb-20 lg:space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:items-end">
           <div className="space-y-5">
@@ -37,33 +36,10 @@ export default async function UserProfilePage({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            {[
-              {
-                title: "Datos personales",
-                description: "Foto, nombre y ubicación personal.",
-                icon: User,
-              },
-              {
-                title: "Perfil de empresa",
-                description: "Logo, contacto y branding para cotizaciones.",
-                icon: Building2,
-              },
-            ].map(({ title, description, icon: Icon }) => (
-              <div
-                key={title}
-                className="rounded-md border border-token bg-background/80 p-4 shadow-none"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-token/80 bg-background text-accent-token">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <p className="text-sm font-medium text-foreground">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {description}
-                </p>
-              </div>
-            ))}
-          </div>
+          {/* Acá había dos tarjetas con ícono y borde que parecían botones
+              ("Datos personales" y "Perfil de empresa") pero no tenían ni link
+              ni onClick: el usuario las tocaba antes de llegar al primer campo
+              del formulario y no pasaba nada. */}
         </div>
       </section>
 

@@ -7,7 +7,7 @@ type PageSkeletonProps = {
 
 export function PageSkeleton({ title, rows = 4 }: PageSkeletonProps) {
   return (
-    <div className="space-y-5 pb-20 lg:space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       <section className="shell-panel overflow-hidden px-4 py-5 sm:px-6 sm:py-6">
         <div className="space-y-3">
           <Skeleton className="h-3 w-24" />

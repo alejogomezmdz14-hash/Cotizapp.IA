@@ -29,10 +29,11 @@ export function DashboardHeader({
         >
           <BusinessAvatar businessName={businessName} logoUrl={logoUrl} />
 
+          {/* Sin kicker: el header se monta en todas las rutas del dashboard,
+              así que un texto fijo mentía en /gastos, /clientes, /catálogo,
+              /chat y /ajustes. Queda el nombre del negocio, que es lo único
+              que aporta identidad. */}
           <div className="min-w-0 flex-1">
-            <p className="ui-shell-kicker truncate">
-              Panel principal
-            </p>
             <h1 className="truncate text-[15px] font-medium tracking-[-0.02em] text-header">
               {businessName?.trim() || "Tu negocio"}
             </h1>

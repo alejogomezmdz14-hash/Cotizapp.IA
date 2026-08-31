@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { FileText, LayoutGrid, List, Search } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
 
 import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
@@ -293,11 +293,10 @@ export function QuotationsList({ quotations, currency }: QuotationsListProps) {
                   </p>
                 </div>
 
-                <div className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[rgb(var(--accent-rgb)/0.45)] bg-[rgb(var(--accent-rgb)/0.12)] px-3 py-1.5 text-sm font-semibold text-accent-token">
-                  <FileText className="h-4 w-4" />
-                  Ver cotización
-                </div>
-
+                {/* Acá había una píldora verde "Ver cotización" que no era un
+                    botón: la tarjeta entera ya es un Link. Era el elemento más
+                    prominente y no hacía nada, mientras la acción real
+                    (mandarla por WhatsApp) quedaba chica al lado. */}
                 <div
                   className="mt-3 flex items-center gap-2"
                   onClick={(event) => event.stopPropagation()}

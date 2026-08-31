@@ -28,7 +28,7 @@ export default async function FacturasPage() {
   const cardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="ui-shell-kicker">

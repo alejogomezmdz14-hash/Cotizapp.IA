@@ -97,7 +97,7 @@ export default async function DashboardPage() {
   const statCardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
-    <div className="space-y-5 pb-20 lg:space-y-6">
+    <div className="space-y-5 lg:space-y-6">
       <section className={panelClassName}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">

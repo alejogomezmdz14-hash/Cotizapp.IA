@@ -42,7 +42,6 @@ import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
 import {
   getDraftQuotationEditorHref,
   getHydratedQuotation,
-  isDraftQuotationStatus,
 } from "@/lib/quotations";
 
 export const metadata: Metadata = {
@@ -136,12 +135,10 @@ export default async function QuotationDetailPage({
       rejected_at: quotation.rejected_at,
     }),
   );
-  const canShareQuotation =
-    isDraftQuotationStatus(quotation.status) || quotation.status === "pending";
   const cardClassName = "!rounded-md !border-token !bg-background/75 !shadow-none";
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-3">
           <Button asChild variant="ghost" size="sm" className="w-fit px-0">
@@ -259,16 +256,18 @@ export default async function QuotationDetailPage({
                 Creada el {formatDateTime(quotation.created_at)}
               </p>
 
-              {canShareQuotation ? (
-                <QuotationShareActions
-                  quotationId={quotation.id}
-                  quotationNumber={quotation.number}
-                  initialPdfGeneratedAt={quotation.pdf_generated_at}
-                  initialShareToken={quotation.share_token}
-                  initialSentAt={quotation.sent_at}
-                  initialStatus={quotation.status}
-                />
-              ) : null}
+              {/* Sin gate por estado: antes desaparecía justo cuando la
+                  cotización estaba aceptada, así que el usuario veía la acción
+                  en la lista, entraba al detalle y la perdía. El componente ya
+                  adapta la etiqueta según el estado. */}
+              <QuotationShareActions
+                quotationId={quotation.id}
+                quotationNumber={quotation.number}
+                initialPdfGeneratedAt={quotation.pdf_generated_at}
+                initialShareToken={quotation.share_token}
+                initialSentAt={quotation.sent_at}
+                initialStatus={quotation.status}
+              />
             </CardContent>
           </Card>
 

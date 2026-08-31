@@ -36,8 +36,6 @@ import { buildNewQuotationPageHref } from "@/lib/invoice-scan/persistence";
 import { mergeHydratedInvoiceScanReview } from "@/lib/invoice-scan/review-state";
 import { markUnsavedDraft } from "@/lib/pending-tasks";
 import { getDefaultQuotationClientId } from "@/lib/quotation-client-selection";
-import { calculateQuotationTotals } from "@/lib/quotation-calculations";
-import { formatCurrencyAmount } from "@/lib/formatting";
 import {
   getQuotationValidityBounds,
   getQuotationValidityPresetDate,
@@ -298,10 +296,6 @@ export function QuotationForm({
   const isFormLocked = isSubmitting || (Boolean(savedDraft) && !isEditingDraft);
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
   const isValidityInPast = Boolean(validUntil.trim()) && isQuotationPastValidity(validUntil);
-  const summaryTotals = useMemo(
-    () => calculateQuotationTotals(items, taxRate),
-    [items, taxRate],
-  );
   const canSaveQuotation =
     items.length > 0 &&
     !isValidityInPast &&
@@ -715,22 +709,9 @@ export function QuotationForm({
       </div>
 
     <form className="relative hidden space-y-5 pb-24 xl:block lg:space-y-6 lg:pb-0" onSubmit={handleSubmit}>
-      <div className="fixed inset-x-0 top-0 z-30 border-b border-token/80 bg-background/95 px-4 py-3 backdrop-blur xl:hidden">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Total
-            </p>
-            <p className="text-lg font-semibold text-foreground">
-              {formatCurrencyAmount(summaryTotals.total, currency)}
-            </p>
-          </div>
-          <span className="rounded-full border border-token/80 bg-background/70 px-3 py-1 text-xs text-muted-foreground">
-            {items.length} ítem{items.length === 1 ? "" : "s"}
-          </span>
-        </div>
-      </div>
-      <div className="h-14 xl:hidden" aria-hidden />
+      {/* Acá había una barra fija de total y un spacer, ambos con xl:hidden,
+          dentro de este <form> que es hidden xl:block: no se veían en ningún
+          ancho. En mobile el editor es QuotationEditorMobile. */}
       {isEditingDraft ? (
         <input
           type="hidden"

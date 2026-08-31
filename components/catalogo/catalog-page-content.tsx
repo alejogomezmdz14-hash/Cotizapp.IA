@@ -33,7 +33,7 @@ export function CatalogPageContent({
   const [addOpen, setAddOpen] = useState(false)
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       <section className="space-y-3">
         <span className="inline-flex w-fit rounded-full border border-token px-3 py-1 text-[11px] font-medium text-muted-foreground">
           Catálogo
