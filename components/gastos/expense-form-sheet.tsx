@@ -349,7 +349,7 @@ export function ExpenseFormSheet({
               <Input
                 id="expense-amount"
                 name="amount"
-                type="number"
+                type="text"
                 inputMode="decimal"
                 step="0.01"
                 value={amount}

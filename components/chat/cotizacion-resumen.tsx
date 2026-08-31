@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ChatSuggestedQuotationItem } from "@/types";
 import { formatCurrencyAmount } from "@/lib/formatting";
+import { parseDecimalInput } from "@/lib/decimal-input";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import {
   getQuotationValidityBounds,
@@ -45,7 +46,7 @@ export function CotizacionResumen({
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
 
   const taxRate = useMemo(() => {
-    const parsed = Number.parseFloat(taxInput.trim().replace(",", "."));
+    const parsed = parseDecimalInput(taxInput) ?? Number.NaN;
     return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : 0;
   }, [taxInput]);
 
@@ -86,7 +87,7 @@ export function CotizacionResumen({
         </label>
         <input
           id="chat-resumen-tax"
-          type="number"
+          type="text"
           inputMode="decimal"
           min="0"
           max="100"

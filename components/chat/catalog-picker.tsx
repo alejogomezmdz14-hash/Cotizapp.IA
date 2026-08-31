@@ -5,6 +5,7 @@ import { Check, Minus, PencilLine, Plus, X } from "lucide-react";
 import type { CatalogPickerItem, ChatSuggestedQuotationItem } from "@/types";
 import { DEFAULT_CATALOG_UNIT } from "@/lib/catalog-units";
 import { formatCurrencyAmount } from "@/lib/formatting";
+import { parseDecimalInput } from "@/lib/decimal-input";
 
 type SelectedItem = {
   item: CatalogPickerItem;
@@ -33,7 +34,7 @@ function nextManualItemKey() {
 }
 
 function parseAmountInput(value: string) {
-  const parsed = Number.parseFloat(value.trim().replace(",", "."));
+  const parsed = parseDecimalInput(value) ?? Number.NaN;
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -390,7 +391,7 @@ export function CatalogPicker({
               </label>
               <input
                 id="chat-manual-item-quantity"
-                type="number"
+                type="text"
                 inputMode="decimal"
                 min="0"
                 step="1"
@@ -410,7 +411,7 @@ export function CatalogPicker({
               </label>
               <input
                 id="chat-manual-item-price"
-                type="number"
+                type="text"
                 inputMode="decimal"
                 min="0"
                 step="0.01"

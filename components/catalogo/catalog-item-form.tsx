@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { parseDecimalInput } from "@/lib/decimal-input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { cn } from "@/lib/utils";
@@ -71,7 +72,7 @@ export function CatalogItemForm({
     // Validación de precio a nivel campo (antes solo aparecía el error
     // genérico del server, que se sentía como un rechazo silencioso).
     const priceRaw = String(formData.get("price") ?? "").trim();
-    const priceValue = Number.parseFloat(priceRaw.replace(",", "."));
+    const priceValue = parseDecimalInput(priceRaw) ?? Number.NaN;
     if (!priceRaw || !Number.isFinite(priceValue) || priceValue <= 0) {
       setPriceError("Poné un precio mayor a 0.");
       form
@@ -198,11 +199,8 @@ export function CatalogItemForm({
         <Input
           id={`${fieldId}-price`}
           name="price"
-          type="number"
+          type="text"
           inputMode="decimal"
-          pattern="[0-9]*"
-          min="0"
-          step="0.01"
           placeholder="1250"
           defaultValue={
             typeof initialValues?.price === "number"

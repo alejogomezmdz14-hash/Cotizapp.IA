@@ -203,14 +203,9 @@ export function InvoiceItemsReview({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Se van a agregar ${quotationSelection.length} ítem(s) a la cotización actual. Podés seguir ajustándolos después. ¿Querés continuar?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    // Sin window.confirm: esta pantalla YA es el paso de revisión (el usuario
+    // eligió los ítems y tocó el botón), y en la PWA el diálogo nativo se
+    // descarta solo y aborta el envío en silencio.
     setIsApplyingQuotation(true);
     setError(null);
     setStatus(null);
@@ -230,13 +225,8 @@ export function InvoiceItemsReview({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Esto va a guardar ${catalogSelection.length} ítem(s) en tu catálogo con los datos que revisaste. ¿Querés continuar?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
+    // Mismo criterio que arriba: la revisión ya ocurrió en esta pantalla y el
+    // diálogo nativo no es confiable dentro de la PWA.
 
     setIsSavingCatalog(true);
     setError(null);
