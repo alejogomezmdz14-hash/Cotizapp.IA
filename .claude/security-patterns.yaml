@@ -1,0 +1,35 @@
+# Patrones de seguridad personalizados — Cotizapp
+#
+# Los lee el plugin security-guidance en cada Edit/Write/MultiEdit.
+# Esquema: rule_name + reminder (obligatorios) + regex y/o substrings,
+# opcionalmente paths / exclude_paths (globs).
+# Complementa las reglas de .claude/claude-security-guidance.md.
+
+patterns:
+  - rule_name: hardcoded_secret_prefix
+    # sk_live_ → clave secreta live de Stripe / Clerk
+    # AKIA     → access key ID de AWS (AKIA + 16 caracteres)
+    regex: "(sk_live_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{16})"
+    # .env.local es el lugar legítimo del secreto en local y está gitignored.
+    # .env.example SÍ queda cubierto a propósito: es un archivo versionado y
+    # nunca debe tener valores reales.
+    exclude_paths:
+      - ".env.local"
+    reminder: |
+      ⚠️ Alerta de seguridad: apareció un prefijo de credencial REAL en el código
+      (sk_live_ = clave secreta live de Stripe/Clerk, AKIA = access key de AWS).
+
+      Las credenciales van SIEMPRE en el gestor de secretos, NUNCA escritas
+      directo en el código — tampoco "por un momento", ni en comentarios, tests,
+      seeds, fixtures ni archivos de ejemplo.
+
+      En este proyecto el gestor de secretos es:
+      - Producción: variables de entorno en Vercel, proyecto cotizapp-ia.
+        SUPABASE_SERVICE_ROLE_KEY y FISCAL_ENCRYPTION_KEY van marcadas SOLO para
+        el entorno Production.
+      - Local: .env.local, que está gitignored y no se commitea nunca.
+      - En el código el valor se lee siempre con process.env.NOMBRE.
+
+      Si la clave ya quedó escrita en un archivo versionado, tratala como
+      comprometida y rotala en el proveedor antes de seguir: borrarla del archivo
+      no alcanza, queda en el historial de git.

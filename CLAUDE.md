@@ -19,6 +19,7 @@ personalizada, chat con agente IA, registro de gastos y compartir por WhatsApp.
 - recharts para gráficos del dashboard
 
 ## Reglas generales
+- Seguridad: aplicar siempre las reglas de `.claude/claude-security-guidance.md` (logs sin IDs de cliente, chequeo de rol en /admin, comparación segura de tokens)
 - Todo el texto de la UI siempre en español latino neutro
 - Mobile-first en todo momento
 - Nunca usar "presupuesto" — siempre "cotización"
