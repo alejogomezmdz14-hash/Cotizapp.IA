@@ -2,6 +2,7 @@ import { cache } from "@/lib/react-cache";
 import { auth } from "@clerk/nextjs/server";
 
 import { ensureProfileForClerkUser } from "@/lib/auth/clerk-profile";
+import { logError } from "@/lib/log";
 import type { Profile } from "@/types";
 
 /** Una sola lectura de Clerk por request (deduplica layout + páginas + Supabase). */
@@ -28,7 +29,15 @@ export const getSessionProfile = cache(async (): Promise<Profile | null> => {
 
   try {
     return await ensureProfileForClerkUser(userId);
-  } catch {
+  } catch (error) {
+    // Antes esto devolvía `null` en silencio. Un fallo de la RPC o de una
+    // política RLS quedaba indistinguible de "este usuario todavía no tiene
+    // perfil", así que la app lo mandaba al onboarding y en producción no
+    // quedaba ningún rastro de la causa real.
+    //
+    // El clerkId NO se loguea: es un identificador de cliente (ver
+    // .claude/claude-security-guidance.md, regla 1).
+    logError("auth/session-profile", error);
     return null;
   }
 });

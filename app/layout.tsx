@@ -39,8 +39,17 @@ export const metadata: Metadata = {
   // (comparte cookies) en vez de modo standalone aislado. El modo standalone de
   // iOS tiene su propio "cajón" de cookies y rompe la persistencia de sesión de
   // Clerk. Trade-off: en iPhone se ve la barra de Safari (no pantalla completa).
-  // Reversible: volver a true para recuperar el modo app. Android no se afecta
-  // (usa el `display` del manifest).
+  //
+  // OJO: esto solo NO alcanza. Desde iOS 15.4 WebKit respeta el `display` del
+  // manifest por encima de este meta legacy, así que mientras
+  // public/manifest.json decía "standalone" el fix quedaba inerte y quien
+  // agregaba Cotizapp a la pantalla de inicio seguía abriendo en un contexto con
+  // cookie jar propio — o sea, pidiendo login siempre. Por eso el manifest
+  // declara ahora "display": "browser". Los dos van juntos: si se revierte uno,
+  // hay que revertir el otro.
+  //
+  // Costo asumido: Android también toma el `display` del manifest, así que
+  // pierde el modo app. Se recupera recién cuando el bug de sesión esté cerrado.
   appleWebApp: {
     capable: false,
     statusBarStyle: "default",

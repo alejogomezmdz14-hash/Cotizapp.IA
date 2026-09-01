@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { decideAccess } from '@/lib/auth/access'
+import { buildMissingSessionLog } from '@/lib/auth/session-diagnostics'
 
 // Páginas públicas que cualquiera puede ver sin sesión.
 const isPublicPage = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
@@ -40,7 +41,24 @@ export default clerkMiddleware(async (auth, req) => {
     return
   }
 
-  const { userId, sessionClaims } = await auth()
+  const authState = await auth()
+  const { userId, sessionClaims } = authState
+
+  // Instrumentación del bug de sesión en iOS: el dueño cae en el login cada vez
+  // que abre la app. El handshake del servidor está sano (verificado con curl:
+  // con `__client_uat` Clerk lo dispara y nunca llegamos hasta acá), así que si
+  // este log aparece es porque la cookie no llegó — y el veredicto dice por qué.
+  // Sin Mac no hay Web Inspector: esto reemplaza la reproducción a mano.
+  //
+  // Nunca se registra el VALOR de una cookie ni el debug crudo de Clerk.
+  function logMissingSession() {
+    const diagnostico = buildMissingSessionLog({
+      pathname: req.nextUrl.pathname,
+      cookies: req.cookies.getAll(),
+      authDebug: authState.debug,
+    })
+    console.warn(diagnostico.message, diagnostico.details)
+  }
 
   const gateEnabled = process.env.ACCESS_GATE_ENABLED === '1'
   const access = decideAccess(sessionClaims, gateEnabled)
@@ -59,6 +77,7 @@ export default clerkMiddleware(async (auth, req) => {
   // La lista de espera es la única página que ve quien todavía no fue autorizado.
   if (isWaitlistRoute(req)) {
     if (!userId) {
+      logMissingSession()
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
     if (access.allowed) {
@@ -80,6 +99,7 @@ export default clerkMiddleware(async (auth, req) => {
   // sesión. El cupo del trial se controla por acción (crear cotización /
   // escanear factura), no bloquea el acceso a la app.
   if (!userId) {
+    logMissingSession()
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
 
