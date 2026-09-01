@@ -294,7 +294,17 @@ export function QuotationItemsEditor({
                         <ConceptFieldWithVoice
                           id={`${item.id}-name`}
                           value={item.name}
-                          onChange={(name) => onUpdateItem(item.id, { name })}
+                          onChange={(name) =>
+                            // El escritorio no tiene ningún indicio visual de
+                            // "verbatim" vs "entity" — para el usuario acá
+                            // editar el nombre siempre esperó title-case. Sin
+                            // este reset, un ítem marcado "verbatim" en el
+                            // celular (modo monto único) conservaba ese flag
+                            // al editarse desde acá (merge parcial del
+                            // store), así que el nombre nuevo se guardaba
+                            // literal en silencio.
+                            onUpdateItem(item.id, { name, nameFormat: "entity" })
+                          }
                           disabled={disabled}
                         />
                       </div>
