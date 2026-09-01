@@ -54,6 +54,19 @@ export function resolveQuotationEntryMode(
 }
 
 /**
+ * `parseDecimalInput` acepta negativos a propósito (sirve para descuentos,
+ * gastos, etc.), pero el precio de un ítem nunca puede serlo: un input de
+ * texto libre con `inputMode="decimal"` deja tipear o pegar un "-", y sin este
+ * chequeo un "-45000" pasaba el gate, disparaba el diálogo "¿Va en $0?" (que
+ * describe mal lo que pasa) y el server lo rechazaba con un mensaje que no
+ * nombra el problema real.
+ */
+function parseNonNegativeAmountInput(text: string): number | null {
+  const parsed = parseDecimalInput(text);
+  return parsed !== null && parsed >= 0 ? parsed : null;
+}
+
+/**
  * Qué hacer con el store ante el estado actual de los dos campos de monto
  * único. El ítem se materializa en el PRIMER tecleo con contenido, no al
  * guardar.
@@ -90,7 +103,7 @@ export function planSingleAmountSync(input: {
   // "destapado" y sería imposible llegar a "destapado de cocina". El `trim`
   // solo decide si HAY contenido; el server ya recorta al guardar
   // (getOptionalStringValue en lib/quotations.ts).
-  const parsedAmount = parseDecimalInput(input.amountText);
+  const parsedAmount = parseNonNegativeAmountInput(input.amountText);
   const hasName = input.name.trim().length > 0;
   const hasAmount = parsedAmount !== null;
 
@@ -142,6 +155,46 @@ export function planSingleAmountSync(input: {
   return { type: "update", id: input.currentItem.id, updates };
 }
 
+/**
+ * Texto crudo del campo de monto, atado al ítem que lo produjo.
+ *
+ * El vínculo con el id es lo que hace que el campo vuelva a leer del store
+ * cuando el ítem cambia de identidad: guardaste, escaneaste una factura,
+ * reseteaste el borrador.
+ */
+export type SingleAmountInput = { itemId: string | null; text: string } | null;
+
+/** Qué mostrar en el campo de monto. */
+export function resolveSingleAmountText(
+  amountInput: SingleAmountInput,
+  itemId: string | null,
+  unitPrice: number | null,
+): string {
+  if (amountInput && amountInput.itemId === itemId) {
+    return amountInput.text;
+  }
+
+  return formatSingleAmountInput(unitPrice);
+}
+
+/**
+ * Estado siguiente del texto crudo, DESPUÉS de aplicar el plan.
+ *
+ * Se reescribe SIEMPRE, incluso cuando el tecleo vino del campo del nombre.
+ * Si solo se reescribiera al tocar el monto, pasaba esto: `resetDraft()`
+ * devuelve `nextItemId` a 1, así que el primer ítem después de "Empezar de
+ * nuevo" recicla el id `item-1`; el texto viejo seguía atado a ese id y volvía
+ * solo al campo apenas escribías el trabajo nuevo. El plomero descartaba una
+ * cotización de $50.000, escribía otra, y sin tocar el campo de plata quedaba
+ * cotizando el monto de la que había tirado.
+ */
+export function nextSingleAmountInput(
+  resultingItemId: string | null,
+  text: string,
+): SingleAmountInput {
+  return { itemId: resultingItemId, text };
+}
+
 /** Por qué no se puede guardar todavía. */
 export type SingleAmountBlockedReason = "name" | "amount";
 
@@ -169,7 +222,7 @@ export function getSingleAmountSaveState(input: {
   amountText: string;
 }): SingleAmountSaveState {
   const hasName = input.name.trim().length > 0;
-  const unitPrice = parseDecimalInput(input.amountText);
+  const unitPrice = parseNonNegativeAmountInput(input.amountText);
 
   const blockedReason: SingleAmountBlockedReason | null = !hasName
     ? "name"
@@ -201,7 +254,18 @@ export function explainSingleAmountBlockedReason(
  * que en la hoja manual del editor móvil.
  */
 export function formatSingleAmountInput(unitPrice: number | null): string {
-  if (unitPrice === null || unitPrice <= 0) {
+  // Solo `null` (sin ítem todavía) se muestra vacío. Un `0` guardado a
+  // propósito (el usuario tipeó "0" y confirmó el diálogo "¿Va en $0?") tiene
+  // que reaparecer como "0" al reabrir el borrador: si se mostrara vacío, el
+  // gate de guardado lo leería como "falta el monto" y bloquearía Guardar
+  // hasta volver a tipear el mismo 0, para editar solo la fecha o las notas.
+  //
+  // Esto no reintroduce la ambigüedad que gotcha 3 evita: un ítem recién
+  // materializado por tipear primero el NOMBRE se sincroniza al estado local
+  // en el mismo tick (ver nextSingleAmountInput), así que este fallback nunca
+  // se usa para ese caso — solo para ítems que ya existían antes de esta
+  // sesión de edición.
+  if (unitPrice === null) {
     return "";
   }
 

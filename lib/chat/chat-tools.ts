@@ -1,6 +1,7 @@
 import { reserveNextQuotationNumber } from "@/app/actions/quotation-number";
 import type { ChatClientListItem } from "@/types";
 import { normalizeCatalogUnit } from "@/lib/catalog";
+import { parseDecimalInput } from "@/lib/decimal-input";
 import { getClients } from "@/lib/clients";
 import { calculateQuotationTotals } from "@/lib/quotation-calculations";
 import { sanitizeQuotationValidityDate } from "@/lib/quotation-validity";
@@ -49,18 +50,11 @@ function parseDecimal(value: unknown) {
     return null;
   }
 
-  const compactValue = value
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[^\d,.-]/g, "");
-
-  if (!compactValue || !/\d/.test(compactValue)) {
-    return null;
-  }
-
-  const normalizedValue = compactValue.replace(",", ".");
-  const parsedValue = Number.parseFloat(normalizedValue);
-  return Number.isFinite(parsedValue) ? parsedValue : null;
+  // Antes esto hacía Number.parseFloat(value.replace(",", ".")), así que un
+  // "45.000" dictado al chat entraba como 45: la cotización salía mil veces
+  // más barata. Es el mismo bug que ya se arregló en gastos y en el editor
+  // móvil; el parser vive en un solo lugar.
+  return parseDecimalInput(value);
 }
 
 function normalizeCreateCotizacionInput(input: CreateCotizacionInput) {

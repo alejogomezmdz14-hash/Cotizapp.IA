@@ -83,7 +83,7 @@ export function buildExpenseReceiptPath(
 // sanitizeStorageSegment: minúsculas, solo [a-z0-9-], y una única extensión
 // opcional. Cualquier barra, punto doble o mayúscula significa que la ruta no la
 // generamos nosotros.
-const EXPENSE_RECEIPT_FILE_NAME = /^[a-z0-9][a-z0-9-]*(?:.[a-z0-9]+)?$/;
+const EXPENSE_RECEIPT_FILE_NAME = /^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9]+)?$/;
 
 export function isExpenseReceiptPathForUser(userId: string, path: string) {
   if (!userId || !path) {

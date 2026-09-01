@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
   Check,
@@ -34,10 +34,12 @@ import { formatCurrencyAmount } from "@/lib/formatting";
 import {
   canRenderAsSingleAmount,
   explainSingleAmountBlockedReason,
-  formatSingleAmountInput,
   getSingleAmountSaveState,
+  nextSingleAmountInput,
   planSingleAmountSync,
   resolveQuotationEntryMode,
+  resolveSingleAmountText,
+  type SingleAmountInput,
 } from "@/lib/quotation-entry-mode";
 import {
   calculateQuotationLineTotal,
@@ -160,10 +162,7 @@ export function QuotationEditorMobile({
   // (guardaste, escaneaste una factura, reseteaste el draft) el texto deja de
   // matchear y el campo vuelve a leer del store. Sin ese vínculo, crear el ítem
   // en el primer tecleo le borraría al usuario un "0" recién escrito.
-  const [amountInput, setAmountInput] = useState<{
-    itemId: string | null;
-    text: string;
-  } | null>(null);
+  const [amountInput, setAmountInput] = useState<SingleAmountInput>(null);
 
   const items = draft.items;
   const taxRate = draft.taxRate;
@@ -174,15 +173,28 @@ export function QuotationEditorMobile({
   const isSingleAmountMode = entryMode === "amount";
   const singleItem = isSingleAmountMode ? items[0] ?? null : null;
   const singleItemId = singleItem?.id ?? null;
-  const singleAmountText =
-    amountInput && amountInput.itemId === singleItemId
-      ? amountInput.text
-      : formatSingleAmountInput(singleItem?.unitPrice ?? null);
+  const singleAmountText = resolveSingleAmountText(
+    amountInput,
+    singleItemId,
+    singleItem?.unitPrice ?? null,
+  );
   const singleAmountState = getSingleAmountSaveState({
     name: singleItem?.name ?? "",
     amountText: singleAmountText,
   });
   const canOfferSingleAmount = canRenderAsSingleAmount(items);
+
+  // Invalida el texto local del monto ante CUALQUIER cambio de modo, no solo
+  // el manual (switchToItemsMode). Sin esto: monto único con "Destapado" +
+  // 45.000 → escaneás una factura → el modo cae solo a lista (fuera de
+  // switchToItemsMode) → corregís el precio a 60.000 desde la hoja manual →
+  // borrás los ítems escaneados → el modo vuelve solo a monto único → el
+  // campo mostraba "45.000" (el id seguía siendo el mismo) mientras el store
+  // ya tenía 60.000. La pantalla mentía sobre la plata.
+  useEffect(() => {
+    setAmountInput(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryMode]);
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
   const totals = useMemo(
     () => calculateQuotationTotals(items, taxRate),
@@ -202,9 +214,21 @@ export function QuotationEditorMobile({
   // hay que tocar quotation-form.tsx, canSaveQuotation ni la firma de las props.
   const singleAmountReady = !isSingleAmountMode || singleAmountState.ready;
 
+  // Antes de esta pantalla, un ítem sin nombre en modo lista era imposible: la
+  // hoja manual exige nombre, el catálogo y el escaneo lo traen siempre. El
+  // modo monto único rompe esa garantía — se puede tipear primero el monto y
+  // dejar el nombre vacío — así que si el usuario pasa a "Detallar por ítems"
+  // (o agrega ítems escaneados) sin haber completado el nombre, el ítem
+  // fantasma queda invisible para canSaveQuotation (que solo exige
+  // items.length > 0) y Guardar se ponía verde para terminar en un error de
+  // servidor que no dice cuál ítem falla.
+  const namelessItemCount = isSingleAmountMode
+    ? 0
+    : items.filter((quotationItem) => !quotationItem.name.trim()).length;
+
   // Un solo hint por vez, en el orden en que se llena la pantalla:
   // cliente → trabajo → monto. En modo lista se conserva el comportamiento
-  // que ya había.
+  // que ya había, más el aviso de ítems sin nombre.
   const saveHint = isSingleAmountMode
     ? !hasClient
       ? "Elegí un cliente para guardar"
@@ -213,7 +237,9 @@ export function QuotationEditorMobile({
         : null
     : !hasClient && canSave
       ? "Elegí un cliente para guardar"
-      : null;
+      : namelessItemCount > 0
+        ? "Completá el nombre de todos los ítems"
+        : null;
 
   const filteredClients = useMemo(() => {
     const query = clientSearch.trim().toLowerCase();
@@ -305,9 +331,10 @@ export function QuotationEditorMobile({
       resultingItemId = null;
     }
 
-    if (next.amountText !== undefined) {
-      setAmountInput({ itemId: resultingItemId, text: next.amountText });
-    }
+    // Se reescribe SIEMPRE, no solo cuando el tecleo vino del campo del monto:
+    // ver el comentario de nextSingleAmountInput. Reescribirlo solo a veces
+    // hacía revivir el monto de una cotización descartada.
+    setAmountInput(nextSingleAmountInput(resultingItemId, amountText));
   }
 
   function switchToItemsMode() {
@@ -778,7 +805,8 @@ export function QuotationEditorMobile({
             // dejar pasar el submit y que salte el diálogo "¿Va en $0?", que es
             // la respuesta equivocada a "te falta el monto". Un "0" tipeado a
             // propósito sí pasa, y ese diálogo sigue siendo suyo.
-            !singleAmountReady
+            !singleAmountReady ||
+            namelessItemCount > 0
           }
         >
           {isSubmitting

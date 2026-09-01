@@ -92,3 +92,24 @@ test("isExpenseReceiptPathForUser rejects another user, other folders and empty 
   assert.equal(isExpenseReceiptPathForUser(RECEIPT_OWNER, ""), false);
   assert.equal(isExpenseReceiptPathForUser("", `${RECEIPT_OWNER}/receipts/recibo.png`), false);
 });
+
+test("el nombre de recibo no acepta cualquier caracter donde va el punto", () => {
+  // El punto estaba sin escapar en el regex, así que `ab/cd` pasaba la
+  // validación aunque el comentario de al lado dijera que cualquier barra la
+  // rechaza. No era explotable (`..` y `a/b/c` seguían fuera, y todo queda bajo
+  // <userId>/receipts/), pero la validación era más laxa de lo que declaraba.
+  const userId = "11111111-1111-1111-1111-111111111111";
+
+  assert.equal(
+    isExpenseReceiptPathForUser(userId, `${userId}/receipts/recibo-1.png`),
+    true,
+  );
+
+  for (const nombre of ["ab/cd", "ab cd", "ab:cd", "ab\\cd", "AB.PNG", "ab..png"]) {
+    assert.equal(
+      isExpenseReceiptPathForUser(userId, `${userId}/receipts/${nombre}`),
+      false,
+      `"${nombre}" no debería pasar la validación`,
+    );
+  }
+});

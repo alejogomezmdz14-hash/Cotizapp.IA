@@ -321,11 +321,16 @@ test("el monto guardado vuelve al campo sin separadores de miles", () => {
   assert.equal(formatSingleAmountInput(1250.5), "1250.5");
 });
 
-test("un precio en cero o ausente muestra el campo vacío", () => {
-  // Misma convención que la hoja manual del editor móvil. Si mostrara "0", el
-  // gate lo leería como un cero tipeado a propósito.
-  assert.equal(formatSingleAmountInput(0), "");
+test("solo la ausencia de ítem muestra el campo vacío", () => {
   assert.equal(formatSingleAmountInput(null), "");
+});
+
+test("un cero guardado a propósito reaparece como 0, no vacío", () => {
+  // Reabrir un borrador guardado en $0 (vía el diálogo "¿Va en $0?") no puede
+  // dejar el campo vacío: eso bloquearía Guardar con "Poné cuánto cobrás"
+  // hasta volver a tipear el mismo 0, aunque el usuario solo quisiera tocar la
+  // fecha de validez.
+  assert.equal(formatSingleAmountInput(0), "0");
 });
 
 test("el ítem creado en monto único es representable en monto único", () => {
@@ -378,4 +383,84 @@ test("un nombre de solo espacios no cuenta como contenido", () => {
     getSingleAmountSaveState({ name: "   ", amountText: "45000" }).blockedReason,
     "name",
   );
+});
+
+// --- Montos negativos -------------------------------------------------
+
+test("un monto negativo no materializa el ítem", () => {
+  // El input es type="text" inputMode="decimal": se puede tipear o pegar un
+  // "-". Sin este chequeo, "-45000" pasaba el gate, disparaba el diálogo
+  // equivocado "¿Va en $0?" y el server lo rechazaba con un mensaje que no
+  // nombra el problema real.
+  assert.deepEqual(
+    planSingleAmountSync({
+      currentItem: null,
+      name: "destapado",
+      amountText: "-45000",
+      nextItemId: 1,
+    }),
+    {
+      type: "create",
+      item: {
+        id: "item-1",
+        source: "manual",
+        catalogItemId: null,
+        name: "destapado",
+        description: "",
+        quantity: 1,
+        unit: "unidad",
+        unitPrice: 0,
+        nameFormat: "verbatim",
+      },
+    },
+  );
+});
+
+test("un monto negativo sobre un ítem existente lo lleva a 0, nunca a negativo", () => {
+  // Mismo criterio que "borrar el monto lo lleva a cero": un monto negativo es
+  // tan inválido como uno vacío, así que se trata igual — nunca se persiste
+  // el número negativo.
+  const plan = planSingleAmountSync({
+    currentItem: item({ unitPrice: 45000 }),
+    name: "destapado de cocina",
+    amountText: "-100",
+    nextItemId: 9,
+  });
+
+  assert.deepEqual(plan, {
+    type: "update",
+    id: "item-1",
+    updates: { unitPrice: 0 },
+  });
+});
+
+test("getSingleAmountSaveState bloquea un monto negativo por monto", () => {
+  const estado = getSingleAmountSaveState({
+    name: "destapado",
+    amountText: "-45000",
+  });
+
+  assert.equal(estado.ready, false);
+  assert.equal(estado.blockedReason, "amount");
+  assert.equal(estado.unitPrice, null);
+  assert.equal(estado.isExplicitZero, false);
+});
+
+// --- Reabrir un borrador guardado en $0 --------------------------------
+
+test("reabrir un ítem guardado en $0 no bloquea Guardar", () => {
+  // El campo se pinta con formatSingleAmountInput(0) = "0" (no ""), así que
+  // getSingleAmountSaveState lo procesa igual que cualquier monto válido.
+  const montoMostrado = formatSingleAmountInput(0);
+  const estado = getSingleAmountSaveState({
+    name: "Consulta sin cargo",
+    amountText: montoMostrado,
+  });
+
+  assert.deepEqual(estado, {
+    unitPrice: 0,
+    ready: true,
+    blockedReason: null,
+    isExplicitZero: true,
+  });
 });

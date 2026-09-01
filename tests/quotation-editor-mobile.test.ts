@@ -163,3 +163,38 @@ test("el copy del modo monto único está en voseo rioplatense", async () => {
     'en Cotizapp nunca se dice "presupuesto"',
   );
 });
+
+test("el texto local del monto se invalida ante cualquier cambio de modo", async () => {
+  // No solo el manual (switchToItemsMode): también las transiciones
+  // automáticas (escaneo que suma ítems, o volver a monto único al quitar
+  // ítems) tienen que invalidar el texto viejo. Si no, el campo podía mostrar
+  // un monto que ya no coincidía con lo guardado.
+  const source = await leerSource();
+
+  assert.ok(
+    /useEffect\(\(\) => \{\s*setAmountInput\(null\);/.test(source),
+    "no hay un efecto que invalide el monto local ante cambios de modo",
+  );
+  assert.ok(
+    source.includes("}, [entryMode]);"),
+    "el efecto de invalidación no está atado a entryMode",
+  );
+});
+
+test("un ítem sin nombre no puede colarse por el gate al pasar a lista", async () => {
+  // El modo monto único puede materializar un ítem con name: "" (si se tipeó
+  // primero el monto). Antes, en modo lista eso era imposible porque la hoja
+  // manual, el catálogo y el escaneo siempre traen nombre.
+  const source = await leerSource();
+
+  assert.ok(
+    source.includes("namelessItemCount"),
+    "no existe el chequeo de ítems sin nombre en modo lista",
+  );
+
+  const barra = source.slice(source.indexOf("{/* Sticky guardar */}"));
+  assert.ok(
+    barra.includes("namelessItemCount > 0"),
+    "el botón Guardar no bloquea ítems sin nombre",
+  );
+});
