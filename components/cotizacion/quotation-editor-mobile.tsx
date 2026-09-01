@@ -29,7 +29,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { parseDecimalInput } from "@/lib/decimal-input";
 import { formatCurrencyAmount } from "@/lib/formatting";
+import {
+  canRenderAsSingleAmount,
+  explainSingleAmountBlockedReason,
+  formatSingleAmountInput,
+  getSingleAmountSaveState,
+  planSingleAmountSync,
+  resolveQuotationEntryMode,
+} from "@/lib/quotation-entry-mode";
 import {
   calculateQuotationLineTotal,
   calculateQuotationTotals,
@@ -89,11 +98,6 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length] ?? "bg-[#00E5A0]";
 }
 
-function parseNumeric(value: string) {
-  const parsed = Number.parseFloat(value.trim().replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 function matchesCatalogItem(item: CatalogItem, query: string) {
   return [item.name, item.description ?? "", item.category ?? "", item.unit]
     .join(" ")
@@ -123,6 +127,7 @@ export function QuotationEditorMobile({
   const setValidUntil = useCotizacionStore((state) => state.setValidUntil);
   const setNotes = useCotizacionStore((state) => state.setNotes);
   const allocNextItemId = useCotizacionStore((state) => state.allocNextItemId);
+  const setEntryMode = useCotizacionStore((state) => state.setEntryMode);
 
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -146,8 +151,38 @@ export function QuotationEditorMobile({
   );
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
+  // Único estado local del modo monto único: el TEXTO crudo del monto. Hace
+  // falta porque "45." y "1.250," son estados intermedios legítimos que no
+  // sobreviven un round-trip por `number` — el mismo problema que el repo ya
+  // resolvió con el par taxRate/taxRateInput.
+  //
+  // Va atado al ítem que lo produjo: cuando el ítem cambia de identidad
+  // (guardaste, escaneaste una factura, reseteaste el draft) el texto deja de
+  // matchear y el campo vuelve a leer del store. Sin ese vínculo, crear el ítem
+  // en el primer tecleo le borraría al usuario un "0" recién escrito.
+  const [amountInput, setAmountInput] = useState<{
+    itemId: string | null;
+    text: string;
+  } | null>(null);
+
   const items = draft.items;
   const taxRate = draft.taxRate;
+
+  // El contenido ES el flag: no hace falta una columna nueva. Un draft vacío o
+  // de un solo ítem simple entra en monto único; uno de 3 ítems, en lista.
+  const entryMode = resolveQuotationEntryMode(draft.entryModeOverride, items);
+  const isSingleAmountMode = entryMode === "amount";
+  const singleItem = isSingleAmountMode ? items[0] ?? null : null;
+  const singleItemId = singleItem?.id ?? null;
+  const singleAmountText =
+    amountInput && amountInput.itemId === singleItemId
+      ? amountInput.text
+      : formatSingleAmountInput(singleItem?.unitPrice ?? null);
+  const singleAmountState = getSingleAmountSaveState({
+    name: singleItem?.name ?? "",
+    amountText: singleAmountText,
+  });
+  const canOfferSingleAmount = canRenderAsSingleAmount(items);
   const validityBounds = useMemo(() => getQuotationValidityBounds(), []);
   const totals = useMemo(
     () => calculateQuotationTotals(items, taxRate),
@@ -162,6 +197,23 @@ export function QuotationEditorMobile({
   const hasClient = Boolean(selectedClient) || Boolean(inlineClientName);
   const clientDisplayName = selectedClient?.name ?? inlineClientName;
   const clientPhone = selectedClient?.phone ?? draft.inlineClient.phone.trim() ?? null;
+
+  // Gate de guardado del modo monto único. Es LOCAL al móvil a propósito: no
+  // hay que tocar quotation-form.tsx, canSaveQuotation ni la firma de las props.
+  const singleAmountReady = !isSingleAmountMode || singleAmountState.ready;
+
+  // Un solo hint por vez, en el orden en que se llena la pantalla:
+  // cliente → trabajo → monto. En modo lista se conserva el comportamiento
+  // que ya había.
+  const saveHint = isSingleAmountMode
+    ? !hasClient
+      ? "Elegí un cliente para guardar"
+      : singleAmountState.blockedReason
+        ? explainSingleAmountBlockedReason(singleAmountState.blockedReason)
+        : null
+    : !hasClient && canSave
+      ? "Elegí un cliente para guardar"
+      : null;
 
   const filteredClients = useMemo(() => {
     const query = clientSearch.trim().toLowerCase();
@@ -216,6 +268,61 @@ export function QuotationEditorMobile({
     setClientMode(clients.length > 0 ? "existing" : "inline");
   }
 
+  /**
+   * Sincroniza los dos campos de monto único con el store.
+   *
+   * El ítem se materializa en el PRIMER tecleo con contenido, no al guardar:
+   * `canSave` viene del padre y exige `items.length > 0`, así que esperar al
+   * submit dejaría el botón Guardar gris mientras el usuario escribe.
+   *
+   * Y NO se crea al montar la pantalla: un ítem vacío haría
+   * `items.length > 0` desde el arranque y el cartel "Tenés una cotización sin
+   * guardar" aparecería sin haber tocado nada.
+   */
+  function syncSingleAmount(next: { name?: string; amountText?: string }) {
+    const name = next.name ?? singleItem?.name ?? "";
+    const amountText = next.amountText ?? singleAmountText;
+
+    const plan = planSingleAmountSync({
+      currentItem: singleItem,
+      name,
+      amountText,
+      nextItemId: draft.nextItemId,
+    });
+
+    let resultingItemId = singleItemId;
+
+    if (plan.type === "create") {
+      // El plan ya armó el id con draft.nextItemId; acá se consume para que el
+      // contador no lo vuelva a entregar.
+      allocNextItemId();
+      addItem(plan.item);
+      resultingItemId = plan.item.id;
+    } else if (plan.type === "update") {
+      updateItem(plan.id, plan.updates);
+    } else if (plan.type === "remove") {
+      removeItem(plan.id);
+      resultingItemId = null;
+    }
+
+    if (next.amountText !== undefined) {
+      setAmountInput({ itemId: resultingItemId, text: next.amountText });
+    }
+  }
+
+  function switchToItemsMode() {
+    // No se pierde nada: el ítem ya es un QuotationEditorItem manual válido y
+    // aparece como ítem 1 de la lista, editable con la hoja manual de siempre.
+    setEntryMode("items");
+    setAmountInput(null);
+  }
+
+  function switchToSingleAmountMode() {
+    // El botón solo se ofrece cuando el contenido entra en monto único, así que
+    // nunca hay que descartar datos ni pedir confirmación.
+    setEntryMode(null);
+  }
+
   function openAddItemSheet() {
     setCatalogSearch("");
     setAddItemSheetOpen(true);
@@ -255,8 +362,8 @@ export function QuotationEditorMobile({
 
   function handleSaveManualItem() {
     const name = itemFields.name.trim();
-    const quantity = parseNumeric(itemFields.quantity);
-    const unitPrice = parseNumeric(itemFields.unitPrice);
+    const quantity = parseDecimalInput(itemFields.quantity);
+    const unitPrice = parseDecimalInput(itemFields.unitPrice);
 
     if (!name) {
       setItemFieldError("Escribí qué vas a cobrar.");
@@ -320,7 +427,7 @@ export function QuotationEditorMobile({
 
   function commitTaxInput(value: string) {
     setTaxInput(value);
-    const parsed = parseNumeric(value);
+    const parsed = parseDecimalInput(value);
     setTaxRate(parsed !== null && parsed >= 0 && parsed <= 100 ? parsed : 0);
   }
 
@@ -370,91 +477,149 @@ export function QuotationEditorMobile({
           )}
         </Section>
 
-        {/* Ítems */}
-        <Section title="Ítems">
-          {items.length > 0 ? (
-            <div className="space-y-2">
-              {items.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-token bg-surface px-4 py-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => openManualItemEditor(item)}
-                      disabled={disabled}
-                      className="min-w-0 flex-1 text-left disabled:opacity-50"
-                    >
-                      <p className="truncate text-base font-medium text-foreground">
-                        {item.name || `Ítem ${index + 1}`}
-                      </p>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {formatCurrencyAmount(item.unitPrice, currency)} c/u
-                      </p>
-                    </button>
-                    <p className="shrink-0 text-base font-semibold text-foreground">
-                      {formatCurrencyAmount(
-                        calculateQuotationLineTotal(item.quantity, item.unitPrice),
-                        currency,
-                      )}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+        {/* El trabajo: monto único o lista de ítems */}
+        {isSingleAmountMode ? (
+          <Section title="El trabajo">
+            <div className="space-y-1.5">
+              <Label htmlFor="mobile-single-name">¿Qué trabajo es?</Label>
+              <Input
+                id="mobile-single-name"
+                type="text"
+                value={singleItem?.name ?? ""}
+                onChange={(event) => syncSingleAmount({ name: event.target.value })}
+                placeholder="Ej. Destapado de cocina"
+                disabled={disabled}
+                className="min-h-14 text-base"
+                maxLength={120}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="mobile-single-amount">¿Cuánto cobrás?</Label>
+              <Input
+                id="mobile-single-amount"
+                type="text"
+                inputMode="decimal"
+                value={singleAmountText}
+                onChange={(event) =>
+                  syncSingleAmount({ amountText: event.target.value })
+                }
+                placeholder="Ej. 45.000"
+                disabled={disabled}
+                className="min-h-14 text-base"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={switchToItemsMode}
+              disabled={disabled}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-muted-foreground transition active:scale-[0.99] disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Detallar por ítems
+            </button>
+          </Section>
+        ) : (
+          <Section title="Ítems">
+            {items.length > 0 ? (
+              <div className="space-y-2">
+                {items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-token bg-surface px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => adjustItemQuantity(item, -1)}
+                        onClick={() => openManualItemEditor(item)}
                         disabled={disabled}
-                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
-                        aria-label="Restar cantidad"
+                        className="min-w-0 flex-1 text-left disabled:opacity-50"
                       >
-                        <Minus className="h-4 w-4" />
+                        <p className="truncate text-base font-medium text-foreground">
+                          {item.name || `Ítem ${index + 1}`}
+                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {formatCurrencyAmount(item.unitPrice, currency)} c/u
+                        </p>
                       </button>
-                      <span className="w-8 text-center text-sm font-semibold text-foreground">
-                        {item.quantity}
-                      </span>
+                      <p className="shrink-0 text-base font-semibold text-foreground">
+                        {formatCurrencyAmount(
+                          calculateQuotationLineTotal(item.quantity, item.unitPrice),
+                          currency,
+                        )}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => adjustItemQuantity(item, -1)}
+                          disabled={disabled}
+                          className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
+                          aria-label="Restar cantidad"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-8 text-center text-sm font-semibold text-foreground">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => adjustItemQuantity(item, 1)}
+                          disabled={disabled}
+                          className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
+                          aria-label="Sumar cantidad"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => adjustItemQuantity(item, 1)}
+                        onClick={() => removeItem(item.id)}
                         disabled={disabled}
-                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-token bg-background text-foreground active:scale-95 disabled:opacity-50"
-                        aria-label="Sumar cantidad"
+                        className="flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-destructive active:scale-95 disabled:opacity-50"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
+                        Quitar
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.id)}
-                      disabled={disabled}
-                      className="flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-destructive active:scale-95 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Quitar
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
+                ))}
+              </div>
+            ) : null}
 
-          <PrimaryAddButton
-            icon={<Plus className="h-5 w-5" />}
-            label="Agregar ítem"
-            onClick={openAddItemSheet}
-            disabled={disabled}
-          />
+            <PrimaryAddButton
+              icon={<Plus className="h-5 w-5" />}
+              label="Agregar ítem"
+              onClick={openAddItemSheet}
+              disabled={disabled}
+            />
 
-          {items.length > 0 ? (
-            <div className="flex items-center justify-between px-1 pt-1">
-              <span className="text-sm text-muted-foreground">Subtotal</span>
-              <span className="text-base font-semibold text-foreground">
-                {formatCurrencyAmount(totals.subtotal, currency)}
-              </span>
-            </div>
-          ) : null}
-        </Section>
+            {items.length > 0 ? (
+              <div className="flex items-center justify-between px-1 pt-1">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-base font-semibold text-foreground">
+                  {formatCurrencyAmount(totals.subtotal, currency)}
+                </span>
+              </div>
+            ) : null}
+
+            {/* Solo se ofrece si el contenido entra en monto único (0 ó 1 ítem
+                simple). Con 2+ ítems no aparece, así que nunca hay que descartar
+                datos ni preguntar nada. */}
+            {canOfferSingleAmount ? (
+              <button
+                type="button"
+                onClick={switchToSingleAmountMode}
+                disabled={disabled}
+                className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-medium text-muted-foreground transition active:scale-[0.99] disabled:opacity-50"
+              >
+                Volver a monto único
+              </button>
+            ) : null}
+          </Section>
+        )}
 
         {/* Impuesto */}
         <Section>
@@ -594,16 +759,27 @@ export function QuotationEditorMobile({
             {error}
           </p>
         ) : null}
-        {!hasClient && canSave ? (
+        {saveHint ? (
           <ActionHint className="mx-auto mb-2 max-w-lg text-center">
-            Elegí un cliente para guardar
+            {saveHint}
           </ActionHint>
         ) : null}
         <Button
           type="button"
           className="min-h-14 w-full text-base active:scale-[0.99]"
           onClick={onSubmit}
-          disabled={disabled || !canSave || isSubmitting || saveDisabled || !hasClient}
+          disabled={
+            disabled ||
+            !canSave ||
+            isSubmitting ||
+            saveDisabled ||
+            !hasClient ||
+            // Sin monto el botón queda gris y el hint dice qué falta, en vez de
+            // dejar pasar el submit y que salte el diálogo "¿Va en $0?", que es
+            // la respuesta equivocada a "te falta el monto". Un "0" tipeado a
+            // propósito sí pasa, y ese diálogo sigue siendo suyo.
+            !singleAmountReady
+          }
         >
           {isSubmitting
             ? "Guardando..."

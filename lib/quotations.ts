@@ -10,6 +10,7 @@ import { normalizeEntityName } from "@/lib/entity-normalization";
 import { buildProfileLogoDataUrl, resolveProfileBranding } from "@/lib/profile";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import { getDefaultQuotationValidityDate } from "@/lib/quotation-expiry";
+import { resolveQuotationItemName } from "@/lib/quotation-item-name";
 import {
   sanitizeQuotationValidityDate,
   validateQuotationValidityDate,
@@ -217,8 +218,11 @@ type ConfirmQuotationWhatsappShareDependencies = {
   persistShareState: (values: {
     shareToken: string;
     shareTokenExpiresAt: string;
-    status: QuotationStatus;
-    sentAt: string;
+    // Nullable porque preparar el enlace sin marcar como enviada
+    // (markAsSent: false) reescribe el estado tal cual estaba, que puede ser
+    // null en una cotización que todavía nadie compartió.
+    status: QuotationStatus | null;
+    sentAt: string | null;
   }) => Promise<void>;
   createShareToken?: () => string;
 };
@@ -443,9 +447,13 @@ function parseItemsPayload(rawValue: FormDataEntryValue | null) {
         );
       }
 
+      // `nameFormat` es una directiva de presentación que viaja en el payload y
+      // muere acá: se consume para decidir el nombre y NO entra en
+      // DraftQuotationItemInput. Si viviera en ese tipo, el chat —que persiste
+      // sin pasar por este parser (lib/chat/chat-tools.ts)— dejaría de compilar.
       return {
         catalogItemId: getOptionalStringValue(item.catalogItemId),
-        name: normalizeEntityName(name),
+        name: resolveQuotationItemName(name, item.nameFormat),
         description: getOptionalStringValue(item.description),
         quantity,
         unit: normalizeCatalogUnit(getOptionalStringValue(item.unit)),
@@ -845,6 +853,17 @@ export async function confirmQuotationWhatsappShare(
   input: {
     quotationId: string;
     now?: Date;
+    /**
+     * Si además de preparar el enlace hay que marcar la cotización como
+     * enviada. Default `true` por compatibilidad.
+     *
+     * Con `false` se prepara el token y se publica el PDF sin tocar `status`
+     * ni `sent_at`. Existe porque la app decía "Enviada" ANTES de que el
+     * usuario mandara nada: si cancelaba el menú de compartir, la cotización
+     * quedaba marcada igual. Ahora el envío se confirma recién cuando el
+     * sistema entregó el archivo.
+     */
+    markAsSent?: boolean;
   },
 ) {
   const quotation = await dependencies.getQuotation(input.quotationId);
@@ -870,11 +889,13 @@ export async function confirmQuotationWhatsappShare(
   const shareTokenExpiresAt = existingExpiryIsValid
     ? quotation.shareTokenExpiresAt ?? buildShareTokenExpiry(now)
     : buildShareTokenExpiry(now);
-  const shareStatus =
-    quotation.status && quotation.status !== DRAFT_QUOTATION_STATUS
+  const markAsSent = input.markAsSent ?? true;
+  const shareStatus = markAsSent
+    ? quotation.status && quotation.status !== DRAFT_QUOTATION_STATUS
       ? quotation.status
-      : "pending";
-  const sentAt = quotation.sentAt ?? now.toISOString();
+      : "pending"
+    : quotation.status;
+  const sentAt = markAsSent ? quotation.sentAt ?? now.toISOString() : quotation.sentAt;
   const needsPersistence =
     shareToken !== quotation.shareToken ||
     shareTokenExpiresAt !== quotation.shareTokenExpiresAt ||

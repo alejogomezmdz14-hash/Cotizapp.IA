@@ -897,7 +897,26 @@ export async function deleteQuotationAction(quotationId: string) {
   revalidateQuotationViews();
 }
 
+/**
+ * Prepara el enlace público y el mensaje SIN tocar `status` ni `sent_at`.
+ *
+ * Existe porque la app marcaba la cotización como "Enviada" antes de que el
+ * usuario mandara nada: si cancelaba el menú de compartir o cerraba WhatsApp,
+ * la cotización quedaba marcada igual y el badge mentía.
+ */
+export async function prepareQuotationWhatsappShareAction(quotationId: string) {
+  return runQuotationWhatsappShare(quotationId, { markAsSent: false });
+}
+
+/** Prepara el enlace y además marca la cotización como enviada. */
 export async function confirmQuotationWhatsappShareAction(quotationId: string) {
+  return runQuotationWhatsappShare(quotationId, { markAsSent: true });
+}
+
+async function runQuotationWhatsappShare(
+  quotationId: string,
+  options: { markAsSent: boolean },
+) {
   const user = await requireUser();
   const supabase = await createClient();
   let shareMessageContext: {
@@ -945,8 +964,8 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
   async function persistShareState(values: {
     shareToken: string;
     shareTokenExpiresAt: string;
-    status: string;
-    sentAt: string;
+    status: string | null;
+    sentAt: string | null;
   }) {
     const fullPayload = {
       share_token: values.shareToken,
@@ -1036,6 +1055,7 @@ export async function confirmQuotationWhatsappShareAction(quotationId: string) {
     },
     {
       quotationId,
+      markAsSent: options.markAsSent,
     },
   );
 

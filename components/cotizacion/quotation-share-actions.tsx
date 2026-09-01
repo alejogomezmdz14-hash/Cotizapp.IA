@@ -8,7 +8,9 @@ import {
   confirmQuotationWhatsappShareAction,
   generateQuotationPdfAction,
   getQuotationWhatsappRecipientAction,
+  prepareQuotationWhatsappShareAction,
   saveQuotationClientPhoneAction,
+  updateQuotationStatusAction,
 } from "@/app/actions/quotations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +18,20 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { buildPublicAppPath } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/formatting";
+import { logError } from "@/lib/log";
 import {
   prepareQuotationPdfShare,
   presentQuotationPdfShare,
   supportsQuotationPdfFileShare,
   type PreparedQuotationPdfShare,
 } from "@/lib/quotation-pdf-share";
+import {
+  canUndoQuotationShare,
+  describeQuotationShareAttempt,
+  retryQuotationShare,
+  runNativeQuotationShare,
+  WHATSAPP_FALLBACK_MESSAGE,
+} from "@/lib/quotation-share-flow";
 import { buildWhatsAppShareHref, getWhatsAppSharePhoneState } from "@/lib/whatsapp";
 
 type QuotationShareActionsProps = {
@@ -32,7 +42,13 @@ type QuotationShareActionsProps = {
   initialSentAt?: string | null;
   initialStatus?: string | null;
   isDraft?: boolean;
-  variant?: "full" | "listPrimary";
+  /**
+   * Dónde mostrar los botones secundarios de PDF. En `"desktopOnly"` quedan
+   * ocultos en el celular porque esas mismas acciones ya viven en el menú
+   * «Más opciones» (QuotationMoreMenu), y dos botones verdes en una pantalla
+   * son uno de más.
+   */
+  secondaryPdfActions?: "always" | "desktopOnly";
   onStateChange?: (state: {
     pdfGeneratedAt: string | null;
     shareToken: string | null;
@@ -78,7 +94,7 @@ export function QuotationShareActions({
   initialShareToken = null,
   initialSentAt = null,
   initialStatus = null,
-  variant = "full",
+  secondaryPdfActions = "always",
   onStateChange,
 }: QuotationShareActionsProps) {
   const { toast } = useToast();
@@ -97,6 +113,9 @@ export function QuotationShareActions({
   const [needsPhoneInput, setNeedsPhoneInput] = useState(false);
   const [preparedShare, setPreparedShare] =
     useState<PreparedQuotationPdfShare | null>(null);
+  // En el camino wa.me no hay forma de saber si el usuario mandó el mensaje:
+  // se marca como enviada y se ofrece deshacer. Solo si antes no estaba enviada.
+  const [undoShareVisible, setUndoShareVisible] = useState(false);
   const router = useRouter();
 
   const pdfViewUrl = useMemo(
@@ -116,6 +135,22 @@ export function QuotationShareActions({
   }, [shareToken]);
 
   const shareStatusLabel = getShareStatusLabel(shareStatus, sentAt);
+
+  function applyShareState(result: {
+    shareToken: string;
+    sentAt: string | null;
+    shareStatus: string | null;
+  }) {
+    setShareToken(result.shareToken);
+    setSentAt(result.sentAt);
+    setShareStatus(result.shareStatus);
+    onStateChange?.({
+      pdfGeneratedAt,
+      shareToken: result.shareToken,
+      sentAt: result.sentAt,
+      status: result.shareStatus,
+    });
+  }
 
   function handleOpenPdf() {
     const openedWindow = window.open(pdfViewUrl, "_blank", "noopener,noreferrer");
@@ -154,6 +189,8 @@ export function QuotationShareActions({
     setStatusMessage(null);
     setIsSharing(true);
 
+    const previousSentAt = sentAt;
+
     try {
       const result = await confirmQuotationWhatsappShareAction(quotationId);
       const whatsappHref = buildWhatsAppShareHref({
@@ -161,23 +198,16 @@ export function QuotationShareActions({
         text: result.whatsappText,
       });
 
-      setShareToken(result.shareToken);
-      setSentAt(result.sentAt);
-      setShareStatus(result.shareStatus);
-      onStateChange?.({
-        pdfGeneratedAt,
-        shareToken: result.shareToken,
-        sentAt: result.sentAt,
-        status: result.shareStatus,
-      });
-      setStatusMessage("Te abrimos WhatsApp con el mensaje listo. Tocá enviar dentro de WhatsApp.");
+      applyShareState(result);
+      // Acá NO hay forma de saber si el usuario apretó enviar: abrimos WhatsApp
+      // y perdemos el control. Se marca como enviada porque es lo más probable,
+      // pero el copy lo dice y se ofrece deshacer.
+      setUndoShareVisible(canUndoQuotationShare(previousSentAt));
+      setStatusMessage(WHATSAPP_FALLBACK_MESSAGE);
       toast({
         title: "Abrimos WhatsApp",
         description: "Revisá el mensaje y tocá enviar dentro de WhatsApp.",
       });
-
-      // Refrescamos para que el estado "Enviada" se refleje en el detalle y la lista.
-      router.refresh();
 
       const openedWindow = window.open(
         whatsappHref,
@@ -188,6 +218,10 @@ export function QuotationShareActions({
       if (!openedWindow) {
         window.location.href = whatsappHref;
       }
+
+      // Después de abrir WhatsApp: un router.refresh() justo antes del
+      // window.open es el momento típico en que se pierde el popup.
+      router.refresh();
     } catch (actionError) {
       setError(getErrorMessage(actionError));
     } finally {
@@ -245,69 +279,75 @@ export function QuotationShareActions({
   }
 
   /**
-   * En celulares con Web Share API compartimos el PDF como archivo (el
-   * cliente lo recibe como documento, sin links ni inicio de sesión).
+   * En celulares con Web Share API compartimos el PDF como archivo (el cliente
+   * lo recibe como documento, sin links ni inicio de sesión).
    *
-   * iOS suele rechazar el primer intento porque el "gesto" del toque vence
-   * mientras se genera el PDF: en ese caso dejamos el archivo preparado y
-   * mostramos el botón «Compartir PDF» para abrir el menú con un toque
-   * directo. Devuelve true si el camino nativo quedó manejado.
+   * El orden lo decide `runNativeQuotationShare`: se prepara el enlace, se arma
+   * el archivo, se abre el menú, y SOLO si el sistema entregó el archivo se
+   * marca la cotización como enviada. Antes se marcaba primero y quien cancelaba
+   * quedaba con una cotización que decía "Enviada" sin haber mandado nada.
+   *
+   * Devuelve true si el camino nativo quedó manejado; false para seguir con wa.me.
    */
   async function tryNativePdfShare() {
-    if (!supportsQuotationPdfFileShare()) {
-      return false;
-    }
-
     setError(null);
     setStatusMessage(null);
+    setUndoShareVisible(false);
     setIsSharing(true);
 
     try {
-      const result = await confirmQuotationWhatsappShareAction(quotationId);
-
-      setShareToken(result.shareToken);
-      setSentAt(result.sentAt);
-      setShareStatus(result.shareStatus);
-      onStateChange?.({
-        pdfGeneratedAt,
-        shareToken: result.shareToken,
-        sentAt: result.sentAt,
-        status: result.shareStatus,
+      const attempt = await runNativeQuotationShare({
+        isSupported: supportsQuotationPdfFileShare,
+        prepareShare: async () => {
+          const prepared = await prepareQuotationWhatsappShareAction(quotationId);
+          // El enlace público ya existe; el estado todavía NO cambió.
+          setShareToken(prepared.shareToken);
+          return prepared;
+        },
+        buildShareFile: (share) =>
+          prepareQuotationPdfShare({
+            pdfUrl: pdfViewUrl,
+            quotationNumber,
+            clientName: share.clientName,
+            text: share.whatsappFileText,
+          }),
+        presentShare: presentQuotationPdfShare,
+        markAsSent: async () => {
+          const confirmed = await confirmQuotationWhatsappShareAction(quotationId);
+          applyShareState(confirmed);
+          router.refresh();
+        },
       });
-      router.refresh();
 
-      const prepared = await prepareQuotationPdfShare({
-        pdfUrl: pdfViewUrl,
-        quotationNumber,
-        clientName: result.clientName,
-        text: result.whatsappFileText,
-      });
-
-      if (!prepared) {
+      if (attempt.status === "unsupported" || attempt.status === "unavailable") {
         return false;
       }
 
-      const shareOutcome = await presentQuotationPdfShare(prepared);
+      // Cancelado o bloqueado: el archivo ya está armado, así que el botón
+      // «Compartir PDF» abre el menú con un toque directo, sin volver a
+      // descargar el PDF.
+      setPreparedShare(
+        attempt.status === "shared" ? null : attempt.prepared,
+      );
 
-      if (shareOutcome === "shared") {
-        setPreparedShare(null);
-        setStatusMessage("PDF compartido. Quedó marcada como enviada.");
-        toast({
-          title: "PDF listo para enviar",
-          description: "Elegí WhatsApp y el contacto para mandarlo.",
-        });
-        return true;
+      const message = describeQuotationShareAttempt(attempt.status);
+
+      if (message) {
+        setStatusMessage(message.text);
       }
 
-      // "blocked" (gesto vencido, típico de iPhone) o "cancelled": dejamos
-      // el PDF preparado para compartir con un toque directo.
-      setPreparedShare(prepared);
-      setStatusMessage(
-        "El PDF está listo. Tocá «Compartir PDF» para mandarlo por WhatsApp.",
-      );
+      if (attempt.status === "shared") {
+        toast({
+          title: "Cotización compartida",
+          description: `${quotationNumber} quedó marcada como enviada.`,
+        });
+      }
+
       return true;
-    } catch {
-      // Si algo falla en el camino nativo, seguimos con el fallback de wa.me.
+    } catch (shareError) {
+      // Nada quedó marcado como enviado: preparar el enlace no toca el estado.
+      // Se deja rastro y se sigue con wa.me en vez de dejar al usuario a pie.
+      logError("cotizacion/compartir-nativo", shareError);
       return false;
     } finally {
       setIsSharing(false);
@@ -321,21 +361,66 @@ export function QuotationShareActions({
       return;
     }
 
+    setError(null);
+
     // Sin awaits antes de navigator.share: el toque habilita el menú nativo.
-    void presentQuotationPdfShare(prepared)
+    void retryQuotationShare({
+      prepared,
+      presentShare: presentQuotationPdfShare,
+      markAsSent: async () => {
+        const confirmed = await confirmQuotationWhatsappShareAction(quotationId);
+        applyShareState(confirmed);
+        router.refresh();
+      },
+    })
       .then((outcome) => {
+        // Antes este camino solo trataba "shared": si el segundo toque también
+        // se cancelaba, la pantalla quedaba muda.
         if (outcome === "shared") {
           setPreparedShare(null);
-          setStatusMessage("PDF compartido. Quedó marcada como enviada.");
           toast({
-            title: "PDF listo para enviar",
-            description: "Elegí WhatsApp y el contacto para mandarlo.",
+            title: "Cotización compartida",
+            description: `${quotationNumber} quedó marcada como enviada.`,
           });
+        }
+
+        const message = describeQuotationShareAttempt(outcome);
+
+        if (message) {
+          setStatusMessage(message.text);
         }
       })
       .catch((shareError: unknown) => {
         setError(getErrorMessage(shareError));
       });
+  }
+
+  /**
+   * Deshacer del camino wa.me: vuelve la cotización a borrador y limpia
+   * `sent_at`. Solo se ofrece cuando marcarla como enviada cambió algo.
+   */
+  async function handleUndoShare() {
+    setError(null);
+    setIsSharing(true);
+
+    try {
+      const result = await updateQuotationStatusAction(quotationId, "draft");
+      setSentAt(result.sentAt);
+      setShareStatus(result.status);
+      onStateChange?.({
+        pdfGeneratedAt,
+        shareToken,
+        sentAt: result.sentAt,
+        status: result.status,
+      });
+      setUndoShareVisible(false);
+      setStatusMessage("Listo, la volvimos a borrador.");
+      router.refresh();
+    } catch (actionError) {
+      setError(getErrorMessage(actionError));
+    } finally {
+      setIsSharing(false);
+    }
   }
 
   async function handleShareWhatsapp() {
@@ -394,108 +479,6 @@ export function QuotationShareActions({
     }
   }
 
-  const normalizedStatus = shareStatus?.trim().toLowerCase() ?? "draft";
-  const isAccepted = normalizedStatus === "accepted";
-  const isPending = normalizedStatus === "pending";
-
-  function getListPrimaryLabel() {
-    if (isAccepted) {
-      return "Ver PDF";
-    }
-    if (isPending || sentAt) {
-      return "Reenviar por WhatsApp";
-    }
-    return "Enviar por WhatsApp";
-  }
-
-  async function handleListPrimaryClick() {
-    if (isAccepted) {
-      if (!pdfGeneratedAt) {
-        await handleGeneratePdf();
-      }
-      handleOpenPdf();
-      return;
-    }
-
-    await handleShareWhatsapp();
-  }
-
-  if (variant === "listPrimary") {
-    return (
-      <div className="min-w-0 flex-1 space-y-2">
-        {error ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-
-        {statusMessage ? (
-          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
-            {statusMessage}
-          </p>
-        ) : null}
-
-        {preparedShare ? (
-          <Button
-            type="button"
-            className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
-            onClick={handleSharePreparedPdf}
-          >
-            📤 Compartir PDF
-          </Button>
-        ) : needsPhoneInput ? (
-          <div className="space-y-3 rounded-lg border border-token/80 bg-background/70 px-4 py-3">
-            <div className="space-y-1">
-              <Label htmlFor={`quotation-share-phone-${quotationId}`}>
-                Teléfono del cliente
-              </Label>
-              <Input
-                id={`quotation-share-phone-${quotationId}`}
-                type="tel"
-                value={phoneInput}
-                onChange={(event) => setPhoneInput(event.target.value)}
-                placeholder="Ej. 261 555 1234"
-                disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
-              />
-            </div>
-            <Button
-              type="button"
-              className="min-h-12 w-full bg-accent-token text-black hover:bg-accent-hover"
-              disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
-              onClick={() => {
-                void handleSavePhoneAndShare();
-              }}
-            >
-              {isSavingPhone ? "Guardando teléfono..." : "Guardar teléfono y compartir"}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              className="min-h-11 w-fit gap-2 bg-accent-token px-4 text-black hover:bg-accent-hover"
-              disabled={isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone}
-              onClick={() => {
-                void handleListPrimaryClick();
-              }}
-            >
-              {isGeneratingPdf || isSharing || isLoadingRecipient || isSavingPhone ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              {isGeneratingPdf
-                ? "Generando PDF..."
-                : isSharing || isLoadingRecipient
-                  ? "Preparando PDF..."
-                  : getListPrimaryLabel()}
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3 rounded-lg border border-token/80 bg-background/60 px-4 py-3">
 
@@ -506,9 +489,24 @@ export function QuotationShareActions({
       ) : null}
 
       {statusMessage ? (
-        <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
-          {statusMessage}
-        </p>
+        <div className="space-y-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            {statusMessage}
+          </p>
+          {undoShareVisible ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 border-token bg-background text-foreground"
+              disabled={isSharing}
+              onClick={() => {
+                void handleUndoShare();
+              }}
+            >
+              No la mandé
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {shareStatusLabel ? (
@@ -585,7 +583,13 @@ export function QuotationShareActions({
       </Button>
 
       {/* Acciones secundarias del PDF */}
-      <div className="flex flex-wrap gap-3">
+      <div
+        className={
+          secondaryPdfActions === "desktopOnly"
+            ? "hidden flex-wrap gap-3 xl:flex"
+            : "flex flex-wrap gap-3"
+        }
+      >
         <Button
           type="button"
           variant="outline"

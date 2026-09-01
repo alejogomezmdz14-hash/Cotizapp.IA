@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
+import type { QuotationEntryMode } from "@/lib/quotation-entry-mode";
 import { getDefaultQuotationValidityDate } from "@/lib/quotation-expiry";
 
 export type InlineClientState = {
@@ -22,6 +23,13 @@ export type CotizacionDraft = {
   nextItemId: number;
   wizardStep: number;
   draftBannerVisible: boolean;
+  /**
+   * Modo de carga que pidió el usuario en el celular, o `null` para dejar que
+   * lo derive el contenido (ver `resolveQuotationEntryMode`). Solo puede pedir
+   * MÁS detalle: un override a "amount" con 4 items igual se resuelve a lista.
+   * El editor de escritorio lo ignora.
+   */
+  entryModeOverride: QuotationEntryMode | null;
 };
 
 const emptyInlineClient = (): InlineClientState => ({
@@ -43,6 +51,7 @@ export const initialCotizacionDraft = (): CotizacionDraft => ({
   nextItemId: 1,
   wizardStep: 1,
   draftBannerVisible: false,
+  entryModeOverride: null,
 });
 
 function draftHasContent(draft: CotizacionDraft) {
@@ -79,6 +88,7 @@ type CotizacionStore = {
   setValidUntil: (fecha: string) => void;
   setNotes: (notas: string) => void;
   setWizardStep: (step: number) => void;
+  setEntryMode: (mode: QuotationEntryMode | null) => void;
   allocNextItemId: () => number;
   dismissDraftBanner: () => void;
   showDraftBannerIfNeeded: () => void;
@@ -162,6 +172,9 @@ export const useCotizacionStore = create<CotizacionStore>((set, get) => ({
 
   setWizardStep: (step) =>
     set((state) => ({ draft: { ...state.draft, wizardStep: step } })),
+
+  setEntryMode: (mode) =>
+    set((state) => ({ draft: { ...state.draft, entryModeOverride: mode } })),
 
   allocNextItemId: () => {
     const current = get().draft.nextItemId;

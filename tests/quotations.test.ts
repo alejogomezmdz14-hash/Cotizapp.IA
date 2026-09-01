@@ -1261,3 +1261,188 @@ test("rollbackUploadedQuotationAttachments reports cleanup failures instead of s
     "No se pudieron subir los adjuntos. Tambien fallo la limpieza automatica de registro attachment-1 y archivo user-1/quotations/quotation-1/frente.jpg.",
   );
 });
+
+test("parseQuotationFormData respeta el nombre verbatim de un ítem", () => {
+  // Modo monto único: el nombre del ítem ES la descripción del trabajo y es lo
+  // único que el cliente lee en el PDF. Title-casearlo lo arruina.
+  const formData = new FormData();
+  formData.set("client_mode", "existing");
+  formData.set("client_id", "client-1");
+  formData.set("tax_rate", "0");
+  formData.set("valid_until", "2026-06-01");
+  formData.set(
+    "items_payload",
+    JSON.stringify([
+      {
+        catalogItemId: null,
+        name: "  destapado de cocina  ",
+        description: "",
+        quantity: 1,
+        unit: "unidad",
+        unitPrice: 45000,
+        nameFormat: "verbatim",
+      },
+    ]),
+  );
+
+  const parsed = parseQuotationFormData(formData, {
+    now: new Date("2026-05-26T12:00:00.000Z"),
+  });
+
+  assert.equal(parsed.items[0].name, "destapado de cocina");
+});
+
+test("el mismo payload sin nameFormat sí se title-casea", () => {
+  // Retrocompatibilidad explícita: todo lo que ya existe sigue igual.
+  const formData = new FormData();
+  formData.set("client_mode", "existing");
+  formData.set("client_id", "client-1");
+  formData.set("tax_rate", "0");
+  formData.set("valid_until", "2026-06-01");
+  formData.set(
+    "items_payload",
+    JSON.stringify([
+      {
+        catalogItemId: null,
+        name: "  destapado de cocina  ",
+        description: "",
+        quantity: 1,
+        unit: "unidad",
+        unitPrice: 45000,
+      },
+    ]),
+  );
+
+  const parsed = parseQuotationFormData(formData, {
+    now: new Date("2026-05-26T12:00:00.000Z"),
+  });
+
+  assert.equal(parsed.items[0].name, "Destapado De Cocina");
+});
+
+test("nameFormat no se filtra al item que se persiste", () => {
+  // La directiva muere en el parser: si entrara en DraftQuotationItemInput, el
+  // chat (que persiste sin pasar por acá) dejaría de compilar.
+  const formData = new FormData();
+  formData.set("client_mode", "existing");
+  formData.set("client_id", "client-1");
+  formData.set("tax_rate", "0");
+  formData.set("valid_until", "2026-06-01");
+  formData.set(
+    "items_payload",
+    JSON.stringify([
+      { name: "destapado", quantity: 1, unit: "unidad", unitPrice: 1, nameFormat: "verbatim" },
+    ]),
+  );
+
+  const parsed = parseQuotationFormData(formData, {
+    now: new Date("2026-05-26T12:00:00.000Z"),
+  });
+
+  assert.deepEqual(Object.keys(parsed.items[0]).sort(), [
+    "catalogItemId",
+    "description",
+    "name",
+    "quantity",
+    "unit",
+    "unitPrice",
+  ]);
+});
+
+test("preparar el enlace sin marcar como enviada no toca status ni sent_at", async () => {
+  // La app decía "Enviada" antes de que el usuario mandara nada: si cancelaba
+  // el menú de compartir, la cotización quedaba marcada igual.
+  const persistedUpdates: Array<{
+    shareToken: string;
+    status: string | null;
+    sentAt: string | null;
+  }> = [];
+
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-20260525-145607-A1B2C3",
+        status: "draft",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: null,
+        shareTokenExpiresAt: null,
+        sentAt: null,
+        clientPhone: "5492615551234",
+      }),
+      persistShareState: async (values) => {
+        persistedUpdates.push(values);
+      },
+      createShareToken: () => "share-token-1",
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:25:00.000Z"),
+      markAsSent: false,
+    },
+  );
+
+  // El token sí se crea (hace falta para el enlace público y el PDF).
+  assert.equal(result.shareToken, "share-token-1");
+  // El estado NO cambia.
+  assert.equal(result.shareStatus, "draft");
+  assert.equal(result.sentAt, null);
+  assert.equal(persistedUpdates.length, 1);
+  assert.equal(persistedUpdates[0]?.status, "draft");
+  assert.equal(persistedUpdates[0]?.sentAt, null);
+});
+
+test("preparar el enlace de una cotización ya enviada conserva su sent_at", async () => {
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-1",
+        status: "accepted",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: "share-token-1",
+        shareTokenExpiresAt: "2026-08-24T01:25:00.000Z",
+        sentAt: "2026-05-20T10:00:00.000Z",
+        clientPhone: null,
+      }),
+      persistShareState: async () => {
+        assert.fail("no debería reescribir nada: no cambió ningún dato");
+      },
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:25:00.000Z"),
+      markAsSent: false,
+    },
+  );
+
+  assert.equal(result.shareStatus, "accepted");
+  assert.equal(result.sentAt, "2026-05-20T10:00:00.000Z");
+});
+
+test("por default se sigue marcando como enviada (retrocompatibilidad)", async () => {
+  // El chat y el fallback de wa.me siguen usando el camino de siempre.
+  const result = await confirmQuotationWhatsappShare(
+    {
+      getQuotation: async () => ({
+        id: "quotation-1",
+        number: "COT-1",
+        status: "draft",
+        pdfPath: "user-1/quotation-pdfs/quotation-1/cotizacion.pdf",
+        shareToken: null,
+        shareTokenExpiresAt: null,
+        sentAt: null,
+        clientPhone: null,
+      }),
+      persistShareState: async () => {},
+      createShareToken: () => "share-token-1",
+    },
+    {
+      quotationId: "quotation-1",
+      now: new Date("2026-05-26T01:25:00.000Z"),
+    },
+  );
+
+  assert.equal(result.shareStatus, "pending");
+  assert.equal(result.sentAt, "2026-05-26T01:25:00.000Z");
+});

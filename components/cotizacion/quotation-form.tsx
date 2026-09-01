@@ -23,6 +23,7 @@ import {
 import { ClientPicker } from "@/components/clientes/client-picker";
 import { QuotationAttachments } from "@/components/cotizacion/quotation-attachments";
 import { QuotationItemsEditor, type QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
+import { QuotationMoreMenu } from "@/components/cotizacion/quotation-more-menu";
 import { QuotationShareActions } from "@/components/cotizacion/quotation-share-actions";
 import { QuotationSummary } from "@/components/cotizacion/quotation-summary";
 import { QuotationEditorMobile } from "@/components/cotizacion/quotation-editor-mobile";
@@ -332,6 +333,10 @@ export function QuotationForm({
           quantity: item.quantity,
           unit: item.unit.trim(),
           unitPrice: item.unitPrice,
+          // Único punto de serialización de ítems: sirve para móvil y
+          // escritorio, crear y actualizar. El default "entity" es el
+          // comportamiento histórico.
+          nameFormat: item.nameFormat ?? "entity",
         })),
       ),
     [items],
@@ -573,48 +578,47 @@ export function QuotationForm({
   }
 
   if (initialDraft && !initialEditorState) {
+    const savedQuotationId =
+      currentDraft?.quotationId ?? initialDraft.quotationId;
+    const savedNumber = currentDraft?.number ?? initialDraft.number;
+    const reopenHref = attachmentsReadOnly
+      ? null
+      : `/cotizaciones/nueva?quotationId=${savedQuotationId}&edit=1`;
+
     return (
       <div className="space-y-5 lg:space-y-6">
-        <section className="shell-panel-strong shell-highlight overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+        {/* Móvil: el número y nada más. Lo único que el usuario necesita saber
+            acá es que se guardó; lo que quiere hacer es mandarla. */}
+        <div className="space-y-1 text-center xl:hidden">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {attachmentsReadOnly ? "Cotización compartida" : "Cotización guardada"}
+          </p>
+          <p className="text-3xl font-semibold tracking-tight">{savedNumber}</p>
+        </div>
+
+        {/* Escritorio: el panel de siempre, con sus tres caminos a la vista. */}
+        <section className="shell-panel-strong shell-highlight hidden overflow-hidden px-5 py-6 sm:px-7 sm:py-7 xl:block">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-4">
               <span className="inline-flex w-fit rounded-full border border-token bg-background/70 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Borrador creado
+                {attachmentsReadOnly ? "Cotización compartida" : "Borrador creado"}
               </span>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-semibold tracking-tight">
-                  {currentDraft?.number}
-                </h3>
-                <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                  {attachmentsReadOnly
-                    ? "Esta cotización ya fue compartida. Desde acá podés revisar el PDF, reenviarla por WhatsApp y consultar sus adjuntos en solo lectura."
-                    : "Este borrador ya existe. Desde esta vista podés completar adjuntos, regenerar el PDF o volver al historial sin duplicar información."}
-                </p>
-              </div>
+              <h3 className="text-3xl font-semibold tracking-tight">
+                {savedNumber}
+              </h3>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              {attachmentsReadOnly ? null : (
-                <Button
-                  type="button"
-                  onClick={() =>
-                    router.push(
-                      `/cotizaciones/nueva?quotationId=${currentDraft?.quotationId ?? initialDraft.quotationId}&edit=1`,
-                    )
-                  }
-                >
+              {reopenHref ? (
+                <Button type="button" onClick={() => router.push(reopenHref)}>
                   Editar ítems y notas
                 </Button>
-              )}
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 className="bg-background/75"
-                onClick={() =>
-                  router.push(
-                    `/cotizaciones/${currentDraft?.quotationId ?? initialDraft.quotationId}`,
-                  )
-                }
+                onClick={() => router.push(`/cotizaciones/${savedQuotationId}`)}
               >
                 Ver cotización
               </Button>
@@ -635,9 +639,11 @@ export function QuotationForm({
           </div>
         </section>
 
+        {/* La acción principal, en los dos anchos. En el celular es el único
+            botón de acento de la pantalla. */}
         <QuotationShareActions
-          quotationId={currentDraft?.quotationId ?? initialDraft.quotationId}
-          quotationNumber={currentDraft?.number ?? initialDraft.number}
+          quotationId={savedQuotationId}
+          quotationNumber={savedNumber}
           initialPdfGeneratedAt={
             currentDraft?.pdfGeneratedAt ?? initialDraft.pdfGeneratedAt ?? null
           }
@@ -646,8 +652,27 @@ export function QuotationForm({
           }
           initialSentAt={currentDraft?.sentAt ?? initialDraft.sentAt ?? null}
           initialStatus={currentDraft?.status ?? initialDraft.status ?? null}
+          secondaryPdfActions="desktopOnly"
           onStateChange={handleShareStateChange}
         />
+
+        {/* Todo lo demás, en un solo lugar. En escritorio están los botones del
+            panel de arriba, así que el menú es solo del celular. */}
+        <div className="flex justify-center xl:hidden">
+          <QuotationMoreMenu
+            quotationId={savedQuotationId}
+            quotationNumber={savedNumber}
+            initialStatus={currentDraft?.status ?? initialDraft.status ?? null}
+            paidAt={null}
+            pdfGeneratedAt={
+              currentDraft?.pdfGeneratedAt ?? initialDraft.pdfGeneratedAt ?? null
+            }
+            shareToken={currentDraft?.shareToken ?? initialDraft.shareToken ?? null}
+            reopenHref={reopenHref}
+            showSecondaryPdfActions
+            triggerLabel="Más opciones"
+          />
+        </div>
 
         <QuotationAttachments
           quotationId={currentDraft?.quotationId ?? null}

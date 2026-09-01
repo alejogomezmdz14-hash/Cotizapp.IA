@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isDraftQuotationStatus, normalizeQuotationStatus } from "@/lib/quotation-status";
+import { inferQuotationItemNameFormat } from "@/lib/quotation-item-name";
 import { getHydratedQuotation } from "@/lib/quotations";
 import type { QuotationEditorItem } from "@/components/cotizacion/quotation-items-editor";
 
@@ -48,6 +49,11 @@ export async function getQuotationEditorState(
       quantity: item.quantity,
       unit: item.unit,
       unitPrice: item.unitPrice,
+      // Sin esto el round-trip rompe: guardás "destapado de cocina", reabrís
+      // con ?edit=1, tocás cualquier cosa, guardás, y se title-casea solo.
+      // La inferencia es conservadora, así que las filas que ya existen
+      // conservan su comportamiento actual sin migración.
+      nameFormat: inferQuotationItemNameFormat(item.name),
     })),
     pdfGeneratedAt: quotation.pdf_generated_at,
     shareToken: quotation.share_token,

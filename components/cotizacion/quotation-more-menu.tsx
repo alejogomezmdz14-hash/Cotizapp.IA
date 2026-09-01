@@ -50,6 +50,11 @@ type QuotationMoreMenuProps = {
   shareToken?: string | null;
   reopenHref?: string | null;
   showSecondaryPdfActions?: boolean;
+  /**
+   * Texto visible del disparador. Sin esto el botón es solo el icono «⋯», que
+   * en el celular no se entiende en dos segundos.
+   */
+  triggerLabel?: string;
 };
 
 export function QuotationMoreMenu({
@@ -61,6 +66,7 @@ export function QuotationMoreMenu({
   shareToken = null,
   reopenHref,
   showSecondaryPdfActions = false,
+  triggerLabel,
 }: QuotationMoreMenuProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -94,16 +100,28 @@ export function QuotationMoreMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="bg-background/75"
-            disabled={isBusy}
-            aria-label="Más acciones"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          {triggerLabel ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 gap-2 bg-background/75"
+              disabled={isBusy}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+              {triggerLabel}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="bg-background/75"
+              disabled={isBusy}
+              aria-label="Más acciones"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           {showSecondaryPdfActions ? (

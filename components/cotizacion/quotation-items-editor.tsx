@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { calculateQuotationLineTotal } from "@/lib/quotation-calculations";
 import { formatCurrencyAmount } from "@/lib/formatting";
+import type { QuotationItemNameFormat } from "@/lib/quotation-item-name";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "@/types";
 
@@ -35,6 +36,13 @@ export type QuotationEditorItem = {
   quantity: number;
   unit: string;
   unitPrice: number;
+  /**
+   * Cómo guardar el nombre: `"entity"` lo title-casea (default histórico),
+   * `"verbatim"` lo deja tal cual. Lo usa el modo "monto único" del editor
+   * móvil, donde el nombre del ítem es la descripción del trabajo y va así al
+   * PDF. Opcional a propósito: los consumidores que no lo setean no cambian.
+   */
+  nameFormat?: QuotationItemNameFormat;
 };
 
 type QuotationItemsEditorProps = {
